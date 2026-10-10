@@ -1,0 +1,87 @@
+<Window x:Class="Launcher.Modules.Commands.CommandSuggestionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sugerencias"
+        Height="520" Width="420"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource Brush.Background}"
+            BorderBrush="{DynamicResource Brush.BorderStrong}"
+            BorderThickness="1"
+            CornerRadius="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.6" />
+        </Border.Effect>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="&gt; Sugerencias de sistema"
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="16"
+                       Foreground="{DynamicResource Brush.TextPrimary}"
+                       Margin="0,0,0,6" MouseLeftButtonDown="Header_MouseLeftButtonDown" />
+            <TextBlock Grid.Row="0" VerticalAlignment="Bottom" Margin="0,0,0,-14"
+                       Text="Selecciona las que quieras anadir a Comandos."
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                       Foreground="{DynamicResource Brush.TextDim}" />
+
+            <ScrollViewer Grid.Row="1" Margin="0,22,0,0" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="SuggestionsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource Brush.Surface}"
+                                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                                    CornerRadius="6" Margin="0,0,0,8" Padding="10">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,2,10,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Brush.TextPrimary}" FontSize="13" />
+                                        <TextBlock Text="{Binding Description}" Margin="0,3,0,0"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                   Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                <Button Content="Cancelar" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="Cancel_Click" />
+                <Button Content="Anadir seleccionados" Style="{StaticResource AccentButton}" Click="AddSelected_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

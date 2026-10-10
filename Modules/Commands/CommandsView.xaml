@@ -1,0 +1,235 @@
+<UserControl x:Class="Launcher.Modules.Commands.CommandsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Launcher.Core.Converters">
+
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+
+        <Style x:Key="ToolbarBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}" />
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ChipStyle" TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="{DynamicResource Brush.Surface}"
+                                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                                CornerRadius="12" Padding="12,5">
+                            <ContentPresenter HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.BorderStrong}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Background}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===================== TOOLBAR ===================== -->
+        <Grid Grid.Row="0" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="SearchBox" Grid.Column="0" Style="{StaticResource ToolbarBox}"
+                     Tag="buscar comando..." Margin="0,0,10,0"
+                     TextChanged="SearchBox_TextChanged" />
+
+            <ComboBox x:Name="SortCombo" Grid.Column="1" Width="160" Margin="0,0,10,0"
+                      SelectedIndex="0" SelectionChanged="SortCombo_SelectionChanged">
+                <ComboBoxItem Content="Nombre" />
+                <ComboBoxItem Content="Favoritos primero" />
+                <ComboBoxItem Content="Usado recientemente" />
+            </ComboBox>
+
+            <Button Grid.Column="2" Content="Sugerencias" Style="{StaticResource ToolButton}"
+                    Margin="0,0,10,0" Click="Suggestions_Click" />
+
+            <Button Grid.Column="3" Content="+ Anadir" Style="{StaticResource ToolButton}" Click="AddCommand_Click" />
+        </Grid>
+
+        <!-- ===================== FILTROS (chips) ===================== -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
+            <RadioButton x:Name="FilterAll" Content="Todos" GroupName="Filter" Style="{StaticResource ChipStyle}" IsChecked="True" Checked="Filter_Changed" />
+            <RadioButton x:Name="FilterApps" Content="Apps" GroupName="Filter" Style="{StaticResource ChipStyle}" Checked="Filter_Changed" />
+            <RadioButton x:Name="FilterPeripherals" Content="Perifericos" GroupName="Filter" Style="{StaticResource ChipStyle}" Checked="Filter_Changed" />
+            <RadioButton x:Name="FilterSystem" Content="Sistema" GroupName="Filter" Style="{StaticResource ChipStyle}" Checked="Filter_Changed" />
+            <RadioButton x:Name="FilterCli" Content="CLI" GroupName="Filter" Style="{StaticResource ChipStyle}" Checked="Filter_Changed" />
+        </StackPanel>
+
+        <!-- ===================== GRID DE TARJETAS ===================== -->
+        <Grid Grid.Row="2">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="CommandsItems">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardStyle}" Width="150" Height="140" Margin="0,0,14,14"
+                                    MouseLeftButtonDown="Card_MouseLeftButtonDown"
+                                    ContextMenuOpening="Card_ContextMenuOpening"
+                                    Cursor="Hand">
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Ejecutar" Click="RunMenuItem_Click" />
+                                        <Separator />
+                                        <MenuItem Header="Editar" Click="EditMenuItem_Click" />
+                                        <MenuItem Tag="Favorite" Header="Marcar como favorito" Click="FavoriteMenuItem_Click" />
+                                        <Separator />
+                                        <MenuItem Header="Eliminar" Click="DeleteMenuItem_Click" />
+                                    </ContextMenu>
+                                </Border.ContextMenu>
+
+                                <Grid>
+                                    <Grid Margin="14">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <Border Grid.Row="0" Width="46" Height="46" CornerRadius="10"
+                                                Background="{DynamicResource Brush.AccentDim}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Icon}"
+                                                       FontFamily="{DynamicResource Font.Icons}"
+                                                       FontSize="20"
+                                                       Foreground="{DynamicResource Brush.Accent}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <TextBlock Grid.Row="1" Text="{Binding Name}" Margin="0,10,0,0"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}" FontSize="13"
+                                                   TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                                        <TextBlock Grid.Row="2" Text="{Binding CategoryLabel}" Margin="0,4,0,0"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                   Foreground="{DynamicResource Brush.TextDim}" TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!-- Favorito -->
+                                    <TextBlock Text="&#xE734;" FontFamily="{DynamicResource Font.Icons}" FontSize="12"
+                                               HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                                <Setter Property="Opacity" Value="0.35" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Favorite}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- Etiqueta CMD / PS -->
+                                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                                            Background="{DynamicResource Brush.SurfaceActive}"
+                                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                                            CornerRadius="3" Padding="5,1">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding TerminalTag}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding TerminalTag}" FontFamily="{DynamicResource Font.Mono}" FontSize="9"
+                                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+                                    </Border>
+
+                                    <!-- Etiqueta ADMIN -->
+                                    <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                                            Background="{DynamicResource Brush.Surface}"
+                                            BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1"
+                                            CornerRadius="3" Padding="5,1"
+                                            Visibility="{Binding RunAsAdmin, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="ADMIN" FontFamily="{DynamicResource Font.Mono}" FontSize="8"
+                                                   Foreground="{DynamicResource Brush.Warning}" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Estado vacio -->
+            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <TextBlock Text="&gt; sin resultados_" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
+                           Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

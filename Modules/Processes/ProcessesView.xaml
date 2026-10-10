@@ -1,0 +1,450 @@
+<UserControl x:Class="Launcher.Modules.Processes.ProcessesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Launcher.Core.Converters">
+
+    <UserControl.Resources>
+
+        <conv:DepthToIndentConverter x:Key="DepthToIndent" />
+
+        <SolidColorBrush x:Key="RowFrozenBackground" Color="#33E5484D" />
+        <SolidColorBrush x:Key="CellWarningBackground" Color="#22E0B84C" />
+
+        <Style x:Key="ToolbarBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}" />
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GhostToolButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Boton pequeno de "Finalizar" incrustado en cada fila -->
+        <Style x:Key="KillButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Danger}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ColHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Padding" Value="8,8" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="Cell" TargetType="DataGridCell">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ContextMenu x:Key="RowContextMenu">
+            <MenuItem Header="Finalizar tarea" Click="EndTaskMenuItem_Click" />
+        </ContextMenu>
+
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===================== TOOLBAR ===================== -->
+        <Grid Grid.Row="0" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="SearchBox" Grid.Column="0" Style="{StaticResource ToolbarBox}"
+                     Tag="buscar proceso..." Margin="0,0,10,0"
+                     TextChanged="SearchBox_TextChanged" />
+
+            <TextBlock x:Name="CountText" Grid.Column="1" VerticalAlignment="Center"
+                       Margin="0,0,14,0" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                       Foreground="{DynamicResource Brush.TextDim}" />
+
+            <Button Grid.Column="2" Content="&#xE72C;  Actualizar" Style="{StaticResource GhostToolButton}"
+                    Click="Refresh_Click" />
+        </Grid>
+
+        <!-- ===================== TABLA ===================== -->
+        <Grid Grid.Row="1">
+            <DataGrid x:Name="ProcessesGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      CanUserReorderColumns="False" CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None"
+                      RowHeaderWidth="0"
+                      SelectionUnit="FullRow" SelectionMode="Single"
+                      Background="Transparent" BorderThickness="0"
+                      RowBackground="Transparent" AlternatingRowBackground="Transparent"
+                      ColumnHeaderStyle="{StaticResource ColHeader}"
+                      CellStyle="{StaticResource Cell}"
+                      VerticalScrollBarVisibility="Auto"
+                      EnableRowVirtualization="True"
+                      Sorting="ProcessesGrid_Sorting">
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Setter Property="ContextMenu" Value="{StaticResource RowContextMenu}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <!-- Congelado: prioridad sobre hover, se declara el ultimo. -->
+                            <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource RowFrozenBackground}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+
+                    <!-- Proceso: flecha de expandir (solo si tiene hijos) + icono + nombre + contador -->
+                    <DataGridTemplateColumn Header="Proceso" Width="*" SortMemberPath="Name">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="Transparent" Cursor="Hand" MouseLeftButtonDown="NameCell_MouseLeftButtonDown">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                                Margin="{Binding Depth, Converter={StaticResource DepthToIndent}}"
+                                                Height="36">
+                                        <StackPanel Margin="10,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Width="16" FontFamily="{DynamicResource Font.Icons}" FontSize="10"
+                                                       VerticalAlignment="Center" Text="&#xE76C;">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Hidden" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasChildren}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                <Setter Property="Text" Value="&#xE70D;" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <Image Source="{Binding Icon}" Width="18" Height="18" Margin="6,0,10,0" />
+
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}"
+                                                       FontFamily="{DynamicResource Font.Primary}"
+                                                       FontSize="12.5" TextTrimming="CharacterEllipsis" />
+
+                                            <TextBlock Text="{Binding CountLabel}" VerticalAlignment="Center"
+                                                       Margin="8,0,0,0"
+                                                       FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                                       Foreground="{DynamicResource Brush.TextDim}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- CPU % -->
+                    <DataGridTemplateColumn Header="CPU %" Width="80" SortMemberPath="CpuPercent">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Padding="6,4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCpuHigh}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource CellWarningBackground}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding CpuPercent, StringFormat={}{0:N0}%}"
+                                               FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                               HorizontalAlignment="Right">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCpuHigh}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                        <Setter Property="FontWeight" Value="Bold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- RAM -->
+                    <DataGridTemplateColumn Header="RAM" Width="110" SortMemberPath="RamMB">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Padding="6,4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRamHigh}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource CellWarningBackground}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding RamMB, StringFormat={}{0:N0} MB}"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                                   HorizontalAlignment="Right">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRamHigh}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                            <Setter Property="FontWeight" Value="Bold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding RamPercent, StringFormat={}{0:N1}%}"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                   Foreground="{DynamicResource Brush.TextDim}"
+                                                   HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- GPU % -->
+                    <DataGridTemplateColumn Header="GPU %" Width="80" SortMemberPath="GpuPercent">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Padding="6,4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsGpuHigh}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource CellWarningBackground}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding GpuPercent, StringFormat={}{0:N0}%}"
+                                               FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                               HorizontalAlignment="Right">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsGpuHigh}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                        <Setter Property="FontWeight" Value="Bold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- VRAM -->
+                    <DataGridTemplateColumn Header="VRAM" Width="110" SortMemberPath="VramMB">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Padding="6,4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsVramHigh}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource CellWarningBackground}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding VramMB, StringFormat={}{0:N0} MB}"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                                   HorizontalAlignment="Right">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsVramHigh}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                            <Setter Property="FontWeight" Value="Bold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding VramPercent, StringFormat={}{0:N1}%}"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                   Foreground="{DynamicResource Brush.TextDim}"
+                                                   HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Estado -->
+                    <DataGridTemplateColumn Header="Estado" Width="100" SortMemberPath="IsFrozen">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="3" Padding="7,3" HorizontalAlignment="Left" Margin="10,0,0,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                                                    <Setter Property="Background" Value="#55E5484D" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock FontFamily="{DynamicResource Font.Mono}" FontSize="10">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="activo" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                                                        <Setter Property="Text" Value="congelado" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Acciones: boton de Finalizar por fila (grupo entero o proceso individual) -->
+                    <DataGridTemplateColumn Header="" Width="96" CanUserSort="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource KillButtonStyle}" Margin="10,4,10,4"
+                                        Click="EndTaskButton_Click">
+                                    <Button.Content>
+                                        <TextBlock>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="Finalizar" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasChildren}" Value="True">
+                                                            <Setter Property="Text" Value="Finalizar todo" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Button.Content>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Estado vacio -->
+            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <TextBlock Text="&gt; sin resultados_" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
+                           Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>
