@@ -1,161 +1,108 @@
-<<<<<<< HEAD
-# Launcher — Esqueleto base
+# Launcher
 
-Plataforma de escritorio modular en C# / WPF (.NET 8). Esta es la base: ventana,
-navegación entre módulos y sistema de temas. Los 9 módulos son placeholders vacíos
-para validar que la arquitectura funciona antes de implementarlos uno a uno.
+Plataforma de escritorio modular en C# / WPF sobre **.NET 10**, con tema oscuro
+de acento verde y toques retro-terminal. Cada modulo (Juegos, Carpetas,
+Multimedia, Comandos, Monitor, Procesos, Configuracion...) es una pieza
+independiente que se registra en `MainWindow.xaml.cs`.
 
-## Cómo ejecutarlo
+## Requisitos
 
-1. Necesitas el **.NET 8 SDK** instalado (`dotnet --version` para comprobarlo).
-2. Abre la carpeta `Launcher/` en VS Code.
-3. `F5` (con C# Dev Kit) o `Ctrl+F5` para ejecutar sin debugger.
-   - Si prefieres terminal: `dotnet run` dentro de la carpeta.
+- Windows 10 (1809 o superior) o Windows 11.
+- **SDK de .NET 10** (`dotnet --version` debe empezar por `10`).
 
-## Tema
+## Ejecutar en desarrollo
 
-Dark UI moderna con acento verde y toques retro-terminal, sin caer en el CRT completo:
+1. Abre la carpeta del proyecto en VS Code o Visual Studio.
+2. `F5` (o `Ctrl+F5` sin depurador). Por terminal: `dotnet run`.
 
-- **Colores**: fondo casi negro con tinte verde (`Color.Background`), verde fósforo
-  atenuado como acento (`Color.Accent` = `#3ECF7E`), todo centralizado en
-  `UI/Themes/Theme.Dark.xaml`.
-- **Tipografía**: `Segoe UI` para texto normal/legible; `Cascadia Mono` (con
-  fallback a Consolas / Courier New) reservada para el toque retro — título de
-  la ventana, nombres de módulo en el sidebar, badges y datos numéricos/stats.
-- **Detalles retro**: el módulo activo en el sidebar muestra una barrita verde
-  tipo "cursor de terminal" a la izquierda; el punto junto a "LAUNCHER" en la
-  barra de título tiene un glow verde sutil (`Effect.AccentGlow`, reutilizable).
-- **Estilos ya listos para usar en módulos futuros**: `CardStyle` (tarjetas,
-  para grids de Juegos/Carpetas), `BadgeStyle` (chips tipo "Steam" / "Favorito"),
-  `MonoTextStyle` / `MonoHeadingStyle` (texto monoespaciado).
+Notas:
 
-Para un tema claro más adelante: crear `Theme.Light.xaml` con las mismas claves
-(`Brush.Background`, `Brush.Accent`, etc.) y cambiar el `MergedDictionary` en
-`App.xaml` — ningún módulo tendría que tocarse porque todos usan `DynamicResource`.
+- Desde `dotnet run` / Visual Studio la app **no esta instalada**, asi que la
+  comprobacion de actualizaciones queda en "no instalada" (es lo esperado).
+- Si Windows bloquea el `.exe` con el error 4551 ("Una directiva de Control de
+  aplicaciones bloqueo este archivo"), es Smart App Control: el ejecutable no
+  esta firmado.
+- Las versiones Debug y Release usan nombres de instancia unica distintos, asi
+  que se puede desarrollar con la version instalada abierta.
 
-## Qué hay montado
+## Modulos
 
-- **Ventana sin bordes** con esquinas redondeadas, sombra, barra de título propia
-  (arrastrable, doble clic para maximizar) — `MainWindow.xaml`.
-- **Sidebar** con los 9 módulos, generado dinámicamente a partir de una lista de
-  `IModule` — no hay nada hardcodeado en XAML, añadir un módulo es añadir una línea.
-- **Sistema de temas** en `UI/Themes/Theme.Dark.xaml`: todos los colores están
-  centralizados como `DynamicResource`, así que añadir un tema claro más adelante
-  es crear `Theme.Light.xaml` con las mismas claves y cambiar el `MergedDictionary`
-  en tiempo de ejecución.
-- **`IModule`** (`Core/Interfaces/IModule.cs`): contrato que deberá implementar cada
-  módulo real. De momento todos usan `PlaceholderModule`, que solo pinta un texto.
+| Modulo | Estado |
+| --- | --- |
+| Juegos | Biblioteca con portadas, Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe` |
+| Carpetas | Accesos directos a carpetas |
+| Multimedia | Reproduccion actual del sistema y mezclador de volumen por aplicacion |
+| Comandos | Accesos a apps, herramientas de sistema y comandos de terminal |
+| Monitor | CPU, RAM, GPU/VRAM, red y discos en tiempo real |
+| Procesos | Lista agrupada con CPU, RAM, GPU y VRAM; finalizar tareas |
+| Configuracion | Arranque, ventana, bandeja, atajo global, juegos, actualizaciones, datos |
+| Musica, Buscar | Placeholders pendientes |
+
+El asistente de IA local (Ollama) esta en preparacion: la ventana y el cliente
+existen en `Modules/Assistant` y `Core/Services/OllamaService.cs`, pero todavia
+no estan integrados.
+
+## Datos del usuario
+
+Todo se guarda en `%AppData%\Launcher` y no se toca al actualizar:
+
+- `config.json`: ajustes de la aplicacion.
+- `settings.json`: carpetas de Steam y Epic.
+- `games.json`, `ignored-games.json`, `folders.json`, `commands.json`,
+  `media_apps.json`.
+- `covers\`: portadas descargadas.
+- `logs\`: registro de errores (se conservan 7 dias).
+
+## Publicar y actualizar
+
+Las actualizaciones usan [Velopack](https://velopack.io).
+
+Una sola vez:
+
+```powershell
+dotnet tool install -g vpk
+```
+
+Para cada version nueva:
+
+1. Sube `<Version>` en `Launcher.csproj`.
+2. Haz commit y crea la etiqueta (`git tag v0.2.0`).
+3. Ejecuta `.\publish.ps1`. Publica en modo autocontenido y empaqueta en
+   `%USERPROFILE%\LauncherReleases`.
+
+La primera vez, instala con el `Setup.exe` de esa carpeta. Despues, la app
+instalada busca versiones nuevas al abrir y cada 6 horas; si hay una, el texto
+de version del sidebar se vuelve verde y al pulsarlo se actualiza. La carpeta
+de versiones se cambia en Configuracion > Actualizaciones.
 
 ## Estructura
 
 ```
 Launcher/
+├── Program.cs                  # Main propio (Velopack antes que WPF)
+├── App.xaml(.cs)               # instancia unica y manejo de errores
+├── MainWindow.xaml(.cs)        # ventana, sidebar y registro de modulos
+├── publish.ps1                 # publica y empaqueta una version nueva
+├── Assets/launcher.ico
 ├── Core/
-│   ├── Interfaces/IModule.cs       # contrato de cada módulo
-│   └── Models/PlaceholderModule.cs # implementación temporal
+│   ├── Interfaces/             # IModule, IGameProvider
+│   ├── Models/
+│   ├── Services/               # ajustes, ventana, actualizaciones, registro...
+│   ├── Converters/
+│   └── Mvvm/
 ├── UI/
-│   ├── Themes/Theme.Dark.xaml      # colores, estilos, tipografía
-│   └── Controls/NavButton.cs       # botón del sidebar (icono + texto)
-├── Modules/                        # carpetas vacías, un módulo por carpeta
-│   ├── Games/  Folders/  Media/  Music/
-│   ├── Search/ Commands/ Monitor/ Processes/ Settings/
-├── MainWindow.xaml(.cs)
-├── App.xaml(.cs)
-└── Launcher.csproj
+│   ├── Themes/Theme.Dark.xaml  # colores, estilos, tipografia
+│   └── Controls/NavButton.cs
+└── Modules/                    # un modulo por carpeta
 ```
 
-Las carpetas en `Modules/` están vacías a propósito: cuando implementes un módulo,
-creas ahí su `UserControl` (vista), su `...Module.cs` (implementa `IModule`) y sus
-propios modelos/servicios, y lo registras en `MainWindow.xaml.cs` sustituyendo su
-`PlaceholderModule` correspondiente.
+## Tema
 
-## Módulo Juegos
+- Colores y estilos centralizados en `UI/Themes/Theme.Dark.xaml`.
+- `Segoe UI` para texto normal y `Cascadia Mono` para el toque retro.
+- Iconos con **Segoe MDL2 Assets** (Windows 10 y 11).
 
-Primer módulo real (ya no es placeholder). Qué hace:
-
-- **Grid de tarjetas** con portada (o inicial del nombre si no hay imagen), nombre y origen.
-- **Buscar** por nombre en tiempo real.
-- **Filtros** (chips): Todos / Favoritos / Steam / Epic / Manuales / Ocultos.
-- **Ordenar**: Nombre, Último jugado, Más jugado, Favoritos primero.
-- **Añadir manualmente**: nombre, ejecutable, argumentos, portada (diálogo propio).
-- **Editar / Favorito / Ocultar / Eliminar**: clic derecho sobre la tarjeta.
-  Eliminar solo quita la entrada del launcher — nunca borra el juego real.
-- **Doble clic** en una tarjeta lanza el juego.
-- Persistencia en `%AppData%\Launcher\games.json`.
-
-### Arquitectura (patrón GameProvider)
-
-`Game` no sabe de dónde viene. Cada fuente implementa `IGameProvider`
-(`Core/Interfaces/IGameProvider.cs`) con un método `DetectGamesAsync()`:
-
-```
-Modules/Games/Providers/
-├── SteamGameProvider.cs   # TODO: leer libraryfolders.vdf + appmanifest_*.acf
-└── EpicGameProvider.cs    # TODO: leer manifiestos *.item de Epic
-```
-
-Ahora mismo ambos devuelven listas vacías a propósito — la detección real necesita
-leer el registro/discos de Windows, así que hay que probarla en tu máquina. El botón
-"Sincronizar" de la vista ya llama a `GameLibraryService.SyncAsync(...)`, que fusiona
-lo detectado sin pisar ediciones manuales (hace match por `Source` + `ExternalId`).
-Cuando implementes el provider de verdad, solo tienes que rellenar `DetectGamesAsync()`
-— el resto (fusión, UI, persistencia) ya funciona.
-
-### Sincronizacion con Steam / Epic (por carpetas, no por cuenta)
-
-Login con OAuth de cada plataforma es mucho mas complejo (hay que registrar la app
-en sus developer portals) y no hacia falta: los dos launchers dejan en disco todo
-lo necesario para detectar los juegos instalados.
-
-- Boton **engranaje** (junto a Sincronizar): abre un dialogo para indicar la carpeta
-  de instalacion de Steam y/o la carpeta de manifiestos de Epic. Tiene un boton
-  "Auto-detectar" que prueba el registro de Windows / rutas por defecto; si falla,
-  se indican a mano con el selector de carpetas.
-- Boton **Sincronizar**: si no hay ninguna carpeta configurada, abre ese mismo
-  dialogo antes de sincronizar. Luego fusiona lo detectado con tu biblioteca sin
-  tocar tus ediciones manuales (hace match por `Source` + `ExternalId`).
-- **Steam**: lee `steamapps/libraryfolders.vdf` (para encontrar bibliotecas en
-  varios discos) y los `appmanifest_<appid>.acf` de cada una (nombre + appid).
-  Lanza con el protocolo `steam://rungameid/{appid}` en vez de adivinar el .exe.
-- **Epic**: lee los manifiestos `.item` (JSON) en la carpeta de Epic. Lanza con
-  `com.epicgames.launcher://apps/{AppName}?action=launch`.
-
-Esta logica sigue el formato conocido/documentado de esos archivos, pero no ha
-podido probarse contra una instalacion real de Steam/Epic desde aqui. Si algo no
-detecta bien al probarlo en tu maquina, dime el error (o pega el contenido de un
-`.acf` / `.item` de ejemplo) y lo ajustamos.
-
-### Portada automatica
-
-En el dialogo de anadir/editar hay un boton "Buscar portada automaticamente":
-busca el nombre en la Steam Store (API publica, sin necesitar clave) y descarga
-la carpeta vertical de la ficha a `%AppData%\Launcher\covers`. Funciona incluso
-para juegos que no son de Steam, mientras el nombre coincida con algo publicado
-ahi. Los juegos sincronizados desde Steam ya traen la portada automaticamente
-(usa el appid directo, sin tener que buscar por nombre); los de Epic la buscan
-por nombre igual que el boton manual.
-
-Requiere conexion a internet cuando se ejecuta la app (el sandbox donde yo
-trabajo no tiene red, asi que esto tampoco se ha podido probar en vivo).
-
-## Próximos pasos sugeridos
-
-1. Elegir el primer módulo real a implementar (Juegos es el más grande; Carpetas
-   el más sencillo para probar el patrón de extremo a extremo).
-2. Definir los modelos de datos (`Game`, `FolderShortcut`, etc.) y cómo se
-   persisten (JSON local, SQLite...).
-3. Decidir el patrón de `GameProvider` (Steam/Epic/Manual) antes de tocar la UI
-   de Juegos, para no acoplar la vista a una fuente concreta.
-
-## Notas / limitaciones conocidas de este esqueleto
-
-- Con `AllowsTransparency="True"` (necesario para las esquinas redondeadas), el
-  grip de resize nativo de WPF no se ve, aunque `ResizeMode` sigue permitiendo
-  redimensionar arrastrando los bordes. Si molesta, se puede sustituir por
-  `WindowChrome` + `DwmSetWindowAttribute` (Windows 11) para bordes redondeados
-  nativos sin perder el resize grip — lo dejamos para cuando pulamos la UI.
-- Los iconos usan **Segoe MDL2 Assets** (disponible en Windows 10 y 11). Si en
-  algún momento migráis a Fluent Icons habría que cambiar los glifos.
-=======
-# Launcher-personal
->>>>>>> 0fc9d0fc5dbe97a200a8fe7ac1d77aac215453c6
+Para un tema claro bastaria crear `Theme.Light.xaml` con las mismas claves y
+cambiar el `MergedDictionary` en `App.xaml`; hoy varios estilos usan
+`StaticResource`, asi que habria que pasarlos a `DynamicResource` para
+cambiarlo en caliente.

@@ -8,7 +8,6 @@ using Launcher.Modules.Games;
 using Launcher.Modules.Folders;
 using Launcher.UI.Controls;
 using Launcher.Modules.Media;
-using System.Windows.Media;
 
 
 namespace Launcher;
@@ -105,7 +104,7 @@ public partial class MainWindow : Window
         }
     }
 
-        // ===================== Actualizaciones =====================
+    // ===================== Actualizaciones =====================
 
     /// <summary>Si hay version nueva, el texto de version del sidebar se vuelve verde y clicable.</summary>
     private void RefreshUpdateIndicator()
@@ -119,7 +118,8 @@ public partial class MainWindow : Window
         else if (update.Status == UpdateStatus.Available)
         {
             VersionText.Text = $"v{update.AvailableVersion} disponible";
-            VersionText.Foreground = (Brush)FindResource("Brush.Accent");
+            // Nombre completo: System.Drawing.Brush tambien esta en los using globales de net10.
+            VersionText.Foreground = (System.Windows.Media.Brush)FindResource("Brush.Accent");
             VersionText.Cursor = Cursors.Hand;
             VersionText.ToolTip = $"Estas en {_baseVersionText}. Clic para actualizar.";
         }

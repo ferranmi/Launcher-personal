@@ -13,8 +13,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\launcher.ico</ApplicationIcon>
-    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
+
+    <!-- Main propio (Program.cs): Velopack debe ejecutarse antes que WPF. -->
+    <StartupObject>Launcher.Program</StartupObject>
   </PropertyGroup>
+
+  <!-- App.xaml pasa de ApplicationDefinition a Page para que WPF no genere su propio Main. -->
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
 
   <!-- Evita la ambiguedad UserControl/Application/RadioButton/Button entre
        System.Windows.Forms y System.Windows.*: quitamos el using global
@@ -25,10 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <Resource Include="Assets\launcher.ico" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="10.0.*" />
   </ItemGroup>
 
 </Project>

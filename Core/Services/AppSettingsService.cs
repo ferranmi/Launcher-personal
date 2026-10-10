@@ -16,6 +16,9 @@ public class AppSettingsService
 
     private static readonly string ConfigPath = Path.Combine(AppFolder, "config.json");
 
+    public static readonly string DefaultUpdateSource = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
+
     private static AppSettingsService? _instance;
     public static AppSettingsService Instance => _instance ??= Load();
 
@@ -50,6 +53,14 @@ public class AppSettingsService
 
     /// <summary>"small", "medium" o "large".</summary>
     public string CardSize { get; set; } = "medium";
+
+    // ----- Actualizaciones -----
+
+    /// <summary>Carpeta (o URL) donde estan las versiones empaquetadas con vpk.</summary>
+    public string UpdateSource { get; set; } = DefaultUpdateSource;
+
+    /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
+    public bool CheckUpdatesOnStartup { get; set; } = true;
 
     private static AppSettingsService Load()
     {
@@ -99,18 +110,9 @@ public class AppSettingsService
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
-        // ----- Actualizaciones -----
-        public static readonly string DefaultUpdateSource = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
-
-        /// <summary>Carpeta (o URL) donde estan las versiones empaquetadas con vpk.</summary>
-        public string UpdateSource { get; set; } = DefaultUpdateSource;
-
-        /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
-        public bool CheckUpdatesOnStartup { get; set; } = true;
-        Save();
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
+        Save();
     }
 
     /// <summary>Aplica a una ventana los ajustes que le afectan directamente.</summary>

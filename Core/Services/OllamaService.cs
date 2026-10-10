@@ -43,9 +43,11 @@ public class OllamaService
 
         // Ollama devuelve un objeto JSON por linea (no es un array), cada uno con
         // un fragmento del mensaje. La ultima linea trae "done": true.
-        while (!reader.EndOfStream)
+        // Se lee hasta que ReadLineAsync devuelve null (fin del flujo) en vez de
+        // consultar reader.EndOfStream, que puede bloquear el hilo en un metodo asincrono.
+        string? line;
+        while ((line = await reader.ReadLineAsync(ct)) != null)
         {
-            var line = await reader.ReadLineAsync(ct);
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             using var doc = JsonDocument.Parse(line);
