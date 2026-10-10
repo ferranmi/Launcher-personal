@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Launcher — Esqueleto base
 
 Plataforma de escritorio modular en C# / WPF (.NET 8). Esta es la base: ventana,
@@ -155,3 +156,6 @@ trabajo no tiene red, asi que esto tampoco se ha podido probar en vivo).
   nativos sin perder el resize grip — lo dejamos para cuando pulamos la UI.
 - Los iconos usan **Segoe MDL2 Assets** (disponible en Windows 10 y 11). Si en
   algún momento migráis a Fluent Icons habría que cambiar los glifos.
+=======
+# Launcher-personal
+>>>>>>> 0fc9d0fc5dbe97a200a8fe7ac1d77aac215453c6
