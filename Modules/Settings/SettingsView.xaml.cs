@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using Launcher.Core.Services;
 using Launcher.Modules.Games;
 using Launcher.Core.Models;
+using WinForms = System.Windows.Forms;
 
 namespace Launcher.Modules.Settings;
 
@@ -27,6 +28,8 @@ public partial class SettingsView : UserControl
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
     private void LoadFromState()
     {
+        CheckUpdatesToggle.IsChecked = _settings.CheckUpdatesOnStartup;
+        RefreshUpdateRow();
         _loading = true;
 
         var startup = StartupService.IsEnabled();
@@ -66,6 +69,7 @@ public partial class SettingsView : UserControl
     /// Configuracion) mas "Ultimo usado".</summary>
     private void BuildStartModuleChips()
     {
+        UpdateService.Instance.Changed += (_, _) => RefreshUpdateRow();
         var chipStyle = (Style)FindResource("ChipStyle");
 
         void AddChip(string label, string id)
@@ -144,6 +148,10 @@ public partial class SettingsView : UserControl
         else if (sender == ConfirmDeleteToggle)
         {
             _settings.ConfirmDelete = on;
+        }
+        else if (sender == CheckUpdatesToggle)
+        {
+            _settings.CheckUpdatesOnStartup = on;
         }
 
         _settings.Save();
@@ -335,5 +343,47 @@ public partial class SettingsView : UserControl
             i++;
         }
         return $"{size:0.#} {units[i]}";
+    }
+
+        private void RefreshUpdateRow()
+    {
+        var update = UpdateService.Instance;
+        var current = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
+
+        UpdateRow.Tag = update.Status switch
+        {
+            UpdateStatus.Available => $"Tienes v{current}. Hay una nueva: v{update.AvailableVersion}.",
+            UpdateStatus.UpToDate => $"v{current}. Estas al dia.",
+            UpdateStatus.NotInstalled => $"v{current}. Esta copia no esta instalada con el instalador, asi que no se puede actualizar desde aqui.",
+            UpdateStatus.NotConfigured => $"v{current}. Indica la carpeta de versiones.",
+            UpdateStatus.Error => $"v{current}. No se pudo comprobar: {update.ErrorMessage}",
+            _ => $"v{current}. Sin comprobar todavia."
+        };
+
+        ApplyUpdateButton.Visibility = update.Status == UpdateStatus.Available ? Visibility.Visible : Visibility.Collapsed;
+        ApplyUpdateButton.IsEnabled = !update.IsBusy;
+        CheckUpdateButton.IsEnabled = !update.IsBusy;
+        UpdateSourceRow.Tag = _settings.UpdateSource;
+    }
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e) =>
+        await UpdateService.Instance.CheckAsync();
+
+    private async void ApplyUpdate_Click(object sender, RoutedEventArgs e) =>
+        await UpdateService.Instance.ApplyAsync();
+
+    private void ChangeUpdateSource_Click(object sender, RoutedEventArgs e)
+    {
+        using var dialog = new WinForms.FolderBrowserDialog
+        {
+            Description = "Selecciona la carpeta donde se publican las versiones (la salida de publish.ps1)",
+            SelectedPath = _settings.UpdateSource
+        };
+
+        if (dialog.ShowDialog() != WinForms.DialogResult.OK) return;
+
+        _settings.UpdateSource = dialog.SelectedPath;
+        _settings.Save();
+        RefreshUpdateRow();
     }
 }

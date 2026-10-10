@@ -99,7 +99,18 @@ public class AppSettingsService
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
+        // ----- Actualizaciones -----
+        public static readonly string DefaultUpdateSource = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
+
+        /// <summary>Carpeta (o URL) donde estan las versiones empaquetadas con vpk.</summary>
+        public string UpdateSource { get; set; } = DefaultUpdateSource;
+
+        /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
+        public bool CheckUpdatesOnStartup { get; set; } = true;
         Save();
+        UpdateSource = DefaultUpdateSource;
+        CheckUpdatesOnStartup = true;
     }
 
     /// <summary>Aplica a una ventana los ajustes que le afectan directamente.</summary>

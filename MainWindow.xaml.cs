@@ -8,6 +8,7 @@ using Launcher.Modules.Games;
 using Launcher.Modules.Folders;
 using Launcher.UI.Controls;
 using Launcher.Modules.Media;
+using System.Windows.Media;
 
 
 namespace Launcher;
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
 {
     // Cache de vistas ya creadas, para no reconstruirlas cada vez que se cambia de modulo.
     private readonly Dictionary<string, UserControl> _viewCache = new();
+    private string _baseVersionText = "";
     private readonly List<IModule> _modules;
 
     public MainWindow()
@@ -25,6 +27,11 @@ public partial class MainWindow : Window
         // Bandeja, atajo global, tamano/posicion recordados y arranque minimizado.
         WindowBehaviorService.Attach(this);
         VersionText.Text = $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0"}";
+
+        _baseVersionText = VersionText.Text;
+        UpdateService.Instance.Changed += (_, _) => RefreshUpdateIndicator();
+        VersionText.MouseLeftButtonUp += async (_, _) => await PromptUpdateAsync();
+        Loaded += async (_, _) => await StartUpdateChecksAsync();
 
         // === Registro de modulos ===
         // Cuando implementes un modulo de verdad (p.ej. Juegos), sustituye su
@@ -96,6 +103,62 @@ public partial class MainWindow : Window
             settings.LastModule = module.Id;
             settings.Save();
         }
+    }
+
+        // ===================== Actualizaciones =====================
+
+    /// <summary>Si hay version nueva, el texto de version del sidebar se vuelve verde y clicable.</summary>
+    private void RefreshUpdateIndicator()
+    {
+        var update = UpdateService.Instance;
+
+        if (update.IsApplying)
+        {
+            VersionText.Text = "descargando...";
+        }
+        else if (update.Status == UpdateStatus.Available)
+        {
+            VersionText.Text = $"v{update.AvailableVersion} disponible";
+            VersionText.Foreground = (Brush)FindResource("Brush.Accent");
+            VersionText.Cursor = Cursors.Hand;
+            VersionText.ToolTip = $"Estas en {_baseVersionText}. Clic para actualizar.";
+        }
+        else
+        {
+            VersionText.Text = _baseVersionText;
+            VersionText.ClearValue(TextBlock.ForegroundProperty);
+            VersionText.ClearValue(CursorProperty);
+            VersionText.ToolTip = null;
+        }
+    }
+
+    private async Task PromptUpdateAsync()
+    {
+        var update = UpdateService.Instance;
+        if (update.Status != UpdateStatus.Available || update.IsBusy) return;
+
+        var result = MessageBox.Show(this,
+            $"Hay una version nueva del Launcher (v{update.AvailableVersion}).\n\n" +
+            "La aplicacion se reiniciara para instalarla. Quieres actualizar ahora?",
+            "Actualizacion", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes) await update.ApplyAsync();
+    }
+
+    private async Task StartUpdateChecksAsync()
+    {
+        if (!AppSettingsService.Instance.CheckUpdatesOnStartup) return;
+
+        await Task.Delay(TimeSpan.FromSeconds(8)); // no competir con el arranque
+        await UpdateService.Instance.CheckAsync();
+
+        // Y despues, cada 6 horas mientras la app siga abierta.
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        timer.Tick += async (_, _) =>
+        {
+            if (AppSettingsService.Instance.CheckUpdatesOnStartup) await UpdateService.Instance.CheckAsync();
+        };
+        timer.Start();
     }
 
     // ===================== Controles de ventana =====================

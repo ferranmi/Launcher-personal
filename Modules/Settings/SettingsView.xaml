@@ -209,6 +209,29 @@
                 </StackPanel>
             </HeaderedContentControl>
 
+                        <!-- ===================== ACTUALIZACIONES ===================== -->
+            <TextBlock Text="ACTUALIZACIONES" Style="{StaticResource SectionTitle}" />
+
+            <HeaderedContentControl x:Name="UpdateRow" Style="{StaticResource SettingRow}" Header="Version">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="ApplyUpdateButton" Content="Actualizar" Style="{StaticResource ActionButton}"
+                            Margin="0,0,8,0" Visibility="Collapsed" Click="ApplyUpdate_Click" />
+                    <Button x:Name="CheckUpdateButton" Content="Buscar ahora" Style="{StaticResource ActionButton}"
+                            Click="CheckUpdate_Click" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Buscar al abrir"
+                                    Tag="Comprueba si hay una version nueva al arrancar y cada 6 horas.">
+                <ToggleButton x:Name="CheckUpdatesToggle" Style="{StaticResource SwitchStyle}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
+            </HeaderedContentControl>
+
+            <HeaderedContentControl x:Name="UpdateSourceRow" Style="{StaticResource SettingRow}"
+                                    Header="Carpeta de versiones">
+                <Button Content="Cambiar" Style="{StaticResource ActionButton}" Click="ChangeUpdateSource_Click" />
+            </HeaderedContentControl>
+
             <!-- ===================== DATOS ===================== -->
             <TextBlock Text="DATOS" Style="{StaticResource SectionTitle}" />
 

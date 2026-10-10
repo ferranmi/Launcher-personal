@@ -342,7 +342,7 @@ public sealed class WindowBehaviorService
         Marshal.StructureToPtr(info, lParam, true);
     }
 
-    private void Cleanup()
+    public void Cleanup()
     {
         UnregisterHotkey();
         if (_tray != null)
