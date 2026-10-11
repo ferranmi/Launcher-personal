@@ -1,3 +1,4 @@
+using System.IO;
 using Velopack;
 
 namespace Launcher.Core.Services;
@@ -7,6 +8,8 @@ public enum UpdateStatus { Unknown, NotConfigured, NotInstalled, UpToDate, Avail
 /// <summary>
 /// Busca y aplica actualizaciones con Velopack. Solo funciona en una copia instalada con
 /// el instalador (Setup.exe); ejecutando desde Visual Studio el estado es NotInstalled.
+/// Cada comprobacion deja en el registro (Configuracion > Datos > Registro de errores)
+/// que carpeta mira, que archivos hay y que ha encontrado.
 /// </summary>
 public sealed class UpdateService
 {
@@ -41,8 +44,11 @@ public sealed class UpdateService
         if (IsBusy) return;
 
         var source = AppSettingsService.Instance.UpdateSource;
+        LogService.Info($"[Actualizaciones] Buscando en: '{source}'");
+
         if (string.IsNullOrWhiteSpace(source))
         {
+            LogService.Info("[Actualizaciones] No hay carpeta de versiones configurada.");
             SetStatus(UpdateStatus.NotConfigured);
             Notify();
             return;
@@ -53,10 +59,17 @@ public sealed class UpdateService
 
         try
         {
+            LogSourceDiagnostics(source);
+
             _manager = new UpdateManager(source);
+
+            LogService.Info(
+                $"[Actualizaciones] Instalada con Velopack: {_manager.IsInstalled}; " +
+                $"version actual: {_manager.CurrentVersion?.ToString() ?? "(ninguna)"}");
 
             if (!_manager.IsInstalled)
             {
+                LogService.Info("[Actualizaciones] Esta copia no esta instalada con el instalador: no se puede actualizar.");
                 _available = null;
                 SetStatus(UpdateStatus.NotInstalled);
             }
@@ -65,9 +78,16 @@ public sealed class UpdateService
                 _available = await _manager.CheckForUpdatesAsync();
 
                 if (_available == null)
+                {
+                    LogService.Info("[Actualizaciones] Sin version nueva en esa carpeta.");
                     SetStatus(UpdateStatus.UpToDate);
+                }
                 else
-                    SetStatus(UpdateStatus.Available, _available.TargetFullRelease.Version.ToString());
+                {
+                    var version = _available.TargetFullRelease.Version.ToString();
+                    LogService.Info($"[Actualizaciones] Version nueva encontrada: {version}");
+                    SetStatus(UpdateStatus.Available, version);
+                }
             }
         }
         catch (Exception ex)
@@ -83,6 +103,30 @@ public sealed class UpdateService
         }
     }
 
+    /// <summary>Anota en el registro desde donde se ejecuta la app y que archivos hay en la
+    /// carpeta de versiones. Nunca lanza: es solo informacion para diagnosticar.</summary>
+    private static void LogSourceDiagnostics(string source)
+    {
+        try
+        {
+            LogService.Info($"[Actualizaciones] Ejecutable: {Environment.ProcessPath}");
+
+            if (Directory.Exists(source))
+            {
+                var files = Directory.GetFiles(source).Select(Path.GetFileName);
+                LogService.Info($"[Actualizaciones] Archivos en la carpeta: {string.Join(", ", files)}");
+            }
+            else
+            {
+                LogService.Info("[Actualizaciones] La carpeta de versiones no existe (o no es una carpeta local).");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo inspeccionar la carpeta de versiones", ex);
+        }
+    }
+
     /// <summary>Descarga la version nueva, cierra la app, la instala y la vuelve a abrir.</summary>
     public async Task ApplyAsync()
     {
@@ -93,11 +137,13 @@ public sealed class UpdateService
 
         try
         {
+            LogService.Info($"[Actualizaciones] Descargando {_available.TargetFullRelease.Version}...");
             await _manager.DownloadUpdatesAsync(_available);
 
             // Quitamos el icono de la bandeja antes de salir: si no, queda un icono fantasma.
             WindowBehaviorService.Instance?.Cleanup();
 
+            LogService.Info("[Actualizaciones] Aplicando y reiniciando.");
             _manager.ApplyUpdatesAndRestart(_available.TargetFullRelease);
         }
         catch (Exception ex)

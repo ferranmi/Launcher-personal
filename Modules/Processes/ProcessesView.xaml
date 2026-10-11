@@ -93,6 +93,25 @@
             <Setter Property="Cursor" Value="Hand" />
         </Style>
 
+        <!-- Cabeceras de las columnas numericas: alineadas a la derecha, como sus celdas. -->
+        <Style x:Key="ColHeaderRight" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ColHeader}">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+
+        <!-- Cabecera con el nombre de la columna y el consumo total del equipo
+             (como el Administrador de tareas). El contenido es un HeaderStat. -->
+        <DataTemplate x:Key="HeaderStatTemplate">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding Title}" />
+                    <TextBlock Text="{Binding Value}" Margin="6,0,0,0" FontWeight="Bold"
+                               Foreground="{DynamicResource Brush.Accent}" />
+                </StackPanel>
+                <TextBlock Text="{Binding Detail}" HorizontalAlignment="Right" FontSize="9.5"
+                           Foreground="{DynamicResource Brush.TextDim}" />
+            </StackPanel>
+        </DataTemplate>
+
         <Style x:Key="Cell" TargetType="DataGridCell">
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
@@ -136,8 +155,15 @@
                        Margin="0,0,14,0" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
                        Foreground="{DynamicResource Brush.TextDim}" />
 
-            <Button Grid.Column="2" Content="&#xE72C;  Actualizar" Style="{StaticResource GhostToolButton}"
-                    Click="Refresh_Click" />
+            <!-- El icono va en su propio TextBlock con la fuente de iconos; dentro de un
+                 boton con fuente mono saldria como un cuadrado. -->
+            <Button Grid.Column="2" Style="{StaticResource GhostToolButton}" Click="Refresh_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource Font.Icons}"
+                               Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Actualizar" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
         </Grid>
 
         <!-- ===================== TABLA ===================== -->
@@ -226,8 +252,10 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- CPU % -->
-                    <DataGridTemplateColumn Header="CPU %" Width="80" SortMemberPath="CpuPercent">
+                    <!-- CPU % (la cabecera la rellena el codigo con un HeaderStat) -->
+                    <DataGridTemplateColumn Width="100" SortMemberPath="CpuPercent"
+                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                                            HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border Padding="6,4">
@@ -262,7 +290,9 @@
                     </DataGridTemplateColumn>
 
                     <!-- RAM -->
-                    <DataGridTemplateColumn Header="RAM" Width="110" SortMemberPath="RamMB">
+                    <DataGridTemplateColumn Width="130" SortMemberPath="RamMB"
+                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                                            HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border Padding="6,4">
@@ -303,7 +333,9 @@
                     </DataGridTemplateColumn>
 
                     <!-- GPU % -->
-                    <DataGridTemplateColumn Header="GPU %" Width="80" SortMemberPath="GpuPercent">
+                    <DataGridTemplateColumn Width="100" SortMemberPath="GpuPercent"
+                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                                            HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border Padding="6,4">
@@ -338,7 +370,9 @@
                     </DataGridTemplateColumn>
 
                     <!-- VRAM -->
-                    <DataGridTemplateColumn Header="VRAM" Width="110" SortMemberPath="VramMB">
+                    <DataGridTemplateColumn Width="130" SortMemberPath="VramMB"
+                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                                            HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border Padding="6,4">

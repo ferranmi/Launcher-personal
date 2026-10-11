@@ -1,7 +1,7 @@
 <UserControl x:Class="Launcher.Modules.Games.GamesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                          xmlns:conv="clr-namespace:Launcher.Core.Converters"
+             xmlns:conv="clr-namespace:Launcher.Core.Converters"
              AllowDrop="True" DragOver="GamesView_DragOver" Drop="GamesView_Drop">
 
     <UserControl.Resources>
@@ -109,12 +109,30 @@
                 <ComboBoxItem Content="Favoritos primero" />
             </ComboBox>
 
-            <Button Grid.Column="2" Content="&#xE713;" ToolTip="Carpetas de sincronizacion"
+            <!-- Carpetas de sincronizacion: el icono va en su propio TextBlock con la fuente
+                 de iconos; dentro de un boton con fuente mono saldria como un cuadrado. -->
+            <Button Grid.Column="2" ToolTip="Carpetas de sincronizacion"
                     Style="{StaticResource ToolButton}" Width="36"
-                    Margin="0,0,10,0" Click="ConfigureFolders_Click" />
+                    Margin="0,0,10,0" Click="ConfigureFolders_Click">
+                <TextBlock Text="&#xE8B7;" FontFamily="{DynamicResource Font.Icons}" FontSize="14" />
+            </Button>
 
-            <Button Grid.Column="3" x:Name="SyncButton" Content="&#xE895;  Sincronizar" Style="{StaticResource ToolButton}"
-                    Margin="0,0,10,0" Click="Sync_Click" />
+            <!-- Sincronizar: icono de refrescar + texto. El codigo solo cambia el texto
+                 (Content) y la plantilla pone el icono delante. -->
+            <Button Grid.Column="3" x:Name="SyncButton" Content="Sincronizar"
+                    ToolTip="Buscar juegos nuevos en Steam y Epic"
+                    Style="{StaticResource ToolButton}"
+                    Margin="0,0,10,0" Click="Sync_Click">
+                <Button.ContentTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource Font.Icons}"
+                                       Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </Button.ContentTemplate>
+            </Button>
 
             <Button Grid.Column="4" Content="+ Anadir" Style="{StaticResource ToolButton}" Click="AddGame_Click" />
         </Grid>

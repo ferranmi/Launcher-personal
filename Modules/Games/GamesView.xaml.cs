@@ -300,7 +300,7 @@ public partial class GamesView : UserControl
         {
             _syncing = false;
             SyncButton.IsEnabled = true;
-            SyncButton.Content = "\uE895  Sincronizar";
+            SyncButton.Content = "Sincronizar";
         }
     }
 

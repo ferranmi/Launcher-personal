@@ -4,15 +4,39 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Launcher.Core.Mvvm;
+using Launcher.Core.Services;
 
 namespace Launcher.Modules.Processes;
+
+/// <summary>Contenido de la cabecera de una columna numerica: nombre, consumo total del
+/// equipo (porcentaje) y detalle opcional (p.ej. "12,4 / 31,9 GB"). Notifica cambios
+/// para que la cabecera se actualice sola en cada refresco.</summary>
+public class HeaderStat : ViewModelBase
+{
+    public string Title { get; }
+
+    private string _value = "";
+    public string Value { get => _value; set => SetField(ref _value, value); }
+
+    private string _detail = "";
+    public string Detail { get => _detail; set => SetField(ref _detail, value); }
+
+    public HeaderStat(string title) => Title = title;
+}
 
 public partial class ProcessesView : UserControl
 {
     private enum SortColumn { Name, Cpu, Ram, Gpu, Vram, Status }
 
     private readonly ProcessMonitorService _service = new();
+    private readonly SystemMonitorService _system = new();
     private readonly DispatcherTimer _timer;
+
+    private readonly HeaderStat _cpuHeader = new("CPU");
+    private readonly HeaderStat _ramHeader = new("RAM");
+    private readonly HeaderStat _gpuHeader = new("GPU");
+    private readonly HeaderStat _vramHeader = new("VRAM");
 
     private List<ProcessGroup> _groups = new();
 
@@ -29,6 +53,11 @@ public partial class ProcessesView : UserControl
     {
         InitializeComponent();
 
+        SetColumnHeader("CpuPercent", _cpuHeader);
+        SetColumnHeader("RamMB", _ramHeader);
+        SetColumnHeader("GpuPercent", _gpuHeader);
+        SetColumnHeader("VramMB", _vramHeader);
+
         _service.Refresh();
         _groups = _service.BuildGroups();
         RebuildRows();
@@ -37,13 +66,24 @@ public partial class ProcessesView : UserControl
         // relectura de los contadores de GPU en cada tick.
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
         _timer.Tick += (_, _) => RefreshTick();
-        _timer.Start();
 
-        Unloaded += (_, _) =>
+        // La vista se guarda en cache y se quita/pone del arbol al cambiar de modulo:
+        // el temporizador debe arrancar cada vez que se muestra y pararse al ocultarse.
+        // (Antes se paraba y descartaba el servicio al salir, y la tabla se quedaba
+        // congelada al volver.)
+        Loaded += (_, _) =>
         {
-            _timer.Stop();
-            _service.Dispose();
+            RefreshTick();
+            _timer.Start();
         };
+        Unloaded += (_, _) => _timer.Stop();
+    }
+
+    /// <summary>Asigna a la columna con ese SortMemberPath su cabecera dinamica.</summary>
+    private void SetColumnHeader(string sortMemberPath, HeaderStat header)
+    {
+        var column = ProcessesGrid.Columns.FirstOrDefault(c => c.SortMemberPath == sortMemberPath);
+        if (column != null) column.Header = header;
     }
 
     private void RefreshTick()
@@ -51,6 +91,43 @@ public partial class ProcessesView : UserControl
         _service.Refresh();
         _groups = _service.BuildGroups();
         RebuildRows();
+        UpdateHeaders();
+    }
+
+    // ===================== Cabeceras con el consumo total =====================
+
+    /// <summary>Totales del equipo (los mismos que muestra Monitor) en la cabecera de cada columna.</summary>
+    private void UpdateHeaders()
+    {
+        try
+        {
+            var snap = _system.Sample();
+
+            _cpuHeader.Value = $"{snap.CpuPercent:0}%";
+
+            _ramHeader.Value = $"{snap.RamPercent:0}%";
+            _ramHeader.Detail = $"{FormatBytes(snap.RamUsedBytes)} / {FormatBytes(snap.RamTotalBytes)}";
+
+            _gpuHeader.Value = $"{snap.GpuPercent:0}%";
+
+            _vramHeader.Value = $"{snap.VramPercent:0}%";
+            _vramHeader.Detail = snap.VramTotalBytes > 0
+                ? $"{FormatBytes(snap.VramUsedBytes)} / {FormatBytes(snap.VramTotalBytes)}"
+                : FormatBytes(snap.VramUsedBytes);
+        }
+        catch (Exception ex)
+        {
+            // Si los contadores no estan disponibles, las cabeceras simplemente no se actualizan.
+            LogService.Error("No se pudieron leer los totales del sistema", ex);
+        }
+    }
+
+    private static string FormatBytes(ulong bytes)
+    {
+        var gb = bytes / 1024d / 1024 / 1024;
+        if (gb >= 1) return $"{gb:0.#} GB";
+
+        return $"{bytes / 1024d / 1024:0} MB";
     }
 
     // ===================== Construccion de filas (grupo + hijos expandidos) =====================
