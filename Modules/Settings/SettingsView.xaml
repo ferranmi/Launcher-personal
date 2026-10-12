@@ -233,8 +233,7 @@
                 </StackPanel>
             </HeaderedContentControl>
 
-            <!-- ===================== ACTUALIZACIONES ===================== -->
-            <TextBlock Text="ACTUALIZACIONES" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="ACTUALIZACIONES" Style="{StaticResource SectionTitle}" />
 
             <HeaderedContentControl x:Name="UpdateRow" Style="{StaticResource SettingRow}" Header="Version">
                 <StackPanel Orientation="Horizontal">
@@ -251,11 +250,17 @@
                               Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
             </HeaderedContentControl>
 
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Actualizar automaticamente"
+                                    Tag="Si hay una version nueva, la instala sola y reinicia el launcher. Si lo desactivas, solo te avisa en la barra lateral.">
+                <ToggleButton x:Name="AutoApplyUpdatesToggle" Style="{StaticResource SwitchStyle}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
+            </HeaderedContentControl>
+
             <HeaderedContentControl x:Name="UpdateSourceRow" Style="{StaticResource SettingRow}"
                                     Header="Carpeta de versiones">
                 <Button Content="Cambiar" Style="{StaticResource ActionButton}" Click="ChangeUpdateSource_Click" />
             </HeaderedContentControl>
-
+            
             <!-- ===================== DATOS ===================== -->
             <TextBlock Text="DATOS" Style="{StaticResource SectionTitle}" />
 

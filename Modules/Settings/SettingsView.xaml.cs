@@ -34,6 +34,7 @@ public partial class SettingsView : UserControl
         _loading = true;
 
         CheckUpdatesToggle.IsChecked = _settings.CheckUpdatesOnStartup;
+        AutoApplyUpdatesToggle.IsChecked = _settings.AutoApplyUpdates;
         RefreshUpdateRow();
 
         var startup = StartupService.IsEnabled();
@@ -196,6 +197,10 @@ public partial class SettingsView : UserControl
         else if (sender == CheckUpdatesToggle)
         {
             _settings.CheckUpdatesOnStartup = on;
+        }
+        else if (sender == AutoApplyUpdatesToggle)
+        {
+            _settings.AutoApplyUpdates = on;
         }
 
         _settings.Save();

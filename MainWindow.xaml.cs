@@ -145,18 +145,32 @@ public partial class MainWindow : Window
         if (result == MessageBoxResult.Yes) await update.ApplyAsync();
     }
 
+    private async Task CheckAndMaybeApplyAsync()
+    {
+        var update = UpdateService.Instance;
+        await update.CheckAsync();
+
+        LogService.Info($"Actualizaciones: estado={update.Status}, disponible={update.AvailableVersion}, " +
+                        $"auto={AppSettingsService.Instance.AutoApplyUpdates}, error={update.ErrorMessage}");
+
+        if (AppSettingsService.Instance.AutoApplyUpdates && update.Status == UpdateStatus.Available)
+        {
+            await update.ApplyAsync();
+        }
+    }
+
     private async Task StartUpdateChecksAsync()
     {
         if (!AppSettingsService.Instance.CheckUpdatesOnStartup) return;
 
         await Task.Delay(TimeSpan.FromSeconds(8)); // no competir con el arranque
-        await UpdateService.Instance.CheckAsync();
+        await CheckAndMaybeApplyAsync();
 
         // Y despues, cada 6 horas mientras la app siga abierta.
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(6) };
         timer.Tick += async (_, _) =>
         {
-            if (AppSettingsService.Instance.CheckUpdatesOnStartup) await UpdateService.Instance.CheckAsync();
+            if (AppSettingsService.Instance.CheckUpdatesOnStartup) await CheckAndMaybeApplyAsync();
         };
         timer.Start();
     }

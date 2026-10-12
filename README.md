@@ -1,108 +1,85 @@
 # Launcher
 
-Plataforma de escritorio modular en C# / WPF sobre **.NET 10**, con tema oscuro
-de acento verde y toques retro-terminal. Cada modulo (Juegos, Carpetas,
-Multimedia, Comandos, Monitor, Procesos, Configuracion...) es una pieza
-independiente que se registra en `MainWindow.xaml.cs`.
+Aplicación de escritorio modular en C# / WPF (.NET 10) con tema oscuro estilo terminal
+(verde fósforo sobre casi negro). Cada módulo es independiente y se registra en
+`MainWindow.xaml.cs`.
 
-## Requisitos
+## Cómo ejecutarlo
 
-- Windows 10 (1809 o superior) o Windows 11.
-- **SDK de .NET 10** (`dotnet --version` debe empezar por `10`).
+1. Instala el **.NET 10 SDK** (`dotnet --version` para comprobarlo).
+2. Abre la carpeta del proyecto en Visual Studio o VS Code.
+3. `F5` para depurar, o `dotnet run` desde la carpeta del proyecto.
 
-## Ejecutar en desarrollo
+## Módulos
 
-1. Abre la carpeta del proyecto en VS Code o Visual Studio.
-2. `F5` (o `Ctrl+F5` sin depurador). Por terminal: `dotnet run`.
+| Módulo | Estado | Qué hace |
+|---|---|---|
+| Juegos | Funcional | Biblioteca con portadas, sincronización con Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe` |
+| Carpetas | Funcional | Accesos directos a carpetas con selector de icono |
+| Multimedia | Funcional | Reproductor "Now Playing" (SMTC de Windows) y mezclador de volumen por aplicación |
+| Música | Placeholder | Pospuesto |
+| Buscar | Placeholder | Probablemente lo sustituya el asistente de IA |
+| Comandos | Funcional | Accesos a apps, herramientas de sistema y CLI, con CMD/PowerShell y ejecución como administrador |
+| Monitor | Funcional | CPU, RAM, GPU, VRAM, red y discos con sparklines |
+| Procesos | Funcional | Procesos agrupados por ejecutable, con CPU/RAM/GPU/VRAM y finalizar tarea |
+| Configuración | Funcional | Arranque, ventana, atajo global, tarjetas, actualizaciones y datos |
 
-Notas:
-
-- Desde `dotnet run` / Visual Studio la app **no esta instalada**, asi que la
-  comprobacion de actualizaciones queda en "no instalada" (es lo esperado).
-- Si Windows bloquea el `.exe` con el error 4551 ("Una directiva de Control de
-  aplicaciones bloqueo este archivo"), es Smart App Control: el ejecutable no
-  esta firmado.
-- Las versiones Debug y Release usan nombres de instancia unica distintos, asi
-  que se puede desarrollar con la version instalada abierta.
-
-## Modulos
-
-| Modulo | Estado |
-| --- | --- |
-| Juegos | Biblioteca con portadas, Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe` |
-| Carpetas | Accesos directos a carpetas |
-| Multimedia | Reproduccion actual del sistema y mezclador de volumen por aplicacion |
-| Comandos | Accesos a apps, herramientas de sistema y comandos de terminal |
-| Monitor | CPU, RAM, GPU/VRAM, red y discos en tiempo real |
-| Procesos | Lista agrupada con CPU, RAM, GPU y VRAM; finalizar tareas |
-| Configuracion | Arranque, ventana, bandeja, atajo global, juegos, actualizaciones, datos |
-| Musica, Buscar | Placeholders pendientes |
-
-El asistente de IA local (Ollama) esta en preparacion: la ventana y el cliente
-existen en `Modules/Assistant` y `Core/Services/OllamaService.cs`, pero todavia
-no estan integrados.
-
-## Datos del usuario
-
-Todo se guarda en `%AppData%\Launcher` y no se toca al actualizar:
-
-- `config.json`: ajustes de la aplicacion.
-- `settings.json`: carpetas de Steam y Epic.
-- `games.json`, `ignored-games.json`, `folders.json`, `commands.json`,
-  `media_apps.json`.
-- `covers\`: portadas descargadas.
-- `logs\`: registro de errores (se conservan 7 dias).
-
-## Publicar y actualizar
-
-Las actualizaciones usan [Velopack](https://velopack.io).
-
-Una sola vez:
-
-```powershell
-dotnet tool install -g vpk
-```
-
-Para cada version nueva:
-
-1. Sube `<Version>` en `Launcher.csproj`.
-2. Haz commit y crea la etiqueta (`git tag v0.2.0`).
-3. Ejecuta `.\publish.ps1`. Publica en modo autocontenido y empaqueta en
-   `%USERPROFILE%\LauncherReleases`.
-
-La primera vez, instala con el `Setup.exe` de esa carpeta. Despues, la app
-instalada busca versiones nuevas al abrir y cada 6 horas; si hay una, el texto
-de version del sidebar se vuelve verde y al pulsarlo se actualiza. La carpeta
-de versiones se cambia en Configuracion > Actualizaciones.
-
-## Estructura
+## Arquitectura
 
 ```
 Launcher/
-├── Program.cs                  # Main propio (Velopack antes que WPF)
-├── App.xaml(.cs)               # instancia unica y manejo de errores
-├── MainWindow.xaml(.cs)        # ventana, sidebar y registro de modulos
-├── publish.ps1                 # publica y empaqueta una version nueva
-├── Assets/launcher.ico
 ├── Core/
-│   ├── Interfaces/             # IModule, IGameProvider
-│   ├── Models/
-│   ├── Services/               # ajustes, ventana, actualizaciones, registro...
-│   ├── Converters/
-│   └── Mvvm/
+│   ├── Interfaces/   # IModule, IGameProvider
+│   ├── Models/       # Game, FolderShortcut, CommandShortcut...
+│   ├── Services/     # AppSettings, Log, Update, Startup, Audio, Ollama...
+│   ├── Converters/   # Conversores de bindings
+│   └── Mvvm/         # ViewModelBase, RelayCommand
 ├── UI/
-│   ├── Themes/Theme.Dark.xaml  # colores, estilos, tipografia
-│   └── Controls/NavButton.cs
-└── Modules/                    # un modulo por carpeta
+│   ├── Themes/       # Theme.Dark.xaml (colores, tipografía, estilos)
+│   └── Controls/     # NavButton
+├── Modules/          # Un módulo por carpeta (vista + servicio + modelos propios)
+├── MainWindow.xaml(.cs)
+├── App.xaml(.cs)
+└── Launcher.csproj
 ```
 
-## Tema
+- Cada módulo implementa `IModule` y se construye en este orden: modelo → servicio → módulo → vista.
+- Los módulos aún sin implementar usan `PlaceholderModule`.
+- La persistencia son archivos JSON en `%AppData%\Launcher\` (sin base de datos externa).
+- Los colores y fuentes son `DynamicResource`, así que un tema nuevo solo necesita las mismas claves.
 
-- Colores y estilos centralizados en `UI/Themes/Theme.Dark.xaml`.
-- `Segoe UI` para texto normal y `Cascadia Mono` para el toque retro.
-- Iconos con **Segoe MDL2 Assets** (Windows 10 y 11).
+## Datos en `%AppData%\Launcher\`
 
-Para un tema claro bastaria crear `Theme.Light.xaml` con las mismas claves y
-cambiar el `MergedDictionary` en `App.xaml`; hoy varios estilos usan
-`StaticResource`, asi que habria que pasarlos a `DynamicResource` para
-cambiarlo en caliente.
+| Archivo / carpeta | Contenido |
+|---|---|
+| `config.json` | Ajustes generales |
+| `settings.json` | Rutas de Steam y Epic |
+| `games.json`, `ignored-games.json` | Biblioteca y juegos eliminados de la sincronización |
+| `folders.json`, `commands.json`, `media_apps.json` | Accesos de cada módulo |
+| `covers/` | Caché de portadas |
+| `logs/` | Registro de errores (se conservan 7 días) |
+
+## Sincronización con Steam y Epic
+
+No usa login: lee los archivos locales de cada launcher.
+
+- **Steam**: `steamapps/libraryfolders.vdf` y los `appmanifest_*.acf`. Lanza con `steam://rungameid/{appid}`.
+- **Epic**: manifiestos `.item` (JSON) en `ProgramData\Epic\EpicGamesLauncher\Data\Manifests`.
+- Las portadas se descargan de la Steam Store (API pública, sin clave) y se guardan en caché.
+
+## Publicar una versión y actualizar
+
+Las actualizaciones usan [Velopack](https://velopack.io).
+
+1. Sube `<Version>` en `Launcher.csproj` (cada release necesita una versión distinta).
+2. Ejecuta `.\publish.ps1`: publica, empaqueta con `vpk` y deja el resultado en `%USERPROFILE%\LauncherReleases`.
+3. La primera vez, instala con el `Setup.exe` de esa carpeta.
+4. Las copias **instaladas** detectan las versiones nuevas solas (al abrir y cada 6 horas) y se actualizan desde el número de versión de la barra lateral.
+
+Ejecutando desde Visual Studio o desde `publish\Launcher.exe` la app no está instalada, así que no puede actualizarse.
+
+## Limitaciones conocidas
+
+- Con `AllowsTransparency="True"` (necesario para las esquinas redondeadas) el grip de resize nativo no se ve, aunque se puede redimensionar desde los bordes.
+- Los iconos usan Segoe MDL2 Assets (Windows 10 y 11).
+- La detección de Steam y Epic sigue el formato conocido de sus archivos y puede necesitar ajustes si cambian.

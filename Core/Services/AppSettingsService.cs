@@ -78,6 +78,9 @@ public class AppSettingsService
     /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
     public bool CheckUpdatesOnStartup { get; set; } = true;
 
+    /// <summary>Si hay version nueva, la descarga e instala sin preguntar (reinicia la app).</summary>
+    public bool AutoApplyUpdates { get; set; } = true;
+
     /// <summary>Devuelve el intervalo elegido, o autoSeconds si esta en "automatico".</summary>
     public double GetRefreshSeconds(double autoSeconds) => RefreshSeconds > 0 ? RefreshSeconds : autoSeconds;
 
@@ -126,17 +129,14 @@ public class AppSettingsService
         RememberWindowBounds = true;
         WindowLeft = WindowTop = WindowWidth = WindowHeight = null;
         Hotkey = "None";
-        AccentColor = DefaultAccent;
-        RefreshSeconds = 0;
-        ConfirmKillProcess = true;
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
-
-        // Al final, para que lo que se guarda (y lo que ven los suscriptores de
-        // Changed) ya sean los valores restablecidos.
+        RefreshSeconds = 0; // 0 = automatico
+        AutoApplyUpdates = true;
+        // aqui el valor por defecto del color de acento, con el nombre de tu propiedad
         Save();
     }
 
