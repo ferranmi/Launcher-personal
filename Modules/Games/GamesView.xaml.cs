@@ -392,6 +392,12 @@ public partial class GamesView : UserControl
 
     private void PlayMenuItem_Click(object sender, RoutedEventArgs e) => LaunchGame(GetGameFromMenuItem(sender));
 
+    private void InfoMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var game = GetGameFromMenuItem(sender);
+        new GameDetailsWindow(game) { Owner = Window.GetWindow(this) }.ShowDialog();
+    }
+    
     private void RunAsAdminMenuItem_Click(object sender, RoutedEventArgs e) =>
         LaunchGame(GetGameFromMenuItem(sender), asAdmin: true);
 

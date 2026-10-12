@@ -15,7 +15,7 @@ Aplicación de escritorio modular en C# / WPF (.NET 10) con tema oscuro estilo t
 | Módulo | Estado | Qué hace |
 |---|---|---|
 | Inicio | Funcional | Dashboard: sistema reducido, lo que suena, accesos a juegos, carpetas y comandos, y top 5 de procesos por CPU, RAM o GPU. Hueco para el futuro buscador |
-| Juegos | Funcional | Biblioteca con portadas, sincronización con Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe` |
+| Juegos | Funcional | Biblioteca con portadas, sincronización con Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe`, ficha editable (información, logros de Steam, enlaces, documentos y notas) |
 | Carpetas | Funcional | Accesos directos a carpetas con selector de icono |
 | Multimedia | Funcional | Reproductor "Now Playing" (SMTC de Windows) y mezclador de volumen por aplicación |
 | Música | Placeholder | Pospuesto |
@@ -46,6 +46,15 @@ Si el destino de un comando es un navegador conocido, el formulario muestra la c
 
 En un comando nuevo la casilla viene marcada la primera vez que se reconoce un navegador; se puede desmarcar. Los navegadores que no están en el PATH (Chrome, Firefox) se localizan también por la clave `App Paths` del registro.
 
+### Información y logros de un juego
+
+Clic derecho sobre un juego > **Información y logros** abre su ficha, parecida a la página de un juego en la biblioteca de Steam o Epic y editable:
+
+- **Información**: descripción, géneros, desarrollador, editor, fecha, puntuación y capturas, de la Steam Store (sin clave). Se descarga sola la primera vez. Todo se puede corregir, y lo editado se conserva al actualizar. En juegos de Epic o añadidos a mano se busca por nombre; el ID de Steam se puede escribir a mano si no acierta.
+- **Logros**: los de Steam, con icono, descripción, fecha de desbloqueo y porcentaje global de jugadores. Necesitan una **clave gratuita de la Web API de Steam** (Configuración > Cuenta de Steam, o el botón de la propia pestaña). El SteamID se detecta de tu instalación de Steam. Los detalles de juego de tu perfil deben ser públicos. Epic no permite leer logros desde otras aplicaciones.
+- **Enlaces y documentos**: enlaces web propios, que se abren con el navegador que elijas (incluido el modo privado, como en Comandos), y archivos o carpetas locales (guías, partidas guardadas, mods).
+- **Notas**: texto libre.
+
 ## Arquitectura
 
 ```
@@ -75,10 +84,11 @@ Launcher/
 | Archivo / carpeta | Contenido |
 |---|---|
 | `config.json` | Ajustes generales |
-| `settings.json` | Rutas de Steam y Epic |
+| `settings.json` | Rutas de Steam y Epic, clave de la Web API de Steam y SteamID (la clave va en texto plano) |
 | `games.json`, `ignored-games.json` | Biblioteca y juegos eliminados de la sincronización |
 | `folders.json`, `commands.json`, `media_apps.json` | Accesos de cada módulo |
 | `covers/` | Caché de portadas de juegos e iconos de comandos |
+| `game-info/` | Ficha de cada juego: información descargada, tus ediciones, logros, enlaces, documentos y notas |
 | `logs/` | Registro de errores (se conservan 7 días) |
 
 ## Sincronización con Steam y Epic

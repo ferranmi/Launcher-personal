@@ -20,6 +20,11 @@ public class LibraryPathsService
     public string? SteamPath { get; set; }
     public string? EpicManifestsPath { get; set; }
 
+    /// <summary>Clave de la Web API de Steam (necesaria para ver los logros) y SteamID64.</summary>
+    public string? SteamApiKey { get; set; }
+    public string? SteamId { get; set; }
+    public bool HasSteamApiKey => !string.IsNullOrWhiteSpace(SteamApiKey);
+
     public bool HasSteamPath => !string.IsNullOrWhiteSpace(SteamPath) && Directory.Exists(SteamPath);
     public bool HasEpicPath => !string.IsNullOrWhiteSpace(EpicManifestsPath) && Directory.Exists(EpicManifestsPath);
 

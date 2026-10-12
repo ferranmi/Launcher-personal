@@ -364,6 +364,21 @@ public partial class SettingsView : UserControl
         CoversRow.Tag = $"Cache de portadas: {covers}";
     }
 
+    private void ConfigureSteamAccount_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SteamAccountWindow { Owner = Window.GetWindow(this) };
+        dialog.ShowDialog();
+        UpdateSteamAccountSummary();
+    }
+
+    private void UpdateSteamAccountSummary()
+    {
+        var paths = LibraryPathsService.Instance;
+        SteamAccountRow.Tag = paths.HasSteamApiKey
+            ? "Clave configurada. Ya puedes ver los logros de Steam en la ficha de cada juego."
+            : "Sin configurar. Hace falta una clave gratuita de la Web API de Steam para ver tus logros.";
+    }
+
     // ===================== Utilidades =====================
 
     private static void OpenFolder(string path)

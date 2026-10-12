@@ -223,6 +223,11 @@
                 <Button Content="Configurar" Style="{StaticResource ActionButton}" Click="ConfigureFolders_Click" />
             </HeaderedContentControl>
 
+            <HeaderedContentControl x:Name="SteamAccountRow" Style="{StaticResource SettingRow}"
+                                    Header="Cuenta de Steam (logros)">
+                <Button Content="Configurar" Style="{StaticResource ActionButton}" Click="ConfigureSteamAccount_Click" />
+            </HeaderedContentControl>
+
             <HeaderedContentControl x:Name="CoversRow" Style="{StaticResource SettingRow}"
                                     Header="Portadas">
                 <StackPanel Orientation="Horizontal">

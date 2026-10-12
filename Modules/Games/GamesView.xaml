@@ -167,6 +167,7 @@
                                     <ContextMenu>
                                         <MenuItem Tag="Admin" Header="Ejecutar como administrador" Click="RunAsAdminMenuItem_Click" />
                                         <MenuItem Tag="OpenFolder" Header="Abrir carpeta del juego" Click="OpenFolderMenuItem_Click" />
+                                        <MenuItem Header="Informacion y logros" Click="InfoMenuItem_Click" />
                                         <Separator />
                                         <MenuItem Header="Editar" Click="EditMenuItem_Click" />
                                         <MenuItem Tag="Favorite" Header="Marcar como favorito" Click="FavoriteMenuItem_Click" />
