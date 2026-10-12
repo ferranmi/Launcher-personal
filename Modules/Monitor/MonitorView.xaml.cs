@@ -25,6 +25,9 @@ public partial class MonitorView : UserControl
 {
     private const int HistoryLength = 60;
 
+    /// <summary>Intervalo cuando el ajuste de refresco esta en "Auto".</summary>
+    private const double AutoRefreshSeconds = 1.0;
+
     private readonly SystemMonitorService _service = new();
     private readonly DispatcherTimer _timer;
 
@@ -35,17 +38,29 @@ public partial class MonitorView : UserControl
     private readonly Queue<double> _netHistory = new();
 
     public ObservableCollection<DriveDisplayItem> Drives { get; } = new();
-    
+
     public MonitorView()
     {
         InitializeComponent();
         DrivesItems.ItemsSource = Drives;
-        
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+
+        _timer = new DispatcherTimer { Interval = CurrentInterval() };
         _timer.Tick += (_, _) => Tick();
 
-        Loaded += (_, _) => { Tick(); _timer.Start(); };
+        // Si el usuario cambia el intervalo en Configuracion, se aplica al instante.
+        AppSettingsService.Instance.Changed += (_, _) => ApplyInterval();
+
+        Loaded += (_, _) => { ApplyInterval(); Tick(); _timer.Start(); };
         Unloaded += (_, _) => _timer.Stop();
+    }
+
+    private static TimeSpan CurrentInterval() =>
+        TimeSpan.FromSeconds(AppSettingsService.Instance.GetRefreshSeconds(AutoRefreshSeconds));
+
+    private void ApplyInterval()
+    {
+        var interval = CurrentInterval();
+        if (_timer.Interval != interval) _timer.Interval = interval;
     }
 
     private void Tick()
@@ -92,7 +107,6 @@ public partial class MonitorView : UserControl
         // Uptime
         UptimeText.Text = $"Actividad: {FormatUptime(snap.Uptime)}";
 
-        
         // Discos (capacidad + velocidad de lectura/escritura por unidad)
         Drives.Clear();
         foreach (var d in snap.Drives)

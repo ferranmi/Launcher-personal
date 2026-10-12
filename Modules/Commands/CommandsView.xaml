@@ -5,6 +5,7 @@
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <conv:PathToBitmapConverter x:Key="PathToBitmap" />
 
         <Style x:Key="ToolbarBox" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
@@ -154,14 +155,21 @@
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
+                                        <!-- Icono: imagen extraida de la app si existe, si no el glifo -->
                                         <Border Grid.Row="0" Width="46" Height="46" CornerRadius="10"
                                                 Background="{DynamicResource Brush.AccentDim}"
                                                 HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Icon}"
-                                                       FontFamily="{DynamicResource Font.Icons}"
-                                                       FontSize="20"
-                                                       Foreground="{DynamicResource Brush.Accent}"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <Grid>
+                                                <TextBlock Text="{Binding Icon}"
+                                                           FontFamily="{DynamicResource Font.Icons}"
+                                                           FontSize="20"
+                                                           Foreground="{DynamicResource Brush.Accent}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding HasIconImage, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                                <Image Source="{Binding IconImagePath, Converter={StaticResource PathToBitmap}}"
+                                                       Margin="8" Stretch="Uniform"
+                                                       Visibility="{Binding HasIconImage, Converter={StaticResource BoolToVis}}" />
+                                            </Grid>
                                         </Border>
 
                                         <TextBlock Grid.Row="1" Text="{Binding Name}" Margin="0,10,0,0"
@@ -217,6 +225,16 @@
                                             Visibility="{Binding RunAsAdmin, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="ADMIN" FontFamily="{DynamicResource Font.Mono}" FontSize="8"
                                                    Foreground="{DynamicResource Brush.Warning}" />
+                                    </Border>
+
+                                    <!-- Etiqueta INCOG (modo incognito) -->
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                                            Background="{DynamicResource Brush.Surface}"
+                                            BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1"
+                                            CornerRadius="3" Padding="5,1"
+                                            Visibility="{Binding Incognito, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="INCOG" FontFamily="{DynamicResource Font.Mono}" FontSize="8"
+                                                   Foreground="{DynamicResource Brush.Accent}" />
                                     </Border>
                                 </Grid>
                             </Border>

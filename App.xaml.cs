@@ -37,6 +37,9 @@ public partial class App : Application
         RegisterErrorHandlers();
         StartShowListener();
 
+        // El acento guardado se aplica antes de crear la ventana para que no haya parpadeo de color.
+        ThemeService.ApplyAccent(AppSettingsService.Instance.AccentColor);
+
         new MainWindow().Show();
     }
 

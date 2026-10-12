@@ -4,39 +4,20 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Launcher.Core.Mvvm;
 using Launcher.Core.Services;
 
 namespace Launcher.Modules.Processes;
-
-/// <summary>Contenido de la cabecera de una columna numerica: nombre, consumo total del
-/// equipo (porcentaje) y detalle opcional (p.ej. "12,4 / 31,9 GB"). Notifica cambios
-/// para que la cabecera se actualice sola en cada refresco.</summary>
-public class HeaderStat : ViewModelBase
-{
-    public string Title { get; }
-
-    private string _value = "";
-    public string Value { get => _value; set => SetField(ref _value, value); }
-
-    private string _detail = "";
-    public string Detail { get => _detail; set => SetField(ref _detail, value); }
-
-    public HeaderStat(string title) => Title = title;
-}
 
 public partial class ProcessesView : UserControl
 {
     private enum SortColumn { Name, Cpu, Ram, Gpu, Vram, Status }
 
-    private readonly ProcessMonitorService _service = new();
-    private readonly SystemMonitorService _system = new();
-    private readonly DispatcherTimer _timer;
+    /// <summary>Intervalo cuando el ajuste de refresco esta en "Auto": suficiente para
+    /// que la delta de CPU sea estable sin saturar la relectura de los contadores de GPU.</summary>
+    private const double AutoRefreshSeconds = 1.5;
 
-    private readonly HeaderStat _cpuHeader = new("CPU");
-    private readonly HeaderStat _ramHeader = new("RAM");
-    private readonly HeaderStat _gpuHeader = new("GPU");
-    private readonly HeaderStat _vramHeader = new("VRAM");
+    private readonly ProcessMonitorService _service = new();
+    private readonly DispatcherTimer _timer;
 
     private List<ProcessGroup> _groups = new();
 
@@ -45,6 +26,9 @@ public partial class ProcessesView : UserControl
     /// reconstruyan en cada tick.</summary>
     private readonly HashSet<string> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Totales mostrados bajo el nombre de cada columna (Proceso, CPU, RAM, GPU, VRAM).</summary>
+    private readonly System.Windows.Controls.TextBlock[] _headerTotals = new System.Windows.Controls.TextBlock[5];
+
     private SortColumn _sortColumn = SortColumn.Name;
     private bool _sortAscending = true;
     private string _search = "";
@@ -52,38 +36,40 @@ public partial class ProcessesView : UserControl
     public ProcessesView()
     {
         InitializeComponent();
+        BuildHeaders();
 
-        SetColumnHeader("CpuPercent", _cpuHeader);
-        SetColumnHeader("RamMB", _ramHeader);
-        SetColumnHeader("GpuPercent", _gpuHeader);
-        SetColumnHeader("VramMB", _vramHeader);
-
-        _service.Refresh();
-        _groups = _service.BuildGroups();
-        RebuildRows();
-
-        // 1.5s: suficiente para que la delta de CPU sea estable sin saturar la
-        // relectura de los contadores de GPU en cada tick.
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+        _timer = new DispatcherTimer { Interval = CurrentInterval() };
         _timer.Tick += (_, _) => RefreshTick();
 
-        // La vista se guarda en cache y se quita/pone del arbol al cambiar de modulo:
-        // el temporizador debe arrancar cada vez que se muestra y pararse al ocultarse.
-        // (Antes se paraba y descartaba el servicio al salir, y la tabla se quedaba
-        // congelada al volver.)
+        // Si el usuario cambia el intervalo en Configuracion, se aplica al instante.
+        AppSettingsService.Instance.Changed += (_, _) => ApplyInterval();
+
+        // La vista se cachea en MainWindow: al cambiar de modulo se descarga (Unloaded) y al
+        // volver se carga otra vez (Loaded), asi que el temporizador debe arrancar en Loaded
+        // y no solo en el constructor, o la tabla se quedaria congelada al volver.
         Loaded += (_, _) =>
         {
-            RefreshTick();
+            ApplyInterval();
+            _service.Refresh(); // vuelve a tomar la referencia de CPU
+            _groups = _service.BuildGroups();
+            RebuildRows();
             _timer.Start();
         };
-        Unloaded += (_, _) => _timer.Stop();
+
+        Unloaded += (_, _) =>
+        {
+            _timer.Stop();
+            _service.Dispose(); // libera los contadores de GPU; se recrean solos en el siguiente Refresh
+        };
     }
 
-    /// <summary>Asigna a la columna con ese SortMemberPath su cabecera dinamica.</summary>
-    private void SetColumnHeader(string sortMemberPath, HeaderStat header)
+    private static TimeSpan CurrentInterval() =>
+        TimeSpan.FromSeconds(AppSettingsService.Instance.GetRefreshSeconds(AutoRefreshSeconds));
+
+    private void ApplyInterval()
     {
-        var column = ProcessesGrid.Columns.FirstOrDefault(c => c.SortMemberPath == sortMemberPath);
-        if (column != null) column.Header = header;
+        var interval = CurrentInterval();
+        if (_timer.Interval != interval) _timer.Interval = interval;
     }
 
     private void RefreshTick()
@@ -91,44 +77,56 @@ public partial class ProcessesView : UserControl
         _service.Refresh();
         _groups = _service.BuildGroups();
         RebuildRows();
-        UpdateHeaders();
     }
 
-    // ===================== Cabeceras con el consumo total =====================
+    // ===================== Cabeceras con totales =====================
 
-    /// <summary>Totales del equipo (los mismos que muestra Monitor) en la cabecera de cada columna.</summary>
-    private void UpdateHeaders()
+    /// <summary>Cada cabecera de metrica lleva el nombre arriba y el total del sistema debajo
+    /// (se actualiza en cada refresco). El orden por columna sigue funcionando: solo cambia
+    /// el contenido visual de la cabecera, no su SortMemberPath.</summary>
+    private void BuildHeaders()
     {
-        try
+        string[] titles = { "Proceso", "CPU", "RAM", "GPU", "VRAM" };
+        var mono = (System.Windows.Media.FontFamily)FindResource("Font.Mono");
+
+        for (var i = 0; i < titles.Length; i++)
         {
-            var snap = _system.Sample();
+            var total = new System.Windows.Controls.TextBlock
+            {
+                FontFamily = mono,
+                FontSize = 10,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+            total.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "Brush.Accent");
 
-            _cpuHeader.Value = $"{snap.CpuPercent:0}%";
+            _headerTotals[i] = total;
 
-            _ramHeader.Value = $"{snap.RamPercent:0}%";
-            _ramHeader.Detail = $"{FormatBytes(snap.RamUsedBytes)} / {FormatBytes(snap.RamTotalBytes)}";
-
-            _gpuHeader.Value = $"{snap.GpuPercent:0}%";
-
-            _vramHeader.Value = $"{snap.VramPercent:0}%";
-            _vramHeader.Detail = snap.VramTotalBytes > 0
-                ? $"{FormatBytes(snap.VramUsedBytes)} / {FormatBytes(snap.VramTotalBytes)}"
-                : FormatBytes(snap.VramUsedBytes);
-        }
-        catch (Exception ex)
-        {
-            // Si los contadores no estan disponibles, las cabeceras simplemente no se actualizan.
-            LogService.Error("No se pudieron leer los totales del sistema", ex);
+            ProcessesGrid.Columns[i].Header = new StackPanel
+            {
+                Children = { new System.Windows.Controls.TextBlock { Text = titles[i] }, total }
+            };
         }
     }
 
-    private static string FormatBytes(ulong bytes)
+    private void UpdateHeaderTotals()
     {
-        var gb = bytes / 1024d / 1024 / 1024;
-        if (gb >= 1) return $"{gb:0.#} GB";
+        var processCount = _groups.Sum(g => g.MemberCount);
+        var cpu = Math.Min(100, _groups.Sum(g => g.TotalCpu));
+        var ramMb = _groups.Sum(g => g.TotalRamMB);
+        var ramPercent = Math.Min(100, _groups.Sum(g => g.TotalRamPercent)); // el working set compartido puede sumar de mas
+        var gpu = Math.Min(100, _groups.Sum(g => g.TotalGpu));
+        var vramMb = _groups.Sum(g => g.TotalVramMB);
+        var vramPercent = Math.Min(100, _groups.Sum(g => g.TotalVramPercent));
 
-        return $"{bytes / 1024d / 1024:0} MB";
+        _headerTotals[0].Text = $"{processCount} procesos";
+        _headerTotals[1].Text = $"{cpu:0}%";
+        _headerTotals[2].Text = $"{FormatMemory(ramMb)} \u00b7 {ramPercent:0}%";
+        _headerTotals[3].Text = $"{gpu:0}%";
+        _headerTotals[4].Text = $"{FormatMemory(vramMb)} \u00b7 {vramPercent:0}%";
     }
+
+    private static string FormatMemory(double megabytes) =>
+        megabytes >= 1024 ? $"{megabytes / 1024:0.#} GB" : $"{megabytes:0} MB";
 
     // ===================== Construccion de filas (grupo + hijos expandidos) =====================
 
@@ -161,6 +159,8 @@ public partial class ProcessesView : UserControl
 
         var totalProcesses = _groups.Sum(g => g.MemberCount);
         CountText.Text = $"{totalProcesses} procesos \u00b7 {_groups.Count} agrupados";
+
+        UpdateHeaderTotals();
     }
 
     private bool GroupMatchesSearch(ProcessGroup group)
@@ -301,18 +301,22 @@ public partial class ProcessesView : UserControl
 
         if (targets.Count == 0) return;
 
-        var description = targets.Count > 1
-            ? $"{row.Name} y {targets.Count - 1} proceso(s) relacionado(s)"
-            : row.Name;
+        // El ajuste "Confirmar al finalizar procesos" decide si se pregunta antes de cerrar.
+        if (AppSettingsService.Instance.ConfirmKillProcess)
+        {
+            var description = targets.Count > 1
+                ? $"{row.Name} y {targets.Count - 1} proceso(s) relacionado(s)"
+                : row.Name;
 
-        var result = MessageBox.Show(
-            Window.GetWindow(this),
-            $"Se finalizara: {description}\n\nLos cambios no guardados en esos procesos se perderan. Continuar?",
-            "Finalizar tarea",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            var result = MessageBox.Show(
+                Window.GetWindow(this),
+                $"Se finalizara: {description}\n\nLos cambios no guardados en esos procesos se perderan. Continuar?",
+                "Finalizar tarea",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
 
-        if (result != MessageBoxResult.Yes) return;
+            if (result != MessageBoxResult.Yes) return;
+        }
 
         var failures = new List<string>();
         foreach (var target in targets)

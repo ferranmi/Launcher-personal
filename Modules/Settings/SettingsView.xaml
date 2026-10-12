@@ -130,12 +130,17 @@
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Modulo inicial"
-                Tag="Que pantalla se abre al arrancar el launcher.">
+                                    Tag="Que pantalla se abre al arrancar el launcher.">
                 <WrapPanel x:Name="StartModulePanel" MaxWidth="330" HorizontalAlignment="Right" />
             </HeaderedContentControl>
 
             <!-- ===================== VENTANA ===================== -->
             <TextBlock Text="VENTANA" Style="{StaticResource SectionTitle}" />
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Color de acento"
+                                    Tag="Color de botones, seleccion y detalles. Se aplica al instante.">
+                <WrapPanel x:Name="AccentPanel" MaxWidth="330" HorizontalAlignment="Right" />
+            </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Siempre encima"
                                     Tag="Mantiene el launcher por encima del resto de ventanas.">
@@ -163,6 +168,25 @@
                     <RadioButton Content="Ctrl+Alt+Espacio" Tag="Ctrl+Alt+Space" GroupName="Hotkey" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                     <RadioButton Content="Ctrl+Shift+Espacio" Tag="Ctrl+Shift+Space" GroupName="Hotkey" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                 </WrapPanel>
+            </HeaderedContentControl>
+
+            <!-- ===================== MONITOR Y PROCESOS ===================== -->
+            <TextBlock Text="MONITOR Y PROCESOS" Style="{StaticResource SectionTitle}" />
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Intervalo de refresco"
+                                    Tag="Cada cuanto se actualizan Monitor y Procesos. Auto usa 1 s en Monitor y 1,5 s en Procesos. Mas segundos = menos consumo.">
+                <StackPanel x:Name="RefreshPanel" Orientation="Horizontal">
+                    <RadioButton Content="Auto" Tag="0" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="1 s" Tag="1" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="3 s" Tag="3" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="5 s" Tag="5" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Confirmar al finalizar procesos"
+                                    Tag="Pregunta antes de cerrar un proceso o un grupo. Los cambios sin guardar de esos procesos se pierden.">
+                <ToggleButton x:Name="ConfirmKillToggle" Style="{StaticResource SwitchStyle}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
             </HeaderedContentControl>
 
             <!-- ===================== JUEGOS ===================== -->
@@ -209,7 +233,7 @@
                 </StackPanel>
             </HeaderedContentControl>
 
-                        <!-- ===================== ACTUALIZACIONES ===================== -->
+            <!-- ===================== ACTUALIZACIONES ===================== -->
             <TextBlock Text="ACTUALIZACIONES" Style="{StaticResource SectionTitle}" />
 
             <HeaderedContentControl x:Name="UpdateRow" Style="{StaticResource SettingRow}" Header="Version">
@@ -241,7 +265,7 @@
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Registro de errores"
-                Tag="Si la app falla, el detalle se guarda aqui. Se conservan 7 dias.">
+                                    Tag="Si la app falla, el detalle se guarda aqui. Se conservan 7 dias.">
                 <Button Content="Abrir" Style="{StaticResource ActionButton}" Click="OpenLogs_Click" />
             </HeaderedContentControl>
 

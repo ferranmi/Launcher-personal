@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using Launcher.Core.Models;
+using Microsoft.Win32;
 
 namespace Launcher.Modules.Commands;
 
@@ -18,6 +19,8 @@ public class CommandsService
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Launcher");
 
     private static readonly string LibraryPath = Path.Combine(AppFolder, "commands.json");
+
+    private static readonly string[] ExecutableExtensions = { "", ".exe", ".cmd", ".bat", ".ps1", ".msc" };
 
     public ObservableCollection<CommandShortcut> Commands { get; } = new();
 
@@ -117,21 +120,18 @@ public class CommandsService
         return !isDriveLetter;
     }
 
-    /// <summary>Comprueba si el comando/ruta se puede resolver en este equipo: como
-    /// ruta absoluta, como comando en el PATH actualizado, o como utilidad de
-    /// System32 (devmgmt.msc, taskmgr.exe, etc, que a veces no aparecen en PATH
-    /// explicitamente pero siempre se resuelven ahi). No verifica protocolos/URIs.</summary>
-    public static bool TargetExists(string target)
+    /// <summary>Localiza el archivo real de un comando: ruta absoluta, PATH actualizado,
+    /// System32 (devmgmt.msc, taskmgr.exe...) y, por ultimo, la clave "App Paths" del
+    /// registro, donde se registran navegadores como Chrome o Firefox que no estan en el
+    /// PATH. Devuelve null si no se encuentra o si es un protocolo/URI.</summary>
+    public static string? ResolveExecutable(string? target)
     {
-        if (string.IsNullOrWhiteSpace(target)) return false;
-        if (LooksLikeProtocolOrUri(target)) return true;
+        if (string.IsNullOrWhiteSpace(target)) return null;
+        target = target.Trim().Trim('"');
 
-        if (Path.IsPathRooted(target))
-        {
-            return File.Exists(target);
-        }
+        if (Path.IsPathRooted(target)) return File.Exists(target) ? target : null;
+        if (LooksLikeProtocolOrUri(target)) return null;
 
-        var extensions = new[] { "", ".exe", ".cmd", ".bat", ".ps1", ".msc" };
         var pathDirs = GetRefreshedPath().Split(';', StringSplitOptions.RemoveEmptyEntries);
         var system32 = Environment.GetFolderPath(Environment.SpecialFolder.System);
 
@@ -140,11 +140,12 @@ public class CommandsService
             var trimmedDir = dir.Trim();
             if (trimmedDir.Length == 0) continue;
 
-            foreach (var ext in extensions)
+            foreach (var ext in ExecutableExtensions)
             {
                 try
                 {
-                    if (File.Exists(Path.Combine(trimmedDir, target + ext))) return true;
+                    var candidate = Path.Combine(trimmedDir, target + ext);
+                    if (File.Exists(candidate)) return candidate;
                 }
                 catch
                 {
@@ -153,7 +154,81 @@ public class CommandsService
             }
         }
 
-        return false;
+        return ResolveFromAppPaths(target);
+    }
+
+    private static string? ResolveFromAppPaths(string target)
+    {
+        var exeName = target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? target : target + ".exe";
+        if (exeName.IndexOfAny(new[] { '\\', '/', ':' }) >= 0) return null;
+
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        {
+            foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+            {
+                try
+                {
+                    using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                    using var key = baseKey.OpenSubKey(
+                        $@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{exeName}");
+
+                    var value = key?.GetValue(null) as string;
+                    if (string.IsNullOrWhiteSpace(value)) continue;
+
+                    value = value.Trim().Trim('"');
+                    if (File.Exists(value)) return value;
+                }
+                catch
+                {
+                    // Sin acceso a esa vista del registro: probamos la siguiente.
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Comprueba si el comando/ruta se puede resolver en este equipo. No verifica
+    /// protocolos/URIs (se dan por buenos).</summary>
+    public static bool TargetExists(string target)
+    {
+        if (string.IsNullOrWhiteSpace(target)) return false;
+        if (LooksLikeProtocolOrUri(target)) return true;
+
+        return ResolveExecutable(target) != null;
+    }
+
+    /// <summary>Argumento de ventana privada del navegador al que apunta el destino, o
+    /// null si no es un navegador reconocido.</summary>
+    public static string? GetIncognitoArgument(string? target)
+    {
+        if (string.IsNullOrWhiteSpace(target)) return null;
+
+        string name;
+        try { name = Path.GetFileNameWithoutExtension(target.Trim().Trim('"')); }
+        catch { return null; }
+
+        return name.ToLowerInvariant() switch
+        {
+            "chrome" or "chromium" or "brave" or "vivaldi" => "--incognito",
+            "msedge" or "edge" => "--inprivate",
+            "firefox" or "librewolf" or "waterfox" => "-private-window",
+            "opera" => "--private",
+            _ => null
+        };
+    }
+
+    /// <summary>Argumentos finales: los del usuario, con el de ventana privada por delante
+    /// si el acceso lo pide y el destino es un navegador conocido.</summary>
+    public static string BuildArguments(CommandShortcut command)
+    {
+        var args = command.Arguments?.Trim() ?? "";
+        if (!command.Incognito) return args;
+
+        var flag = GetIncognitoArgument(command.Target);
+        if (flag == null || args.Contains(flag, StringComparison.OrdinalIgnoreCase)) return args;
+
+        return string.IsNullOrEmpty(args) ? flag : $"{flag} {args}";
     }
 
     /// <summary>Ejecuta el acceso directo. Segun Terminal, lo lanza directamente,
@@ -171,9 +246,10 @@ public class CommandsService
 
         var startInfo = new ProcessStartInfo { UseShellExecute = true };
 
-        var fullCommand = string.IsNullOrWhiteSpace(command.Arguments)
+        var arguments = BuildArguments(command);
+        var fullCommand = string.IsNullOrWhiteSpace(arguments)
             ? command.Target
-            : $"{command.Target} {command.Arguments}";
+            : $"{command.Target} {arguments}";
 
         switch (command.Terminal)
         {
@@ -198,7 +274,7 @@ public class CommandsService
 
             default:
                 startInfo.FileName = command.Target;
-                startInfo.Arguments = command.Arguments;
+                startInfo.Arguments = arguments;
                 break;
         }
 

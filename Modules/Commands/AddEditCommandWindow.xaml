@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Comando"
-        Height="620" Width="440"
+        Height="700" Width="440"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -49,6 +49,41 @@
             <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
         </Style>
+
+        <!-- Cada opcion de icono es un ToggleButton cuadrado; el seleccionado se
+             resalta con el color de acento (mismo patron que en Carpetas). -->
+        <Style x:Key="IconOptionStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.BorderStrong}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border Background="{DynamicResource Brush.Background}"
@@ -71,64 +106,90 @@
                        Foreground="{DynamicResource Brush.TextPrimary}"
                        Margin="0,0,0,18" MouseLeftButtonDown="Header_MouseLeftButtonDown" />
 
-            <StackPanel Grid.Row="1">
-                <TextBlock Text="Nombre" Style="{StaticResource FieldLabel}" />
-                <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,10,0">
+                    <TextBlock Text="Nombre" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
 
-                <TextBlock Text="Categoria" Style="{StaticResource FieldLabel}" />
-                <ComboBox x:Name="CategoryCombo" Margin="0,0,0,14" SelectedIndex="0">
-                    <ComboBoxItem Content="Aplicacion" />
-                    <ComboBoxItem Content="Periferico" />
-                    <ComboBoxItem Content="Sistema" />
-                    <ComboBoxItem Content="CLI" />
-                </ComboBox>
+                    <TextBlock Text="Categoria" Style="{StaticResource FieldLabel}" />
+                    <ComboBox x:Name="CategoryCombo" Margin="0,0,0,14" SelectedIndex="0">
+                        <ComboBoxItem Content="Aplicacion" />
+                        <ComboBoxItem Content="Periferico" />
+                        <ComboBoxItem Content="Sistema" />
+                        <ComboBoxItem Content="CLI" />
+                    </ComboBox>
 
-                <TextBlock Text="Comando o ruta del ejecutable" Style="{StaticResource FieldLabel}" />
-                <Grid Margin="0,0,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="TargetBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0" />
-                    <Button Grid.Column="1" Content="..." Style="{StaticResource GhostButton}" Width="34" Click="BrowseTarget_Click" />
-                </Grid>
-                <TextBlock Text="Puede ser una ruta (C:\...\app.exe) o un comando en el PATH (p.ej. kunai)"
-                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                           Foreground="{DynamicResource Brush.TextDim}" Margin="0,0,0,14" TextWrapping="Wrap" />
+                    <TextBlock Text="Comando o ruta del ejecutable" Style="{StaticResource FieldLabel}" />
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TargetBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0"
+                                 TextChanged="TargetBox_TextChanged" />
+                        <Button Grid.Column="1" Content="..." Style="{StaticResource GhostButton}" Width="34" Click="BrowseTarget_Click" />
+                    </Grid>
+                    <TextBlock Text="Puede ser una ruta (C:\...\app.exe) o un comando en el PATH (p.ej. kunai)"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,0,0,14" TextWrapping="Wrap" />
 
-                <TextBlock Text="Argumentos (opcional)" Style="{StaticResource FieldLabel}" />
-                <TextBox x:Name="ArgumentsBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+                    <TextBlock Text="Argumentos (opcional)" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="ArgumentsBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
 
-                <TextBlock Text="Carpeta de trabajo (opcional)" Style="{StaticResource FieldLabel}" />
-                <Grid Margin="0,0,0,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="WorkingDirBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0" />
-                    <Button Grid.Column="1" Content="..." Style="{StaticResource GhostButton}" Width="34" Click="BrowseWorkingDir_Click" />
-                </Grid>
+                    <TextBlock Text="Carpeta de trabajo (opcional)" Style="{StaticResource FieldLabel}" />
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="WorkingDirBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0" />
+                        <Button Grid.Column="1" Content="..." Style="{StaticResource GhostButton}" Width="34" Click="BrowseWorkingDir_Click" />
+                    </Grid>
 
-                <TextBlock Text="Icono (glifo Segoe Fluent Icons, opcional)" Style="{StaticResource FieldLabel}" />
-                <TextBox x:Name="IconBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+                    <TextBlock Text="Icono" Style="{StaticResource FieldLabel}" />
+                    <WrapPanel x:Name="IconPanel" Orientation="Horizontal" />
 
-                <TextBlock Text="Ejecutar dentro de" Style="{StaticResource FieldLabel}" />
-                <ComboBox x:Name="TerminalCombo" Margin="0,0,0,10" SelectedIndex="0">
-                    <ComboBoxItem Content="Ninguna (lanzamiento directo)" />
-                    <ComboBoxItem Content="CMD" />
-                    <ComboBoxItem Content="PowerShell" />
-                </ComboBox>
-                <TextBlock Text="Necesario para herramientas CLI/TUI. Kunai, por ejemplo, va por PowerShell."
-                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                           Foreground="{DynamicResource Brush.TextDim}" Margin="0,-6,0,14" TextWrapping="Wrap" />
+                    <Grid Margin="0,2,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Usar icono de la aplicacion"
+                                ToolTip="Extrae el icono del ejecutable indicado arriba"
+                                Style="{StaticResource GhostButton}" Click="UseAppIcon_Click" />
+                        <Image x:Name="AppIconPreview" Grid.Column="1" Width="22" Height="22" Margin="10,0,0,0"
+                               Stretch="Uniform" Visibility="Collapsed" />
+                        <TextBlock x:Name="AppIconStatus" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                   Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" />
+                    </Grid>
 
-                <CheckBox x:Name="RunAsAdminCheck" Content="Ejecutar como administrador"
-                          Foreground="{DynamicResource Brush.TextSecondary}"
-                          FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
-                <TextBlock Text="Mostrara el dialogo de UAC de Windows cada vez que se ejecute."
-                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                           Foreground="{DynamicResource Brush.TextDim}" Margin="0,4,0,0" TextWrapping="Wrap" />
-            </StackPanel>
+                    <TextBlock Text="Ejecutar dentro de" Style="{StaticResource FieldLabel}" />
+                    <ComboBox x:Name="TerminalCombo" Margin="0,0,0,10" SelectedIndex="0">
+                        <ComboBoxItem Content="Ninguna (lanzamiento directo)" />
+                        <ComboBoxItem Content="CMD" />
+                        <ComboBoxItem Content="PowerShell" />
+                    </ComboBox>
+                    <TextBlock Text="Necesario para herramientas CLI/TUI. Kunai, por ejemplo, va por PowerShell."
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,-6,0,14" TextWrapping="Wrap" />
+
+                    <CheckBox x:Name="RunAsAdminCheck" Content="Ejecutar como administrador"
+                              Foreground="{DynamicResource Brush.TextSecondary}"
+                              FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
+                    <TextBlock Text="Mostrara el dialogo de UAC de Windows cada vez que se ejecute."
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,4,0,14" TextWrapping="Wrap" />
+
+                    <CheckBox x:Name="IncognitoCheck" Content="Abrir en modo incognito (navegadores)"
+                              Foreground="{DynamicResource Brush.TextSecondary}"
+                              FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
+                    <TextBlock x:Name="IncognitoHint"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
 
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                 <Button Content="Cancelar" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="Cancel_Click" />

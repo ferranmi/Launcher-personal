@@ -16,6 +16,10 @@ public class AppSettingsService
 
     private static readonly string ConfigPath = Path.Combine(AppFolder, "config.json");
 
+    /// <summary>Color de acento por defecto (el verde fosforo del tema).</summary>
+    public const string DefaultAccent = "#3ECF7E";
+
+    /// <summary>Carpeta (o URL) por defecto donde estan las versiones empaquetadas con vpk.</summary>
     public static readonly string DefaultUpdateSource = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
 
@@ -47,6 +51,18 @@ public class AppSettingsService
     /// <summary>"None", "Ctrl+Alt+L", "Ctrl+Alt+Space" o "Ctrl+Shift+Space".</summary>
     public string Hotkey { get; set; } = "None";
 
+    /// <summary>Color de acento en formato #RRGGBB (ver ThemeService).</summary>
+    public string AccentColor { get; set; } = DefaultAccent;
+
+    // ----- Monitor y Procesos -----
+
+    /// <summary>Intervalo de refresco en segundos. 0 = automatico (1 s en Monitor,
+    /// 1,5 s en Procesos). Usa GetRefreshSeconds para leerlo con el valor automatico.</summary>
+    public double RefreshSeconds { get; set; }
+
+    /// <summary>Pedir confirmacion antes de finalizar un proceso o un grupo.</summary>
+    public bool ConfirmKillProcess { get; set; } = true;
+
     // ----- Juegos -----
     public bool SyncOnStartup { get; set; }
     public bool ConfirmDelete { get; set; } = true;
@@ -61,6 +77,9 @@ public class AppSettingsService
 
     /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
     public bool CheckUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>Devuelve el intervalo elegido, o autoSeconds si esta en "automatico".</summary>
+    public double GetRefreshSeconds(double autoSeconds) => RefreshSeconds > 0 ? RefreshSeconds : autoSeconds;
 
     private static AppSettingsService Load()
     {
@@ -107,11 +126,17 @@ public class AppSettingsService
         RememberWindowBounds = true;
         WindowLeft = WindowTop = WindowWidth = WindowHeight = null;
         Hotkey = "None";
+        AccentColor = DefaultAccent;
+        RefreshSeconds = 0;
+        ConfirmKillProcess = true;
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
+
+        // Al final, para que lo que se guarda (y lo que ven los suscriptores de
+        // Changed) ya sean los valores restablecidos.
         Save();
     }
 

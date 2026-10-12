@@ -1,12 +1,13 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using Launcher.Core.Models;
 using Launcher.Core.Services;
 using Launcher.Modules.Games;
-using Launcher.Core.Models;
 using WinForms = System.Windows.Forms;
 
 namespace Launcher.Modules.Settings;
@@ -22,15 +23,18 @@ public partial class SettingsView : UserControl
     {
         InitializeComponent();
         BuildStartModuleChips();
+        BuildAccentChips();
         LoadFromState();
     }
 
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
     private void LoadFromState()
     {
+        // Antes de tocar ningun control: asignar IsChecked dispara Toggle_Changed.
+        _loading = true;
+
         CheckUpdatesToggle.IsChecked = _settings.CheckUpdatesOnStartup;
         RefreshUpdateRow();
-        _loading = true;
 
         var startup = StartupService.IsEnabled();
         StartWithWindowsToggle.IsChecked = startup;
@@ -40,12 +44,15 @@ public partial class SettingsView : UserControl
         AlwaysOnTopToggle.IsChecked = _settings.AlwaysOnTop;
         CloseToTrayToggle.IsChecked = _settings.CloseToTray;
         RememberBoundsToggle.IsChecked = _settings.RememberWindowBounds;
+        ConfirmKillToggle.IsChecked = _settings.ConfirmKillProcess;
         SyncOnStartupToggle.IsChecked = _settings.SyncOnStartup;
         ConfirmDeleteToggle.IsChecked = _settings.ConfirmDelete;
 
         SelectChip(HotkeyPanel, _settings.Hotkey);
         SelectChip(CardSizePanel, _settings.CardSize);
         SelectChip(StartModulePanel, _settings.StartModule);
+        SelectChip(AccentPanel, _settings.AccentColor);
+        SelectChip(RefreshPanel, _settings.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
 
         UpdateSyncFoldersSummary();
         UpdateIgnoredSummary();
@@ -61,11 +68,11 @@ public partial class SettingsView : UserControl
     {
         foreach (var chip in panel.Children.OfType<RadioButton>())
         {
-            chip.IsChecked = (string)chip.Tag == value;
+            chip.IsChecked = string.Equals((string)chip.Tag, value, StringComparison.OrdinalIgnoreCase);
         }
     }
 
-        /// <summary>Genera un chip por cada modulo real (sin placeholders ni la propia
+    /// <summary>Genera un chip por cada modulo real (sin placeholders ni la propia
     /// Configuracion) mas "Ultimo usado".</summary>
     private void BuildStartModuleChips()
     {
@@ -91,6 +98,39 @@ public partial class SettingsView : UserControl
         {
             if (module is PlaceholderModule || module.Id == "settings") continue;
             AddChip(module.DisplayName, module.Id);
+        }
+    }
+
+    /// <summary>Un chip por cada color de la paleta, con una muestra del color.</summary>
+    private void BuildAccentChips()
+    {
+        var chipStyle = (Style)FindResource("ChipStyle");
+
+        foreach (var (name, hex) in ThemeService.AccentPresets)
+        {
+            ThemeService.TryParseColor(hex, out var color);
+
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            content.Children.Add(new Border
+            {
+                Width = 10,
+                Height = 10,
+                CornerRadius = new CornerRadius(5),
+                Background = new System.Windows.Media.SolidColorBrush(color),
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            content.Children.Add(new TextBlock { Text = name });
+
+            var chip = new RadioButton
+            {
+                Content = content,
+                Tag = hex,
+                GroupName = "Accent",
+                Style = chipStyle
+            };
+            chip.Checked += Chip_Checked;
+            AccentPanel.Children.Add(chip);
         }
     }
 
@@ -141,6 +181,10 @@ public partial class SettingsView : UserControl
         {
             _settings.RememberWindowBounds = on;
         }
+        else if (sender == ConfirmKillToggle)
+        {
+            _settings.ConfirmKillProcess = on;
+        }
         else if (sender == SyncOnStartupToggle)
         {
             _settings.SyncOnStartup = on;
@@ -157,7 +201,7 @@ public partial class SettingsView : UserControl
         _settings.Save();
     }
 
-    // ===================== Chips (atajo, tamano de tarjetas) =====================
+    // ===================== Chips (atajo, tamano de tarjetas, modulo, acento, refresco) =====================
 
     private void Chip_Checked(object sender, RoutedEventArgs e)
     {
@@ -188,10 +232,21 @@ public partial class SettingsView : UserControl
         {
             _settings.CardSize = value;
         }
-
         else if (chip.GroupName == "StartModule")
         {
             _settings.StartModule = value;
+        }
+        else if (chip.GroupName == "Accent")
+        {
+            _settings.AccentColor = value;
+            ThemeService.ApplyAccent(value);
+        }
+        else if (chip.GroupName == "Refresh")
+        {
+            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+            {
+                _settings.RefreshSeconds = seconds;
+            }
         }
 
         _settings.Save();
@@ -206,7 +261,7 @@ public partial class SettingsView : UserControl
         UpdateSyncFoldersSummary();
     }
 
-        private void UpdateIgnoredSummary()
+    private void UpdateIgnoredSummary()
     {
         var count = GameLibraryService.Instance.IgnoredCount;
         IgnoredRow.Tag = count == 0
@@ -292,6 +347,7 @@ public partial class SettingsView : UserControl
         _settings.Reset();
         StartupService.SetEnabled(false, false);
         WindowBehaviorService.Instance?.ApplyAll();
+        ThemeService.ApplyAccent(_settings.AccentColor);
 
         LoadFromState();
     }
@@ -345,7 +401,9 @@ public partial class SettingsView : UserControl
         return $"{size:0.#} {units[i]}";
     }
 
-        private void RefreshUpdateRow()
+    // ===================== Actualizaciones =====================
+
+    private void RefreshUpdateRow()
     {
         var update = UpdateService.Instance;
         var current = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
