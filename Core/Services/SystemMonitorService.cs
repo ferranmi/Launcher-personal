@@ -74,8 +74,7 @@ public class SystemMonitorService : IDisposable
         var (netDown, netUp) = SampleNetwork();
         var diskIoByDrive = SampleDiskIOPerDrive();
         var drives = SampleDrives(diskIoByDrive);
-        var topProcesses = SampleTopProcesses();
-
+        
         return new SystemSnapshot
         {
             CpuPercent = cpu,
@@ -91,7 +90,6 @@ public class SystemMonitorService : IDisposable
             NetUpBytesPerSec = netUp,
             Drives = drives,
             Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-            TopProcesses = topProcesses
         };
     }
 

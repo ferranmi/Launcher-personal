@@ -37,6 +37,7 @@ public partial class MainWindow : Window
         // PlaceholderModule por tu propia clase (GamesModule : IModule) aqui.
         _modules = new List<IModule>
         {
+            new Launcher.Modules.Dashboard.DashboardModule(),
             new GamesModule(),
             new FoldersModule(),
             new Launcher.Modules.Media.MediaModule(),
