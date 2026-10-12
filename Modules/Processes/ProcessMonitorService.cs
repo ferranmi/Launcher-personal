@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,32 +12,47 @@ using Microsoft.Win32;
 namespace Launcher.Modules.Processes;
 
 /// <summary>
-/// Muestrea los procesos del sistema y mantiene una ObservableCollection viva:
-/// actualiza en sitio las entradas existentes (para no perder iconos cacheados)
-/// y anade/quita segun procesos que aparecen o terminan.
+/// Muestrea los procesos del sistema y mantiene una instancia de ProcessSample por proceso:
+/// actualiza en sitio las existentes (para no perder iconos cacheados) y anade/quita segun
+/// procesos que aparecen o terminan.
 ///
-/// CPU: delta de TotalProcessorTime normalizado sobre el numero de nucleos,
-/// igual que el Administrador de tareas (100% = toda la maquina).
-/// GPU/VRAM: contadores de rendimiento "GPU Engine" y "GPU Process Memory",
-/// agregados por PID a partir del nombre de instancia (formato "pid_1234_...").
-/// PID del padre: leido via Toolhelp32Snapshot (no expuesto por System.Diagnostics.Process),
-/// usado solo para agrupar procesos del mismo tipo (ej. varios Discord.exe).
+/// Pensado para ejecutarse en un hilo de fondo (Task.Run): Refresh() y BuildGroups() comparten
+/// un cerrojo, asi que Dispose() espera a que termine un refresco en curso. Las muestras no
+/// deben leerse desde la UI mientras haya un Refresh() ejecutandose (ProcessesView no solapa
+/// refrescos).
+///
+/// CPU: delta de TotalProcessorTime normalizado sobre el numero de nucleos, igual que el
+/// Administrador de tareas (100% = toda la maquina). Los procesos protegidos (sin acceso a su
+/// tiempo de CPU) se recuerdan para no repetir la excepcion en cada refresco.
+/// GPU/VRAM: se lee la categoria entera de contadores ("GPU Engine" y "GPU Process Memory") de
+/// una sola vez y se agrega por PID a partir del nombre de instancia (formato "pid_1234_...").
+/// En vez de un PerformanceCounter por instancia, se comparan dos lecturas consecutivas.
+/// Ruta del ejecutable: solo se lee la primera vez que se ve un proceso.
+/// Congelado: IsHungAppWindow sobre las ventanas visibles (no bloquea, a diferencia de
+/// Process.Responding, que puede esperar varios segundos por cada aplicacion colgada).
+/// PID del padre: Toolhelp32Snapshot, usado solo para agrupar procesos del mismo tipo.
 /// </summary>
 public class ProcessMonitorService : IDisposable
 {
-    public ObservableCollection<ProcessSample> Processes { get; } = new();
+    private readonly object _gate = new();
 
     private readonly Dictionary<int, ProcessSample> _samplesByPid = new();
     private readonly Dictionary<int, (TimeSpan CpuTime, DateTime Timestamp)> _lastCpu = new();
+    private readonly HashSet<int> _cpuDenied = new();
     private readonly Dictionary<string, ImageSource?> _iconCache = new();
 
-    private readonly Dictionary<string, PerformanceCounter> _gpuUtilCounters = new();
-    private readonly Dictionary<string, PerformanceCounter> _gpuMemCounters = new();
+    // null = aun no comprobado; false = no disponible en este equipo/driver (no se vuelve a intentar).
+    private bool? _gpuEngineAvailable;
+    private bool? _gpuMemoryAvailable;
+    private readonly Dictionary<string, CounterSample> _prevGpuEngine = new();
 
     private static readonly Regex PidRegex = new(@"pid_(\d+)_", RegexOptions.Compiled);
 
     private readonly double _totalRamBytes;
     private readonly double _totalVramBytes;
+
+    /// <summary>Procesos conocidos tras el ultimo refresco.</summary>
+    public IReadOnlyCollection<ProcessSample> Processes => _samplesByPid.Values;
 
     public ProcessMonitorService()
     {
@@ -46,14 +60,23 @@ public class ProcessMonitorService : IDisposable
         _totalVramBytes = GetTotalVramBytes();
     }
 
-    /// <summary>Toma una muestra nueva de todos los procesos y actualiza la coleccion.
-    /// Pensado para llamarse desde un DispatcherTimer cada 1-2 segundos.</summary>
+    /// <summary>Toma una muestra nueva de todos los procesos. Pensado para llamarse cada 1-2
+    /// segundos desde un hilo de fondo.</summary>
     public void Refresh()
+    {
+        lock (_gate)
+        {
+            RefreshCore();
+        }
+    }
+
+    private void RefreshCore()
     {
         var now = DateTime.UtcNow;
         var gpuUtilByPid = SampleGpuUtilizationByPid();
         var gpuMemByPid = SampleGpuMemoryByPid();
         var parentMap = GetParentPidMap();
+        var hungPids = GetHungProcessIds();
 
         Process[] processes;
         try { processes = Process.GetProcesses(); }
@@ -63,79 +86,93 @@ public class ProcessMonitorService : IDisposable
 
         foreach (var proc in processes)
         {
-            int pid;
-            string name;
-            try
+            using (proc)
             {
-                pid = proc.Id;
-                name = proc.ProcessName;
-            }
-            catch { proc.Dispose(); continue; }
-
-            seenPids.Add(pid);
-
-            double cpuPercent = 0;
-            try
-            {
-                var cpuTime = proc.TotalProcessorTime;
-                if (_lastCpu.TryGetValue(pid, out var prev))
+                int pid;
+                string name;
+                try
                 {
-                    var elapsedMs = (now - prev.Timestamp).TotalMilliseconds;
-                    if (elapsedMs > 0)
+                    pid = proc.Id;
+                    name = proc.ProcessName;
+                }
+                catch { continue; }
+
+                seenPids.Add(pid);
+
+                // CPU: si un proceso nego el acceso una vez, se salta en los siguientes
+                // refrescos (lanzar y capturar la excepcion cada segundo es lo mas caro).
+                double cpuPercent = 0;
+                if (!_cpuDenied.Contains(pid))
+                {
+                    try
                     {
-                        var cpuDeltaMs = (cpuTime - prev.CpuTime).TotalMilliseconds;
-                        cpuPercent = Math.Clamp(cpuDeltaMs / elapsedMs / Environment.ProcessorCount * 100.0, 0, 100);
+                        var cpuTime = proc.TotalProcessorTime;
+                        if (_lastCpu.TryGetValue(pid, out var prev))
+                        {
+                            var elapsedMs = (now - prev.Timestamp).TotalMilliseconds;
+                            if (elapsedMs > 0)
+                            {
+                                var cpuDeltaMs = (cpuTime - prev.CpuTime).TotalMilliseconds;
+                                cpuPercent = Math.Clamp(cpuDeltaMs / elapsedMs / Environment.ProcessorCount * 100.0, 0, 100);
+                            }
+                        }
+                        _lastCpu[pid] = (cpuTime, now);
+                    }
+                    catch
+                    {
+                        _cpuDenied.Add(pid);
                     }
                 }
-                _lastCpu[pid] = (cpuTime, now);
+
+                double ramBytes = 0;
+                try { ramBytes = proc.WorkingSet64; } catch { }
+                var ramMb = ramBytes / 1024.0 / 1024.0;
+                var ramPercent = _totalRamBytes > 0 ? ramBytes / _totalRamBytes * 100.0 : 0;
+
+                var gpuPercent = gpuUtilByPid.TryGetValue(pid, out var gu) ? Math.Clamp(gu, 0, 100) : 0;
+                var vramBytes = gpuMemByPid.TryGetValue(pid, out var vb) ? vb : 0;
+                var vramMb = vramBytes / 1024.0 / 1024.0;
+                var vramPercent = _totalVramBytes > 0 ? vramBytes / _totalVramBytes * 100.0 : 0;
+
+                // Un PID puede reutilizarse para otro programa: si el nombre ya no coincide,
+                // se trata como un proceso nuevo (icono y ruta nuevos).
+                if (_samplesByPid.TryGetValue(pid, out var sample) &&
+                    !string.Equals(sample.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    _samplesByPid.Remove(pid);
+                    _lastCpu.Remove(pid);
+                    _cpuDenied.Remove(pid);
+                    sample = null;
+                }
+
+                if (sample == null)
+                {
+                    // La ruta (y con ella el icono) solo se lee la primera vez que se ve el proceso.
+                    string? path = null;
+                    try { path = proc.MainModule?.FileName; } catch { /* procesos de sistema: sin acceso al modulo principal */ }
+
+                    sample = new ProcessSample(pid, name) { ExecutablePath = path };
+                    sample.Icon = GetIcon(path, name);
+                    _samplesByPid[pid] = sample;
+                }
+
+                sample.Name = name;
+                sample.ParentPid = parentMap.TryGetValue(pid, out var ppid) ? ppid : 0;
+                sample.CpuPercent = cpuPercent;
+                sample.RamMB = ramMb;
+                sample.RamPercent = ramPercent;
+                sample.GpuPercent = gpuPercent;
+                sample.VramMB = vramMb;
+                sample.VramPercent = vramPercent;
+                sample.IsResponding = !hungPids.Contains(pid);
             }
-            catch
-            {
-                // proceso protegido (sin acceso a su tiempo de CPU): lo dejamos a 0 en vez de reventar el refresco.
-            }
-
-            double ramBytes = 0;
-            try { ramBytes = proc.WorkingSet64; } catch { }
-            var ramMb = ramBytes / 1024.0 / 1024.0;
-            var ramPercent = _totalRamBytes > 0 ? ramBytes / _totalRamBytes * 100.0 : 0;
-
-            var gpuPercent = gpuUtilByPid.TryGetValue(pid, out var gu) ? Math.Clamp(gu, 0, 100) : 0;
-            var vramBytes = gpuMemByPid.TryGetValue(pid, out var vb) ? vb : 0;
-            var vramMb = vramBytes / 1024.0 / 1024.0;
-            var vramPercent = _totalVramBytes > 0 ? vramBytes / _totalVramBytes * 100.0 : 0;
-
-            bool responding = true;
-            try { responding = proc.Responding; } catch { }
-
-            string? path = null;
-            try { path = proc.MainModule?.FileName; } catch { /* procesos de sistema: sin acceso al modulo principal */ }
-
-            if (!_samplesByPid.TryGetValue(pid, out var sample))
-            {
-                sample = new ProcessSample(pid, name) { ExecutablePath = path };
-                sample.Icon = GetIcon(path, name);
-                _samplesByPid[pid] = sample;
-                Processes.Add(sample);
-            }
-
-            sample.Name = name;
-            sample.ParentPid = parentMap.TryGetValue(pid, out var ppid) ? ppid : 0;
-            sample.CpuPercent = cpuPercent;
-            sample.RamMB = ramMb;
-            sample.RamPercent = ramPercent;
-            sample.GpuPercent = gpuPercent;
-            sample.VramMB = vramMb;
-            sample.VramPercent = vramPercent;
-            sample.IsResponding = responding;
-
-            proc.Dispose();
         }
 
         foreach (var pid in _samplesByPid.Keys.Where(p => !seenPids.Contains(p)).ToList())
         {
-            Processes.Remove(_samplesByPid[pid]);
             _samplesByPid.Remove(pid);
             _lastCpu.Remove(pid);
+            _cpuDenied.Remove(pid);
         }
     }
 
@@ -146,42 +183,45 @@ public class ProcessMonitorService : IDisposable
     /// bajo la instancia principal.</summary>
     public List<ProcessGroup> BuildGroups()
     {
-        var byPid = _samplesByPid;
-        var rootCache = new Dictionary<int, int>();
-
-        int FindRoot(ProcessSample s)
+        lock (_gate)
         {
-            if (rootCache.TryGetValue(s.Pid, out var cached)) return cached;
+            var byPid = _samplesByPid;
+            var rootCache = new Dictionary<int, int>();
 
-            var current = s;
-            var visited = new HashSet<int> { current.Pid };
-
-            while (byPid.TryGetValue(current.ParentPid, out var parent) &&
-                   string.Equals(parent.Name, s.Name, StringComparison.OrdinalIgnoreCase) &&
-                   visited.Add(parent.Pid))
+            int FindRoot(ProcessSample s)
             {
-                current = parent;
+                if (rootCache.TryGetValue(s.Pid, out var cached)) return cached;
+
+                var current = s;
+                var visited = new HashSet<int> { current.Pid };
+
+                while (byPid.TryGetValue(current.ParentPid, out var parent) &&
+                       string.Equals(parent.Name, s.Name, StringComparison.OrdinalIgnoreCase) &&
+                       visited.Add(parent.Pid))
+                {
+                    current = parent;
+                }
+
+                rootCache[s.Pid] = current.Pid;
+                return current.Pid;
             }
 
-            rootCache[s.Pid] = current.Pid;
-            return current.Pid;
-        }
-
-        var groups = new Dictionary<int, ProcessGroup>();
-        foreach (var sample in byPid.Values)
-        {
-            var rootPid = FindRoot(sample);
-            if (!groups.TryGetValue(rootPid, out var group))
+            var groups = new Dictionary<int, ProcessGroup>();
+            foreach (var sample in byPid.Values)
             {
-                var rootSample = byPid.TryGetValue(rootPid, out var rs) ? rs : sample;
-                group = new ProcessGroup(rootSample);
-                groups[rootPid] = group;
+                var rootPid = FindRoot(sample);
+                if (!groups.TryGetValue(rootPid, out var group))
+                {
+                    var rootSample = byPid.TryGetValue(rootPid, out var rs) ? rs : sample;
+                    group = new ProcessGroup(rootSample);
+                    groups[rootPid] = group;
+                }
+
+                if (sample.Pid != rootPid) group.Children.Add(sample);
             }
 
-            if (sample.Pid != rootPid) group.Children.Add(sample);
+            return groups.Values.ToList();
         }
-
-        return groups.Values.ToList();
     }
 
     // ===================== Finalizar tarea =====================
@@ -227,7 +267,7 @@ public class ProcessMonitorService : IDisposable
                 {
                     var bitmap = Imaging.CreateBitmapSourceFromHIcon(
                         icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-                    bitmap.Freeze();
+                    bitmap.Freeze(); // congelado: se puede usar desde el hilo de la UI
                     image = bitmap;
                 }
             }
@@ -245,68 +285,153 @@ public class ProcessMonitorService : IDisposable
         return image;
     }
 
-    // ===================== GPU (Performance Counters) =====================
+    // ===================== GPU (lectura de categoria completa) =====================
 
-    private Dictionary<int, double> SampleGpuUtilizationByPid() =>
-        SampleGpuCategory("GPU Engine", "Utilization Percentage", _gpuUtilCounters);
-
-    private Dictionary<int, double> SampleGpuMemoryByPid() =>
-        SampleGpuCategory("GPU Process Memory", "Dedicated Usage", _gpuMemCounters);
-
-    private Dictionary<int, double> SampleGpuCategory(
-        string categoryName, string counterName, Dictionary<string, PerformanceCounter> counterCache)
+    /// <summary>Utilizacion de GPU por PID: suma de todos los motores del proceso. "Utilization
+    /// Percentage" es un contador de tasa, asi que se calcula entre la lectura anterior y esta.
+    /// La primera lectura solo fija la referencia (0 para todos).</summary>
+    private Dictionary<int, double> SampleGpuUtilizationByPid()
     {
         var result = new Dictionary<int, double>();
+        if (_gpuEngineAvailable == false) return result;
 
-        string[] instanceNames;
         try
         {
-            if (!PerformanceCounterCategory.Exists(categoryName)) return result;
-            instanceNames = new PerformanceCounterCategory(categoryName).GetInstanceNames();
+            if (_gpuEngineAvailable == null)
+            {
+                _gpuEngineAvailable = PerformanceCounterCategory.Exists("GPU Engine");
+                if (_gpuEngineAvailable == false) return result;
+            }
+
+            var data = new PerformanceCounterCategory("GPU Engine").ReadCategory();
+            if (!data.Contains("Utilization Percentage")) return result;
+
+            var seen = new HashSet<string>();
+
+            foreach (InstanceData instance in data["Utilization Percentage"].Values)
+            {
+                var instanceName = instance.InstanceName;
+                var match = PidRegex.Match(instanceName);
+                if (!match.Success) continue;
+
+                seen.Add(instanceName);
+                var current = instance.Sample;
+
+                if (_prevGpuEngine.TryGetValue(instanceName, out var previous))
+                {
+                    double value;
+                    try { value = CounterSample.Calculate(previous, current); }
+                    catch { value = 0; }
+
+                    var pid = int.Parse(match.Groups[1].Value);
+                    if (pid != 0)
+                    {
+                        result[pid] = result.TryGetValue(pid, out var existing) ? existing + value : value;
+                    }
+                }
+
+                _prevGpuEngine[instanceName] = current;
+            }
+
+            foreach (var stale in _prevGpuEngine.Keys.Where(k => !seen.Contains(k)).ToList())
+            {
+                _prevGpuEngine.Remove(stale);
+            }
         }
         catch
         {
-            return result; // sin soporte de contadores de GPU en este equipo/driver
-        }
-
-        var current = new HashSet<string>(instanceNames);
-
-        foreach (var stale in counterCache.Keys.Where(k => !current.Contains(k)).ToList())
-        {
-            counterCache[stale].Dispose();
-            counterCache.Remove(stale);
-        }
-
-        foreach (var instanceName in instanceNames)
-        {
-            var match = PidRegex.Match(instanceName);
-            if (!match.Success) continue;
-
-            var pid = int.Parse(match.Groups[1].Value);
-            if (pid == 0) continue;
-
-            if (!counterCache.TryGetValue(instanceName, out var counter))
-            {
-                try
-                {
-                    counter = new PerformanceCounter(categoryName, counterName, instanceName, readOnly: true);
-                    counterCache[instanceName] = counter;
-                }
-                catch
-                {
-                    continue; // la instancia desaparecio justo entre el listado y la creacion del contador
-                }
-            }
-
-            double value;
-            try { value = counter.NextValue(); }
-            catch { continue; }
-
-            result[pid] = result.TryGetValue(pid, out var existing) ? existing + value : value;
+            // Sin soporte de contadores de GPU (o fallo del driver): no se reintenta en cada tick.
+            _gpuEngineAvailable = false;
+            _prevGpuEngine.Clear();
         }
 
         return result;
     }
+
+    /// <summary>VRAM dedicada por PID. Es un valor instantaneo, no hace falta lectura previa.</summary>
+    private Dictionary<int, double> SampleGpuMemoryByPid()
+    {
+        var result = new Dictionary<int, double>();
+        if (_gpuMemoryAvailable == false) return result;
+
+        try
+        {
+            if (_gpuMemoryAvailable == null)
+            {
+                _gpuMemoryAvailable = PerformanceCounterCategory.Exists("GPU Process Memory");
+                if (_gpuMemoryAvailable == false) return result;
+            }
+
+            var data = new PerformanceCounterCategory("GPU Process Memory").ReadCategory();
+            if (!data.Contains("Dedicated Usage")) return result;
+
+            foreach (InstanceData instance in data["Dedicated Usage"].Values)
+            {
+                var match = PidRegex.Match(instance.InstanceName);
+                if (!match.Success) continue;
+
+                var pid = int.Parse(match.Groups[1].Value);
+                if (pid == 0) continue;
+
+                double value = instance.Sample.RawValue;
+                result[pid] = result.TryGetValue(pid, out var existing) ? existing + value : value;
+            }
+        }
+        catch
+        {
+            _gpuMemoryAvailable = false;
+        }
+
+        return result;
+    }
+
+    // ===================== Congelados (ventanas colgadas) =====================
+
+    /// <summary>PIDs con alguna ventana visible que Windows considera colgada. Una sola
+    /// enumeracion de ventanas por refresco, sin llamar a Process.Responding.</summary>
+    private static HashSet<int> GetHungProcessIds()
+    {
+        var hung = new HashSet<int>();
+
+        try
+        {
+            EnumWindows((hWnd, _) =>
+            {
+                if (!IsWindowVisible(hWnd)) return true;
+
+                GetWindowThreadProcessId(hWnd, out var pid);
+                if (pid != 0 && !hung.Contains((int)pid) && IsHungAppWindow(hWnd))
+                {
+                    hung.Add((int)pid);
+                }
+
+                return true;
+            }, IntPtr.Zero);
+        }
+        catch
+        {
+            // Sin acceso a la lista de ventanas: nada se marca como congelado.
+        }
+
+        return hung;
+    }
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsHungAppWindow(IntPtr hWnd);
 
     // ===================== Totales del sistema =====================
 
@@ -427,11 +552,18 @@ public class ProcessMonitorService : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
 
+    /// <summary>Descarta las referencias de CPU y GPU (la vista llama aqui al descargarse). El
+    /// servicio sigue siendo reutilizable: el siguiente Refresh() vuelve a fijar la referencia,
+    /// asi que el primer refresco tras volver a la vista muestra 0 y no una media de todo el
+    /// tiempo que estuvo cerrada.</summary>
     public void Dispose()
     {
-        foreach (var counter in _gpuUtilCounters.Values) counter.Dispose();
-        foreach (var counter in _gpuMemCounters.Values) counter.Dispose();
-        _gpuUtilCounters.Clear();
-        _gpuMemCounters.Clear();
+        lock (_gate)
+        {
+            _lastCpu.Clear();
+            _prevGpuEngine.Clear();
+            _gpuEngineAvailable = null;
+            _gpuMemoryAvailable = null;
+        }
     }
 }

@@ -124,7 +124,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="TargetBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0" />
+                        <TextBox x:Name="TargetBox" Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0,0,8,0"
+                                 TextChanged="TargetBox_TextChanged" />
                         <Button Grid.Column="1" Content="..." Style="{StaticResource GhostButton}" Width="34" Click="BrowseTarget_Click" />
                     </Grid>
                     <TextBlock Text="Puede ser una ruta (C:\...\app.exe) o un comando en el PATH (p.ej. kunai)"
@@ -133,6 +134,17 @@
 
                     <TextBlock Text="Argumentos (opcional)" Style="{StaticResource FieldLabel}" />
                     <TextBox x:Name="ArgumentsBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+
+                    <!-- Solo aparece si el destino es un navegador conocido. -->
+                    <StackPanel x:Name="IncognitoPanel" Visibility="Collapsed" Margin="0,0,0,14">
+                        <CheckBox x:Name="IncognitoCheck" Content="Abrir en ventana privada (incognito)"
+                                  Foreground="{DynamicResource Brush.TextSecondary}"
+                                  FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                  Click="IncognitoCheck_Click" />
+                        <TextBlock x:Name="IncognitoHint" Text=""
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                   Foreground="{DynamicResource Brush.TextDim}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <TextBlock Text="Carpeta de trabajo (opcional)" Style="{StaticResource FieldLabel}" />
                     <Grid Margin="0,0,0,14">

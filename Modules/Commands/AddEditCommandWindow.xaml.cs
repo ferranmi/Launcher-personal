@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -49,6 +50,10 @@ public partial class AddEditCommandWindow : Window
     private string _selectedGlyph = "\uE756";
     private string? _iconImagePath;
 
+    /// <summary>True cuando el usuario ha tocado la casilla de incognito: a partir de ahi
+    /// ya no se marca sola al escribir un navegador en un comando nuevo.</summary>
+    private bool _incognitoTouched;
+
     public CommandShortcut? Result { get; private set; }
 
     /// <summary>Constructor para anadir un comando nuevo.</summary>
@@ -69,15 +74,43 @@ public partial class AddEditCommandWindow : Window
 
         NameBox.Text = command.Name;
         CategoryCombo.SelectedIndex = (int)command.Category;
-        TargetBox.Text = command.Target;
+        TargetBox.Text = command.Target; // dispara TargetBox_TextChanged: muestra o no la casilla
         ArgumentsBox.Text = command.Arguments;
         WorkingDirBox.Text = command.WorkingDirectory ?? "";
         TerminalCombo.SelectedIndex = (int)command.Terminal;
         RunAsAdminCheck.IsChecked = command.RunAsAdmin;
+        IncognitoCheck.IsChecked = command.Incognito;
 
         _selectedGlyph = command.Icon;
         _iconImagePath = command.HasImageIcon ? command.IconImagePath : null;
         RefreshIconUi();
+    }
+
+    // ===================== Incognito =====================
+
+    private void TargetBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateIncognitoUi();
+
+    private void IncognitoCheck_Click(object sender, RoutedEventArgs e) => _incognitoTouched = true;
+
+    /// <summary>La casilla solo se ofrece si el destino es un navegador conocido. En un
+    /// comando nuevo se marca sola la primera vez que se reconoce un navegador.</summary>
+    private void UpdateIncognitoUi()
+    {
+        var flag = CommandsService.GetIncognitoArgument(TargetBox.Text);
+
+        if (flag == null)
+        {
+            IncognitoPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        IncognitoPanel.Visibility = Visibility.Visible;
+        IncognitoHint.Text = $"Anade {flag} al abrir el navegador.";
+
+        if (_editingCommand == null && !_incognitoTouched)
+        {
+            IncognitoCheck.IsChecked = true;
+        }
     }
 
     // ===================== Icono =====================
@@ -127,7 +160,8 @@ public partial class AddEditCommandWindow : Window
 
     private void UseAppIcon_Click(object sender, RoutedEventArgs e)
     {
-        var resolved = CommandsService.ResolveTargetPath(TargetBox.Text.Trim());
+        // ResolveExecutable tambien encuentra navegadores que solo estan en "App Paths".
+        var resolved = CommandsService.ResolveExecutable(TargetBox.Text);
         if (resolved == null)
         {
             IconStatus.Text = "no se encuentra un ejecutable del que sacar el icono (los protocolos no tienen)";
@@ -245,6 +279,7 @@ public partial class AddEditCommandWindow : Window
         command.IconImagePath = _iconImagePath;
         command.Terminal = (TerminalHost)TerminalCombo.SelectedIndex;
         command.RunAsAdmin = RunAsAdminCheck.IsChecked == true;
+        command.Incognito = IncognitoCheck.IsChecked == true && CommandsService.GetIncognitoArgument(target) != null;
 
         Result = command;
         DialogResult = true;

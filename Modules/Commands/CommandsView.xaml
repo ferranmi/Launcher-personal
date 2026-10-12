@@ -4,7 +4,6 @@
              xmlns:conv="clr-namespace:Launcher.Core.Converters">
 
     <UserControl.Resources>
-        <conv:PathToBitmapConverter x:Key="PathToBitmap" />
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
         <conv:PathToBitmapConverter x:Key="PathToBitmap" />
 

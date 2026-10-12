@@ -14,14 +14,15 @@ Aplicación de escritorio modular en C# / WPF (.NET 10) con tema oscuro estilo t
 
 | Módulo | Estado | Qué hace |
 |---|---|---|
+| Inicio | Funcional | Dashboard: sistema reducido, lo que suena, accesos a juegos, carpetas y comandos, y top 5 de procesos por CPU, RAM o GPU. Hueco para el futuro buscador |
 | Juegos | Funcional | Biblioteca con portadas, sincronización con Steam/Epic por carpetas, favoritos, ocultos, tiempo de juego, arrastrar `.exe` |
 | Carpetas | Funcional | Accesos directos a carpetas con selector de icono |
 | Multimedia | Funcional | Reproductor "Now Playing" (SMTC de Windows) y mezclador de volumen por aplicación |
 | Música | Placeholder | Pospuesto |
 | Buscar | Placeholder | Probablemente lo sustituya el asistente de IA |
-| Comandos | Funcional | Accesos a apps, herramientas de sistema y CLI, con CMD/PowerShell, ejecución como administrador e iconos personalizables |
+| Comandos | Funcional | Accesos a apps, herramientas de sistema y CLI, con CMD/PowerShell, ejecución como administrador, iconos personalizables e incógnito en navegadores |
 | Monitor | Funcional | CPU, RAM, GPU, VRAM, red y discos con sparklines |
-| Procesos | Funcional | Procesos agrupados por ejecutable, con CPU/RAM/GPU/VRAM y finalizar tarea |
+| Procesos | Funcional | Procesos agrupados por ejecutable, con CPU/RAM/GPU/VRAM, el total del sistema en la cabecera de cada columna y finalizar tarea |
 | Configuración | Funcional | Arranque, ventana, atajo global, tarjetas, refresco, color de acento, actualizaciones y datos |
 
 ### Iconos en Comandos
@@ -31,6 +32,19 @@ Cada comando puede tener su icono de tres formas (la imagen tiene prioridad sobr
 - **Glifo**: una lista de iconos de Segoe MDL2/Fluent (terminal, ajustes, navegador, disco…).
 - **Icono de la app**: se extrae del ejecutable indicado en el comando. En comandos que son un protocolo (`ms-settings:`) no hay icono que extraer.
 - **Imagen propia**: un `.ico`, `.png` o `.jpg` a elegir. Se copia a la carpeta de datos, así que sigue funcionando si mueves o borras el original.
+
+### Incógnito en navegadores
+
+Si el destino de un comando es un navegador conocido, el formulario muestra la casilla **Abrir en ventana privada** y el Launcher añade el argumento correspondiente al lanzarlo:
+
+| Navegador | Argumento |
+|---|---|
+| Chrome, Chromium, Brave, Vivaldi | `--incognito` |
+| Edge | `--inprivate` |
+| Firefox, LibreWolf, Waterfox | `-private-window` |
+| Opera | `--private` |
+
+En un comando nuevo la casilla viene marcada la primera vez que se reconoce un navegador; se puede desmarcar. Los navegadores que no están en el PATH (Chrome, Firefox) se localizan también por la clave `App Paths` del registro.
 
 ## Arquitectura
 

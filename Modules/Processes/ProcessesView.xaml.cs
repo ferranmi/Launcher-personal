@@ -39,7 +39,7 @@ public partial class ProcessesView : UserControl
         BuildHeaders();
 
         _timer = new DispatcherTimer { Interval = CurrentInterval() };
-        _timer.Tick += (_, _) => RefreshTick();
+        _timer.Tick += async (_, _) => await RefreshAsync();
 
         // Si el usuario cambia el intervalo en Configuracion, se aplica al instante.
         AppSettingsService.Instance.Changed += (_, _) => ApplyInterval();
@@ -47,13 +47,13 @@ public partial class ProcessesView : UserControl
         // La vista se cachea en MainWindow: al cambiar de modulo se descarga (Unloaded) y al
         // volver se carga otra vez (Loaded), asi que el temporizador debe arrancar en Loaded
         // y no solo en el constructor, o la tabla se quedaria congelada al volver.
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             ApplyInterval();
-            _service.Refresh(); // vuelve a tomar la referencia de CPU
-            _groups = _service.BuildGroups();
-            RebuildRows();
-            _timer.Start();
+            await RefreshAsync(); // primera muestra: fija la referencia de CPU/GPU
+
+            // Si la vista se descargo mientras tanto, no arrancamos el temporizador.
+            if (IsLoaded) _timer.Start();
         };
 
         Unloaded += (_, _) =>
@@ -72,18 +72,44 @@ public partial class ProcessesView : UserControl
         if (_timer.Interval != interval) _timer.Interval = interval;
     }
 
-    private void RefreshTick()
+    /// <summary>True mientras hay un muestreo en marcha: si el siguiente tick llega antes de
+    /// que termine, se salta en vez de apilar trabajo (y el servicio no se toca desde dos
+    /// hilos a la vez).</summary>
+    private bool _refreshing;
+
+    /// <summary>El muestreo (procesos, contadores de GPU, iconos) se hace en un hilo de fondo;
+    /// la interfaz solo recibe el resultado ya calculado y reconstruye las filas.</summary>
+    private async Task RefreshAsync()
     {
-        _service.Refresh();
-        _groups = _service.BuildGroups();
-        RebuildRows();
+        if (_refreshing) return;
+        _refreshing = true;
+
+        try
+        {
+            _groups = await Task.Run(() =>
+            {
+                _service.Refresh();
+                return _service.BuildGroups();
+            });
+
+            RebuildRows();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("Fallo el refresco de procesos", ex);
+        }
+        finally
+        {
+            _refreshing = false;
+        }
     }
 
     // ===================== Cabeceras con totales =====================
 
-    /// <summary>Cada cabecera de metrica lleva el nombre arriba y el total del sistema debajo
-    /// (se actualiza en cada refresco). El orden por columna sigue funcionando: solo cambia
-    /// el contenido visual de la cabecera, no su SortMemberPath.</summary>
+    /// <summary>Cada cabecera lleva el nombre arriba y el total del sistema debajo (se
+    /// actualiza en cada refresco). Las columnas numericas se alinean a la derecha, como sus
+    /// celdas. El orden por columna sigue funcionando: solo cambia el contenido visual de la
+    /// cabecera, no su SortMemberPath.</summary>
     private void BuildHeaders()
     {
         string[] titles = { "Proceso", "CPU", "RAM", "GPU", "VRAM" };
@@ -91,11 +117,22 @@ public partial class ProcessesView : UserControl
 
         for (var i = 0; i < titles.Length; i++)
         {
+            var alignment = i == 0
+                ? System.Windows.HorizontalAlignment.Left
+                : System.Windows.HorizontalAlignment.Right;
+
+            var title = new System.Windows.Controls.TextBlock
+            {
+                Text = titles[i],
+                HorizontalAlignment = alignment
+            };
+
             var total = new System.Windows.Controls.TextBlock
             {
                 FontFamily = mono,
                 FontSize = 10,
-                Margin = new Thickness(0, 2, 0, 0)
+                Margin = new Thickness(0, 2, 0, 0),
+                HorizontalAlignment = alignment
             };
             total.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "Brush.Accent");
 
@@ -103,7 +140,8 @@ public partial class ProcessesView : UserControl
 
             ProcessesGrid.Columns[i].Header = new StackPanel
             {
-                Children = { new System.Windows.Controls.TextBlock { Text = titles[i] }, total }
+                HorizontalAlignment = alignment,
+                Children = { title, total }
             };
         }
     }
@@ -235,7 +273,7 @@ public partial class ProcessesView : UserControl
         RebuildRows();
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshTick();
+    private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
 
     private void ProcessesGrid_Sorting(object sender, DataGridSortingEventArgs e)
     {
@@ -337,6 +375,6 @@ public partial class ProcessesView : UserControl
                 MessageBoxImage.Error);
         }
 
-        RefreshTick();
+        _ = RefreshAsync();
     }
 }

@@ -81,6 +81,9 @@
             </Setter>
         </Style>
 
+        <!-- Cabecera de columna con plantilla propia: no depende de la plantilla por defecto
+             del DataGrid. Contenido (nombre + total, lo rellena el codigo) + flecha de orden
+             + agarre para redimensionar la columna. -->
         <Style x:Key="ColHeader" TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
@@ -91,26 +94,66 @@
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ContentPresenter Grid.Column="0"
+                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                      VerticalAlignment="Center" />
+
+                                    <Path x:Name="SortArrow" Grid.Column="1"
+                                          Data="M0,5 L4,0 L8,5 Z"
+                                          Fill="{DynamicResource Brush.Accent}"
+                                          Width="8" Height="5" Margin="6,0,0,0"
+                                          VerticalAlignment="Center"
+                                          RenderTransformOrigin="0.5,0.5"
+                                          Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+
+                            <Thumb x:Name="PART_RightHeaderGripper"
+                                   HorizontalAlignment="Right" Width="6"
+                                   Background="Transparent" BorderThickness="0" Cursor="SizeWE">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="{TemplateBinding Background}" />
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="SortDirection" Value="Ascending">
+                                <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="SortDirection" Value="Descending">
+                                <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="SortArrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="180" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Cabeceras de las columnas numericas: alineadas a la derecha, como sus celdas. -->
         <Style x:Key="ColHeaderRight" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ColHeader}">
             <Setter Property="HorizontalContentAlignment" Value="Right" />
         </Style>
-
-        <!-- Cabecera con el nombre de la columna y el consumo total del equipo
-             (como el Administrador de tareas). El contenido es un HeaderStat. -->
-        <DataTemplate x:Key="HeaderStatTemplate">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding Title}" />
-                    <TextBlock Text="{Binding Value}" Margin="6,0,0,0" FontWeight="Bold"
-                               Foreground="{DynamicResource Brush.Accent}" />
-                </StackPanel>
-                <TextBlock Text="{Binding Detail}" HorizontalAlignment="Right" FontSize="9.5"
-                           Foreground="{DynamicResource Brush.TextDim}" />
-            </StackPanel>
-        </DataTemplate>
 
         <Style x:Key="Cell" TargetType="DataGridCell">
             <Setter Property="BorderThickness" Value="0" />
@@ -206,7 +249,8 @@
 
                 <DataGrid.Columns>
 
-                    <!-- Proceso: flecha de expandir (solo si tiene hijos) + icono + nombre + contador -->
+                    <!-- Proceso: flecha de expandir (solo si tiene hijos) + icono + nombre + contador.
+                         La cabecera (nombre + total) la rellena BuildHeaders en el codigo. -->
                     <DataGridTemplateColumn Header="Proceso" Width="*" SortMemberPath="Name">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -252,9 +296,8 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- CPU % (la cabecera la rellena el codigo con un HeaderStat) -->
-                    <DataGridTemplateColumn Width="100" SortMemberPath="CpuPercent"
-                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                    <!-- CPU % (cabecera rellenada por BuildHeaders) -->
+                    <DataGridTemplateColumn Header="CPU" Width="100" SortMemberPath="CpuPercent"
                                             HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -290,8 +333,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- RAM -->
-                    <DataGridTemplateColumn Width="130" SortMemberPath="RamMB"
-                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                    <DataGridTemplateColumn Header="RAM" Width="130" SortMemberPath="RamMB"
                                             HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -333,8 +375,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- GPU % -->
-                    <DataGridTemplateColumn Width="100" SortMemberPath="GpuPercent"
-                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                    <DataGridTemplateColumn Header="GPU" Width="100" SortMemberPath="GpuPercent"
                                             HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -370,8 +411,7 @@
                     </DataGridTemplateColumn>
 
                     <!-- VRAM -->
-                    <DataGridTemplateColumn Width="130" SortMemberPath="VramMB"
-                                            HeaderTemplate="{StaticResource HeaderStatTemplate}"
+                    <DataGridTemplateColumn Header="VRAM" Width="130" SortMemberPath="VramMB"
                                             HeaderStyle="{StaticResource ColHeaderRight}">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

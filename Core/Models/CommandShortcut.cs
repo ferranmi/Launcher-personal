@@ -50,6 +50,11 @@ public class CommandShortcut : INotifyPropertyChanged
     private bool _runAsAdmin;
     public bool RunAsAdmin { get => _runAsAdmin; set { _runAsAdmin = value; OnChanged(); } }
 
+    /// <summary>Si es true y el destino es un navegador conocido, se abre en ventana
+    /// privada (CommandsService.BuildArguments anade el argumento que corresponda).</summary>
+    private bool _incognito;
+    public bool Incognito { get => _incognito; set { _incognito = value; OnChanged(); } }
+
     private bool _favorite;
     public bool Favorite { get => _favorite; set { _favorite = value; OnChanged(); } }
 

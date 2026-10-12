@@ -120,6 +120,15 @@ public class CommandsService
         return !isDriveLetter;
     }
 
+    /// <summary>True si el comando se puede lanzar en este equipo: se resuelve a un archivo
+    /// real o es un protocolo/URI (que no se puede verificar localmente y se da por bueno).</summary>
+    public static bool TargetExists(string? target)
+    {
+        if (string.IsNullOrWhiteSpace(target)) return false;
+        if (LooksLikeProtocolOrUri(target.Trim().Trim('"'))) return true;
+        return ResolveExecutable(target) != null;
+    }
+
     /// <summary>Localiza el archivo real de un comando: ruta absoluta, PATH actualizado,
     /// System32 (devmgmt.msc, taskmgr.exe...) y, por ultimo, la clave "App Paths" del
     /// registro, donde se registran navegadores como Chrome o Firefox que no estan en el
@@ -181,40 +190,6 @@ public class CommandsService
                 catch
                 {
                     // Sin acceso a esa vista del registro: probamos la siguiente.
-                }
-            }
-        }
-
-        return null;
-    }
-
-        /// <summary>Ruta real del ejecutable al que apunta el comando (absoluta, en el PATH
-    /// o en System32), o null si no se resuelve o es un protocolo (steam://, ms-settings:).</summary>
-    public static string? ResolveTargetPath(string target)
-    {
-        if (string.IsNullOrWhiteSpace(target) || LooksLikeProtocolOrUri(target)) return null;
-
-        if (Path.IsPathRooted(target)) return File.Exists(target) ? target : null;
-
-        var extensions = new[] { "", ".exe", ".cmd", ".bat", ".ps1", ".msc" };
-        var system32 = Environment.GetFolderPath(Environment.SpecialFolder.System);
-        var dirs = GetRefreshedPath().Split(';', StringSplitOptions.RemoveEmptyEntries).Append(system32);
-
-        foreach (var dir in dirs)
-        {
-            var trimmedDir = dir.Trim();
-            if (trimmedDir.Length == 0) continue;
-
-            foreach (var ext in extensions)
-            {
-                try
-                {
-                    var candidate = Path.Combine(trimmedDir, target + ext);
-                    if (File.Exists(candidate)) return candidate;
-                }
-                catch
-                {
-                    // Directorio de PATH invalido: lo ignoramos.
                 }
             }
         }
