@@ -188,14 +188,38 @@ public class CommandsService
         return null;
     }
 
-    /// <summary>Comprueba si el comando/ruta se puede resolver en este equipo. No verifica
-    /// protocolos/URIs (se dan por buenos).</summary>
-    public static bool TargetExists(string target)
+        /// <summary>Ruta real del ejecutable al que apunta el comando (absoluta, en el PATH
+    /// o en System32), o null si no se resuelve o es un protocolo (steam://, ms-settings:).</summary>
+    public static string? ResolveTargetPath(string target)
     {
-        if (string.IsNullOrWhiteSpace(target)) return false;
-        if (LooksLikeProtocolOrUri(target)) return true;
+        if (string.IsNullOrWhiteSpace(target) || LooksLikeProtocolOrUri(target)) return null;
 
-        return ResolveExecutable(target) != null;
+        if (Path.IsPathRooted(target)) return File.Exists(target) ? target : null;
+
+        var extensions = new[] { "", ".exe", ".cmd", ".bat", ".ps1", ".msc" };
+        var system32 = Environment.GetFolderPath(Environment.SpecialFolder.System);
+        var dirs = GetRefreshedPath().Split(';', StringSplitOptions.RemoveEmptyEntries).Append(system32);
+
+        foreach (var dir in dirs)
+        {
+            var trimmedDir = dir.Trim();
+            if (trimmedDir.Length == 0) continue;
+
+            foreach (var ext in extensions)
+            {
+                try
+                {
+                    var candidate = Path.Combine(trimmedDir, target + ext);
+                    if (File.Exists(candidate)) return candidate;
+                }
+                catch
+                {
+                    // Directorio de PATH invalido: lo ignoramos.
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Argumento de ventana privada del navegador al que apunta el destino, o

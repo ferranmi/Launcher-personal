@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using Launcher.Core.Converters;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
@@ -13,36 +15,38 @@ namespace Launcher.Modules.Commands;
 
 public partial class AddEditCommandWindow : Window
 {
-    /// <summary>Paleta de iconos (glifos de Segoe MDL2 Assets). Si hace falta uno que no
-    /// este aqui, siempre se puede usar el icono de la propia aplicacion.</summary>
-    private static readonly (string Icon, string Label)[] IconOptions =
+    /// <summary>Glifos de Segoe MDL2/Fluent ofrecidos para un comando. Si el usuario
+    /// quiere otro, puede elegir una imagen o usar el icono de la propia app.</summary>
+    private static readonly (string Glyph, string Label)[] GlyphOptions =
     {
         ("\uE756", "Terminal"),
-        ("\uE71D", "Aplicaciones"),
         ("\uE713", "Ajustes"),
-        ("\uE774", "Web"),
-        ("\uE7FC", "Juegos"),
-        ("\uE943", "Codigo"),
+        ("\uE774", "Navegador / web"),
         ("\uE8B7", "Carpeta"),
+        ("\uE71D", "Aplicaciones"),
+        ("\uE943", "Codigo"),
+        ("\uE9D9", "Diagnostico"),
+        ("\uEDA2", "Disco"),
         ("\uE7F4", "Pantalla"),
+        ("\uE7FC", "Juegos"),
         ("\uE8D6", "Musica"),
         ("\uE714", "Video"),
-        ("\uEB9F", "Imagenes"),
-        ("\uE8A5", "Documentos"),
-        ("\uE765", "Teclado"),
-        ("\uE772", "Dispositivos"),
-        ("\uE7E8", "Energia"),
-        ("\uE9D9", "Monitor"),
+        ("\uE720", "Microfono"),
         ("\uE767", "Volumen"),
+        ("\uE7F6", "Auriculares"),
+        ("\uE765", "Teclado"),
+        ("\uE701", "Wi-Fi"),
+        ("\uE702", "Bluetooth"),
+        ("\uE88E", "USB"),
         ("\uE753", "Nube"),
-        ("\uE721", "Buscar"),
+        ("\uE72E", "Seguridad"),
         ("\uE734", "Favorito"),
     };
 
     private readonly CommandShortcut? _editingCommand;
     private readonly string _iconId;
 
-    private string _selectedIcon = "\uE756";
+    private string _selectedGlyph = "\uE756";
     private string? _iconImagePath;
 
     public CommandShortcut? Result { get; private set; }
@@ -52,8 +56,8 @@ public partial class AddEditCommandWindow : Window
     {
         InitializeComponent();
         _iconId = Guid.NewGuid().ToString("N");
-        BuildIconPicker();
-        UpdateIncognitoHint();
+        BuildGlyphPicker();
+        RefreshIconUi();
     }
 
     /// <summary>Constructor para editar un comando existente.</summary>
@@ -68,136 +72,111 @@ public partial class AddEditCommandWindow : Window
         TargetBox.Text = command.Target;
         ArgumentsBox.Text = command.Arguments;
         WorkingDirBox.Text = command.WorkingDirectory ?? "";
-
-        SelectIcon(command.Icon);
-        if (command.HasIconImage)
-        {
-            _iconImagePath = command.IconImagePath;
-            UncheckTiles();
-            ShowAppIcon(_iconImagePath);
-            AppIconStatus.Text = "icono de la app aplicado_";
-        }
-
         TerminalCombo.SelectedIndex = (int)command.Terminal;
         RunAsAdminCheck.IsChecked = command.RunAsAdmin;
-        IncognitoCheck.IsChecked = command.Incognito;
-        UpdateIncognitoHint();
+
+        _selectedGlyph = command.Icon;
+        _iconImagePath = command.HasImageIcon ? command.IconImagePath : null;
+        RefreshIconUi();
     }
 
-    // ===================== Selector de icono =====================
+    // ===================== Icono =====================
 
-    private void BuildIconPicker()
+    private void BuildGlyphPicker()
     {
-        foreach (var (icon, label) in IconOptions)
+        foreach (var (glyph, label) in GlyphOptions)
         {
             var button = new ToggleButton
             {
-                Tag = icon,
-                Content = icon,
+                Tag = glyph,
+                Content = glyph,
                 ToolTip = label,
-                Margin = new Thickness(0, 0, 8, 8),
+                Margin = new Thickness(0, 0, 6, 6),
                 Style = (Style)FindResource("IconOptionStyle")
             };
 
-            // Click (y no Checked): solo se dispara por una accion del usuario, asi que
-            // marcar fichas por codigo no borra el icono de la aplicacion.
+            // Click y no Checked: solo reacciona a una eleccion del usuario, no a que
+            // RefreshIconUi marque/desmarque botones por codigo.
             button.Click += (_, _) =>
             {
-                ClearAppIcon();
-                SelectIcon(icon);
+                _selectedGlyph = glyph;
+                _iconImagePath = null; // elegir un glifo sustituye a la imagen
+                IconStatus.Text = "";
+                RefreshIconUi();
             };
 
             IconPanel.Children.Add(button);
         }
-
-        SelectIcon(_selectedIcon);
     }
 
-    private void SelectIcon(string icon)
+    /// <summary>Refleja el estado actual (glifo o imagen) en los botones y la vista previa.</summary>
+    private void RefreshIconUi()
     {
-        _selectedIcon = icon;
+        var usingImage = _iconImagePath != null;
+
         foreach (var toggle in IconPanel.Children.OfType<ToggleButton>())
         {
-            var isMatch = (string)toggle.Tag == icon;
-            if (toggle.IsChecked != isMatch) toggle.IsChecked = isMatch;
-        }
-    }
-
-    private void UncheckTiles()
-    {
-        foreach (var toggle in IconPanel.Children.OfType<ToggleButton>())
-        {
-            toggle.IsChecked = false;
-        }
-    }
-
-    private void ClearAppIcon()
-    {
-        _iconImagePath = null;
-        ShowAppIcon(null);
-        AppIconStatus.Text = "";
-    }
-
-    private void ShowAppIcon(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            AppIconPreview.Source = null;
-            AppIconPreview.Visibility = Visibility.Collapsed;
-            return;
+            toggle.IsChecked = !usingImage && (string)toggle.Tag == _selectedGlyph;
         }
 
-        AppIconPreview.Source = new PathToBitmapConverter().Convert(
-            path, typeof(System.Windows.Media.ImageSource), null, CultureInfo.InvariantCulture)
-            as System.Windows.Media.ImageSource;
-
-        AppIconPreview.Visibility = AppIconPreview.Source == null ? Visibility.Collapsed : Visibility.Visible;
+        IconPreviewBorder.Visibility = usingImage ? Visibility.Visible : Visibility.Collapsed;
+        IconPreview.Source = usingImage
+            ? new PathToBitmapConverter().Convert(_iconImagePath, typeof(ImageSource), null, CultureInfo.InvariantCulture) as ImageSource
+            : null;
     }
 
     private void UseAppIcon_Click(object sender, RoutedEventArgs e)
     {
-        var target = TargetBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(target))
+        var resolved = CommandsService.ResolveTargetPath(TargetBox.Text.Trim());
+        if (resolved == null)
         {
-            AppIconStatus.Text = "indica primero el comando o la ruta";
+            IconStatus.Text = "no se encuentra un ejecutable del que sacar el icono (los protocolos no tienen)";
             return;
         }
 
-        var exePath = CommandsService.ResolveExecutable(target);
-        if (exePath == null)
+        var saved = IconExtractionService.ExtractAsCover(resolved, $"cmd_{_iconId}");
+        if (saved == null)
         {
-            AppIconStatus.Text = "no se encontro el ejecutable en este equipo";
+            IconStatus.Text = "no se pudo extraer el icono de ese archivo";
             return;
         }
 
-        var iconPath = IconExtractionService.ExtractAsCover(exePath, _iconId);
-        if (iconPath == null)
-        {
-            AppIconStatus.Text = "no se pudo extraer el icono";
-            return;
-        }
-
-        _iconImagePath = iconPath;
-        UncheckTiles();
-        ShowAppIcon(iconPath);
-        AppIconStatus.Text = "icono de la app aplicado_ (elige un glifo para quitarlo)";
+        _iconImagePath = saved;
+        IconStatus.Text = "icono de la app_";
+        RefreshIconUi();
     }
 
-    // ===================== Incognito =====================
-
-    private void TargetBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateIncognitoHint();
-
-    private void UpdateIncognitoHint()
+    private void BrowseIconImage_Click(object sender, RoutedEventArgs e)
     {
-        if (IncognitoHint == null || TargetBox == null) return;
+        var dialog = new OpenFileDialog
+        {
+            Title = "Selecciona el icono",
+            Filter = "Imagenes (*.ico;*.png;*.jpg;*.jpeg)|*.ico;*.png;*.jpg;*.jpeg|Todos los archivos (*.*)|*.*"
+        };
 
-        var flag = CommandsService.GetIncognitoArgument(TargetBox.Text);
-        IncognitoHint.Text = flag != null
-            ? $"Navegador reconocido: al abrirlo se anadira {flag}."
-            : "Solo se aplica a navegadores reconocidos (Chrome, Edge, Firefox, Brave, Vivaldi, Opera).";
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            // Se copia a la carpeta de datos: si el usuario mueve o borra el original,
+            // el icono del comando sigue funcionando.
+            Directory.CreateDirectory(CoverArtService.CoversFolder);
+            var extension = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+            var destination = Path.Combine(CoverArtService.CoversFolder, $"cmd_{_iconId}_custom{extension}");
+            File.Copy(dialog.FileName, destination, overwrite: true);
+
+            _iconImagePath = destination;
+            IconStatus.Text = "imagen elegida_";
+            RefreshIconUi();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo copiar el icono del comando", ex);
+            IconStatus.Text = "no se pudo usar esa imagen";
+        }
     }
 
-    // ===================== Examinar =====================
+    // ===================== Resto del formulario =====================
 
     private void BrowseTarget_Click(object sender, RoutedEventArgs e)
     {
@@ -212,7 +191,7 @@ public partial class AddEditCommandWindow : Window
             TargetBox.Text = dialog.FileName;
             if (string.IsNullOrWhiteSpace(NameBox.Text))
             {
-                NameBox.Text = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
+                NameBox.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
             }
         }
     }
@@ -225,8 +204,6 @@ public partial class AddEditCommandWindow : Window
             WorkingDirBox.Text = dialog.SelectedPath;
         }
     }
-
-    // ===================== Guardar =====================
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
@@ -258,18 +235,16 @@ public partial class AddEditCommandWindow : Window
             if (proceed != MessageBoxResult.Yes) return;
         }
 
-        // El id del icono extraido es el id del comando, asi el archivo queda ligado a el.
         var command = _editingCommand ?? new CommandShortcut { Id = _iconId };
         command.Name = NameBox.Text.Trim();
         command.Category = (CommandCategory)CategoryCombo.SelectedIndex;
         command.Target = target;
         command.Arguments = ArgumentsBox.Text.Trim();
         command.WorkingDirectory = string.IsNullOrWhiteSpace(WorkingDirBox.Text) ? null : WorkingDirBox.Text.Trim();
-        command.Icon = _selectedIcon;
+        command.Icon = _selectedGlyph;
         command.IconImagePath = _iconImagePath;
         command.Terminal = (TerminalHost)TerminalCombo.SelectedIndex;
         command.RunAsAdmin = RunAsAdminCheck.IsChecked == true;
-        command.Incognito = IncognitoCheck.IsChecked == true;
 
         Result = command;
         DialogResult = true;

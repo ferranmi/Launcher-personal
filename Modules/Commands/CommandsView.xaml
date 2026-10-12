@@ -4,6 +4,7 @@
              xmlns:conv="clr-namespace:Launcher.Core.Converters">
 
     <UserControl.Resources>
+        <conv:PathToBitmapConverter x:Key="PathToBitmap" />
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
         <conv:PathToBitmapConverter x:Key="PathToBitmap" />
 
@@ -165,10 +166,11 @@
                                                            FontSize="20"
                                                            Foreground="{DynamicResource Brush.Accent}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           Visibility="{Binding HasIconImage, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                                           Visibility="{Binding HasImageIcon, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
                                                 <Image Source="{Binding IconImagePath, Converter={StaticResource PathToBitmap}}"
-                                                       Margin="8" Stretch="Uniform"
-                                                       Visibility="{Binding HasIconImage, Converter={StaticResource BoolToVis}}" />
+                                                       Width="30" Height="30" Stretch="Uniform"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Visibility="{Binding HasImageIcon, Converter={StaticResource BoolToVis}}" />
                                             </Grid>
                                         </Border>
 

@@ -50,15 +50,11 @@ public class CommandShortcut : INotifyPropertyChanged
     private bool _runAsAdmin;
     public bool RunAsAdmin { get => _runAsAdmin; set { _runAsAdmin = value; OnChanged(); } }
 
-    /// <summary>Si es true y el destino es un navegador conocido (Chrome, Edge, Firefox,
-    /// Brave, Vivaldi, Opera), se anade al lanzarlo el argumento de ventana privada.</summary>
-    private bool _incognito;
-    public bool Incognito { get => _incognito; set { _incognito = value; OnChanged(); } }
-
     private bool _favorite;
     public bool Favorite { get => _favorite; set { _favorite = value; OnChanged(); } }
 
-    /// <summary>Glifo de Segoe MDL2 Assets. Si se deja vacio se usa un icono generico de terminal.</summary>
+    /// <summary>Glifo de Segoe Fluent Icons. Se usa cuando no hay imagen de icono;
+    /// si se deja vacio se usa un icono generico de terminal.</summary>
     private string _icon = "\uE756";
     public string Icon
     {
@@ -66,17 +62,17 @@ public class CommandShortcut : INotifyPropertyChanged
         set { _icon = string.IsNullOrWhiteSpace(value) ? "\uE756" : value; OnChanged(); }
     }
 
-    /// <summary>Ruta de una imagen (icono extraido de la aplicacion). Si existe, la tarjeta
-    /// la muestra en lugar del glifo.</summary>
+    /// <summary>Imagen de icono (icono extraido de la app, o un .ico/.png elegido por el
+    /// usuario). Si existe, tiene prioridad sobre el glifo.</summary>
     private string? _iconImagePath;
     public string? IconImagePath
     {
         get => _iconImagePath;
-        set { _iconImagePath = value; OnChanged(); OnChanged(nameof(HasIconImage)); }
+        set { _iconImagePath = value; OnChanged(); OnChanged(nameof(HasImageIcon)); }
     }
 
     [JsonIgnore]
-    public bool HasIconImage => !string.IsNullOrWhiteSpace(IconImagePath) && File.Exists(IconImagePath);
+    public bool HasImageIcon => !string.IsNullOrWhiteSpace(IconImagePath) && File.Exists(IconImagePath);
 
     public DateTime? LastUsed { get; set; }
 

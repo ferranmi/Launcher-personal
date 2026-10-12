@@ -19,10 +19,18 @@ Aplicación de escritorio modular en C# / WPF (.NET 10) con tema oscuro estilo t
 | Multimedia | Funcional | Reproductor "Now Playing" (SMTC de Windows) y mezclador de volumen por aplicación |
 | Música | Placeholder | Pospuesto |
 | Buscar | Placeholder | Probablemente lo sustituya el asistente de IA |
-| Comandos | Funcional | Accesos a apps, herramientas de sistema y CLI, con CMD/PowerShell y ejecución como administrador |
+| Comandos | Funcional | Accesos a apps, herramientas de sistema y CLI, con CMD/PowerShell, ejecución como administrador e iconos personalizables |
 | Monitor | Funcional | CPU, RAM, GPU, VRAM, red y discos con sparklines |
 | Procesos | Funcional | Procesos agrupados por ejecutable, con CPU/RAM/GPU/VRAM y finalizar tarea |
-| Configuración | Funcional | Arranque, ventana, atajo global, tarjetas, actualizaciones y datos |
+| Configuración | Funcional | Arranque, ventana, atajo global, tarjetas, refresco, color de acento, actualizaciones y datos |
+
+### Iconos en Comandos
+
+Cada comando puede tener su icono de tres formas (la imagen tiene prioridad sobre el glifo):
+
+- **Glifo**: una lista de iconos de Segoe MDL2/Fluent (terminal, ajustes, navegador, disco…).
+- **Icono de la app**: se extrae del ejecutable indicado en el comando. En comandos que son un protocolo (`ms-settings:`) no hay icono que extraer.
+- **Imagen propia**: un `.ico`, `.png` o `.jpg` a elegir. Se copia a la carpeta de datos, así que sigue funcionando si mueves o borras el original.
 
 ## Arquitectura
 
@@ -56,7 +64,7 @@ Launcher/
 | `settings.json` | Rutas de Steam y Epic |
 | `games.json`, `ignored-games.json` | Biblioteca y juegos eliminados de la sincronización |
 | `folders.json`, `commands.json`, `media_apps.json` | Accesos de cada módulo |
-| `covers/` | Caché de portadas |
+| `covers/` | Caché de portadas de juegos e iconos de comandos |
 | `logs/` | Registro de errores (se conservan 7 días) |
 
 ## Sincronización con Steam y Epic
@@ -71,12 +79,14 @@ No usa login: lee los archivos locales de cada launcher.
 
 Las actualizaciones usan [Velopack](https://velopack.io).
 
-1. Sube `<Version>` en `Launcher.csproj` (cada release necesita una versión distinta).
-2. Ejecuta `.\publish.ps1`: publica, empaqueta con `vpk` y deja el resultado en `%USERPROFILE%\LauncherReleases`.
+1. Sube `<Version>` en `Launcher.csproj` (cada release necesita una versión distinta y mayor).
+2. Ejecuta `.\publish.ps1` (o `powershell -ExecutionPolicy Bypass -File .\publish.ps1` si PowerShell bloquea el script). Publica, empaqueta con `vpk` y deja el resultado en `%USERPROFILE%\LauncherReleases`.
 3. La primera vez, instala con el `Setup.exe` de esa carpeta.
-4. Las copias **instaladas** detectan las versiones nuevas solas (al abrir y cada 6 horas) y se actualizan desde el número de versión de la barra lateral.
+4. Las copias **instaladas** buscan versiones nuevas al abrir (a los 8 segundos) y cada 6 horas, y por defecto **se actualizan solas**: descargan, se reinician y quedan en la versión nueva.
 
-Ejecutando desde Visual Studio o desde `publish\Launcher.exe` la app no está instalada, así que no puede actualizarse.
+En Configuración > Actualizaciones se puede desactivar la búsqueda al abrir o la actualización automática. Con esta última desactivada, la barra lateral solo avisa ("vX disponible") y se actualiza con un clic.
+
+Ejecutando desde Visual Studio o desde `publish\Launcher.exe` la app no está instalada, así que no puede actualizarse. Para diagnosticar, el registro de errores guarda una línea `Actualizaciones:` con el resultado de cada comprobación.
 
 ## Limitaciones conocidas
 
