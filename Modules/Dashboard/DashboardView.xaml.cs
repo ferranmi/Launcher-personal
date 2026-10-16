@@ -1,258 +1,262 @@
-using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
 using Launcher.Modules.Commands;
 using Launcher.Modules.Games;
 using Launcher.Modules.Processes;
-using Launcher.UI.Controls;
 
 namespace Launcher.Modules.Dashboard;
 
+// ===================== Filas de las listas =====================
+
+public sealed class LogRow
+{
+    public string Time { get; init; } = "";
+    public string Tag { get; init; } = "";
+    public string Message { get; init; } = "";
+    public Brush TagBg { get; init; } = Brushes.Transparent;
+    public Brush TagFg { get; init; } = Brushes.White;
+}
+
+public sealed class UplinkRow
+{
+    public string Icon { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string Detail { get; init; } = "";
+    public Brush IconBrush { get; init; } = Brushes.White;
+    public Brush DotBrush { get; init; } = Brushes.Transparent;
+}
+
+public sealed class ProcCell
+{
+    public string Name { get; init; } = "";
+    public double Cpu { get; init; }
+    public string Info { get; init; } = "";
+    public Brush Bar { get; init; } = Brushes.White;
+    public Brush InfoBrush { get; init; } = Brushes.White;
+}
+
+/// <summary>
+/// Pantalla de inicio. Un unico DispatcherTimer (1 s) alimenta todo: metricas, estado
+/// (StatusEvaluator), uplink, procesos y reproductor; se para cuando la vista no esta visible.
+/// </summary>
 public partial class DashboardView : UserControl
 {
-    private enum ProcMetric { Cpu, Ram, Gpu }
+    private const int HistoryLength = 40;
+    private const int MaxGames = 8;
+    private const int MaxShortcuts = 12;
+    private const int LogCollapsed = 6;
+    private const int LogExpanded = 25;
 
-    private const int MaxGames = 6;
-    private const int MaxFolders = 8;
-    private const int MaxCommands = 8;
-    private const int TopProcessCount = 5;
-
-    /// <summary>Por encima de este porcentaje la barra pasa al color de aviso.</summary>
-    private const double WarningPercent = 85;
-
-    private static readonly CultureInfo Spanish = new("es-ES");
-
+    private readonly SystemMonitorService _monitor = new();
+    private readonly ProcessMonitorService _procs = new();
+    private readonly StatusEvaluator _evaluator = new();
+    private readonly UplinkService _uplink;
     private readonly NowPlayingService _nowPlaying = new();
-    private readonly SystemMonitorService _system = new();
-    private readonly ProcessMonitorService _processes = new();
-
-    /// <summary>Un unico temporizador de 1 s. Cada tarea corre a su ritmo: lo que suena cada
-    /// segundo, el sistema cada 2 y los procesos cada 4 (la parte mas cara).</summary>
+    private readonly NowPlayingInfo _info;
     private readonly DispatcherTimer _timer;
 
-    private FolderShortcutsService? _folders;
-    private CommandsService? _commands;
+    private readonly Queue<double> _cpuHist = new(), _ramHist = new(), _gpuHist = new(), _vramHist = new(), _netHist = new();
 
-    private bool _nowPlayingReady;
-    private bool _sampling;
-    private bool _refreshingProcesses;
-    private int _tick;
+    private CommandsService _commands = new();
+    private FolderShortcutsService _folders = new();
 
-    private ProcMetric _metric = ProcMetric.Cpu;
     private List<ProcessGroup> _groups = new();
+    private int _tick;
+    private int _logVersion;
+    private int _shownLogVersion = -1;
+    private bool _logExpanded;
+    private bool _initialized;
+    private bool _ticking;
+    private bool _draggingSlider;
 
     public DashboardView()
     {
         InitializeComponent();
 
-        NowPlayingCard.DataContext = _nowPlaying.Info;
+        _info = _nowPlaying.Info;
+        PlayerPanel.DataContext = _info;
+
+        _uplink = new UplinkService(_evaluator);
+        _uplink.Changed += (_, _) => UpdateUplink();
+        _evaluator.EventRaised += _ => _logVersion++;
+        _evaluator.Report(StatusLevel.Online, "Launcher", "sistema iniciado");
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        _timer.Tick += async (_, _) => await OnTickAsync();
+        _timer.Tick += async (_, _) => await TickAsync();
 
-        // La vista se cachea en MainWindow: Loaded/Unloaded se repiten al cambiar de modulo.
-        // Solo se muestrea mientras el dashboard esta a la vista.
-        Loaded += OnLoaded;
-        Unloaded += OnUnloaded;
+        Loaded += DashboardView_Loaded;
+        Unloaded += (_, _) => _timer.Stop();
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private async void DashboardView_Loaded(object sender, RoutedEventArgs e)
     {
-        RefreshShortcuts();
-        UpdateClock();
-
-        if (!_nowPlayingReady)
+        if (!_initialized)
         {
-            _nowPlayingReady = true;
+            _initialized = true;
             await _nowPlaying.InitializeAsync();
         }
 
-        _tick = 0;
-        await Task.WhenAll(RefreshNowPlayingAsync(), SampleSystemAsync(), RefreshProcessesAsync());
-
-        // Si el usuario cambio de modulo mientras tanto, no arrancamos el temporizador.
-        if (IsLoaded) _timer.Start();
+        LoadAccess();
+        _timer.Start();
+        await TickAsync();
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs e)
+    // ===================== Tick =====================
+
+    private async Task TickAsync()
     {
-        _timer.Stop();
-        _processes.Dispose(); // descarta las referencias de CPU/GPU: al volver se vuelven a fijar
-    }
-
-    private async Task OnTickAsync()
-    {
-        _tick++;
-        UpdateClock();
-
-        var tasks = new List<Task> { RefreshNowPlayingAsync() };
-        if (_tick % 2 == 0) tasks.Add(SampleSystemAsync());
-        if (_tick % 4 == 0) tasks.Add(RefreshProcessesAsync());
-
-        await Task.WhenAll(tasks);
-    }
-
-    private void UpdateClock() =>
-        DateText.Text = DateTime.Now.ToString("dddd d 'de' MMMM  \u00b7  HH:mm", Spanish);
-
-    // ===================== Accesos: juegos, carpetas, comandos =====================
-
-    /// <summary>Se reconstruye cada vez que el dashboard se muestra, asi refleja los cambios
-    /// hechos en los otros modulos (un juego recien jugado, una carpeta nueva...).</summary>
-    private void RefreshShortcuts()
-    {
-        // Juegos: los jugados mas recientemente; si faltan para llenar la fila, favoritos.
-        var visibleGames = GameLibraryService.Instance.Games.Where(g => !g.Hidden).ToList();
-        var recent = visibleGames
-            .Where(g => g.LastPlayed != null)
-            .OrderByDescending(g => g.LastPlayed)
-            .ToList();
-        var favorites = visibleGames
-            .Where(g => g.Favorite && !recent.Contains(g))
-            .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase);
-
-        var games = recent.Concat(favorites).Take(MaxGames).Select(g => new GameTile { Game = g }).ToList();
-        GamesItems.ItemsSource = games;
-        GamesEmpty.Visibility = games.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-        // Carpetas: las que no esten ocultas, en el orden del modulo Carpetas.
-        _folders = new FolderShortcutsService();
-        var folders = _folders.Folders.Where(f => !f.Hidden).Take(MaxFolders).ToList();
-        FoldersItems.ItemsSource = folders;
-        FoldersEmpty.Visibility = folders.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-        // Comandos: favoritos primero, despues los usados hace menos, despues por nombre.
-        _commands = new CommandsService();
-        var commands = _commands.Commands
-            .OrderByDescending(c => c.Favorite)
-            .ThenByDescending(c => c.LastUsed ?? DateTime.MinValue)
-            .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Take(MaxCommands)
-            .ToList();
-        CommandsItems.ItemsSource = commands;
-        CommandsEmpty.Visibility = commands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void GameTile_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (((FrameworkElement)sender).DataContext is not GameTile tile) return;
-
-        if (!GameLibraryService.Instance.Launch(tile.Game))
-        {
-            MessageBox.Show(Window.GetWindow(this),
-                $"No se ha podido lanzar \"{tile.Name}\". Comprueba que la ruta del ejecutable sigue siendo valida (Juegos > Editar).",
-                "Lanzar juego", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
-
-    private void FolderTile_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (((FrameworkElement)sender).DataContext is FolderShortcut folder) _folders?.Open(folder);
-    }
-
-    private void CommandTile_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (((FrameworkElement)sender).DataContext is CommandShortcut command) _commands?.Launch(command);
-    }
-
-    // ===================== Navegacion a otros modulos =====================
-
-    private void SectionLink_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: string moduleId }) NavigateToModule(moduleId);
-    }
-
-    /// <summary>Marca el boton del sidebar del modulo: MainWindow ya navega al marcarse, asi no
-    /// hace falta tocar su codigo.</summary>
-    private static void NavigateToModule(string moduleId)
-    {
-        if (Application.Current.MainWindow is not MainWindow main) return;
-
-        var button = main.NavPanel.Children
-            .OfType<NavButton>()
-            .FirstOrDefault(b => (string?)b.Tag == moduleId);
-
-        if (button != null) button.IsChecked = true;
-    }
-
-    // ===================== Reproduciendo =====================
-
-    private async Task RefreshNowPlayingAsync()
-    {
-        try
-        {
-            await _nowPlaying.RefreshAsync();
-        }
-        catch (Exception ex)
-        {
-            LogService.Error("Fallo la lectura de reproduccion en el dashboard", ex);
-        }
-    }
-
-    private async void PlayPause_Click(object sender, RoutedEventArgs e) => await _nowPlaying.TogglePlayPauseAsync();
-    private async void Next_Click(object sender, RoutedEventArgs e) => await _nowPlaying.NextAsync();
-    private async void Previous_Click(object sender, RoutedEventArgs e) => await _nowPlaying.PreviousAsync();
-
-    // ===================== Sistema =====================
-
-    /// <summary>El muestreo (contadores de rendimiento, WMI la primera vez) va en un hilo de
-    /// fondo y no se solapa: si el anterior no ha terminado, se salta.</summary>
-    private async Task SampleSystemAsync()
-    {
-        if (_sampling) return;
-        _sampling = true;
+        if (_ticking) return; // un tick lento no debe solaparse con el siguiente
+        _ticking = true;
 
         try
         {
-            var snapshot = await Task.Run(() => _system.Sample());
-            ApplySnapshot(snapshot);
+            var snap = _monitor.Sample();
+
+            // Los procesos son lo mas pesado de leer: cada 2 s basta.
+            if (_tick % 2 == 0)
+            {
+                _procs.Refresh();
+                _groups = _procs.BuildGroups();
+            }
+
+            var frozen = _procs.Processes.Where(p => p.IsFrozen).Select(p => p.Name).ToList();
+            var report = _evaluator.Evaluate(snap, frozen);
+
+            _uplink.Refresh();
+
+            UpdateHeader(report.Global);
+            UpdateMetrics(snap, report);
+            UpdateProcesses();
+            UpdateLog();
+
+            if (!_draggingSlider)
+            {
+                await _nowPlaying.RefreshAsync();
+                ProgressSlider.Maximum = Math.Max(_info.DurationSeconds, 0.01);
+                ProgressSlider.Value = _info.PositionSeconds;
+            }
+
+            _tick++;
         }
         catch (Exception ex)
         {
-            LogService.Error("Fallo el muestreo del sistema en el dashboard", ex);
+            LogService.Error("Fallo el refresco del dashboard", ex);
         }
         finally
         {
-            _sampling = false;
+            _ticking = false;
         }
     }
 
-    private void ApplySnapshot(SystemSnapshot snap)
+    // ===================== Brushes =====================
+
+    private Brush B(string key) => (Brush)FindResource(key);
+
+    private Brush LevelBrush(StatusLevel level) => level switch
     {
-        SetMetric(CpuBar, CpuValue, snap.CpuPercent, $"{snap.CpuPercent:0}%");
+        StatusLevel.Defcon => B("Brush.Danger"),
+        StatusLevel.Warning => B("Brush.Warning"),
+        _ => B("Brush.Accent")
+    };
 
-        SetMetric(RamBar, RamValue, snap.RamPercent,
-            $"{ToGb(snap.RamUsedBytes):0.#} / {ToGb(snap.RamTotalBytes):0.#} GB");
+    private Brush LevelDimBrush(StatusLevel level) => level switch
+    {
+        StatusLevel.Defcon => B("Brush.DangerDim"),
+        StatusLevel.Warning => B("Brush.WarningDim"),
+        _ => B("Brush.AccentDim")
+    };
 
-        SetMetric(GpuBar, GpuValue, snap.GpuPercent, $"{snap.GpuPercent:0}%");
+    // ===================== Cabecera y metricas =====================
 
-        var vramText = snap.VramTotalBytes > 0
-            ? $"{ToGb(snap.VramUsedBytes):0.#} / {ToGb(snap.VramTotalBytes):0.#} GB"
-            : $"{ToGb(snap.VramUsedBytes):0.#} GB";
-        SetMetric(VramBar, VramValue, snap.VramPercent, vramText);
+    private void UpdateHeader(StatusLevel global)
+    {
+        GlobalStatusText.Text = global switch
+        {
+            StatusLevel.Defcon => "DEFCON",
+            StatusLevel.Warning => "WARNING",
+            _ => "ONLINE"
+        };
+        GlobalStatusText.Foreground = LevelBrush(global);
+        GlobalStatusBorder.Background = LevelDimBrush(global);
+        GlobalStatusBorder.BorderBrush = LevelBrush(global);
 
-        NetText.Text = $"\u2193 {FormatRate(snap.NetDownBytesPerSec)}   \u2191 {FormatRate(snap.NetUpBytesPerSec)}";
-
-        DrivesText.Text = snap.Drives.Count == 0
-            ? ""
-            : string.Join("  \u00b7  ", snap.Drives.Take(4).Select(d => $"{d.Name} {d.UsedPercent:0}%"));
-
-        UptimeText.Text = $"Actividad: {FormatUptime(snap.Uptime)}";
+        var now = DateTime.Now;
+        ClockText.Text = now.ToString("HH:mm:ss");
+        DateText.Text = now.ToString("ddd dd MMM").ToUpperInvariant();
     }
 
-    private static void SetMetric(ProgressBar bar, TextBlock valueText, double percent, string text)
+    private void UpdateMetrics(SystemSnapshot s, StatusReport report)
     {
-        bar.Value = Math.Clamp(percent, 0, 100);
-        valueText.Text = text;
-        bar.SetResourceReference(Control.ForegroundProperty, percent >= WarningPercent ? "Brush.Warning" : "Brush.Accent");
+        StatusLevel Lvl(string key) => report.Metrics.TryGetValue(key, out var l) ? l : StatusLevel.Online;
+
+        SetMetric(CpuText, CpuLine, _cpuHist, s.CpuPercent, 100, Lvl("CPU"), $"{s.CpuPercent:0}%");
+        CpuDetail.Text = $"{Environment.ProcessorCount} hilos";
+
+        var ramUsed = s.RamUsedBytes / 1024d / 1024 / 1024;
+        var ramTotal = s.RamTotalBytes / 1024d / 1024 / 1024;
+        SetMetric(RamText, RamLine, _ramHist, s.RamPercent, 100, Lvl("RAM"), $"{s.RamPercent:0}%");
+        RamDetail.Text = $"{ramUsed:0.#} / {ramTotal:0.#} GB";
+
+        SetMetric(GpuText, GpuLine, _gpuHist, s.GpuPercent, 100, Lvl("GPU"), $"{s.GpuPercent:0}%");
+        GpuDetail.Text = s.GpuName;
+
+        var vramUsed = s.VramUsedBytes / 1024d / 1024 / 1024;
+        var vramTotal = s.VramTotalBytes / 1024d / 1024 / 1024;
+        SetMetric(VramText, VramLine, _vramHist, s.VramPercent, 100, Lvl("VRAM"), $"{s.VramPercent:0}%");
+        VramDetail.Text = vramTotal > 0 ? $"{vramUsed:0.#} / {vramTotal:0.#} GB" : $"{vramUsed:0.#} GB";
+
+        NetDownText.Text = $"\u2193 {FormatRate(s.NetDownBytesPerSec)}";
+        NetUpText.Text = $"\u2191 {FormatRate(s.NetUpBytesPerSec)}";
+        Push(_netHist, (s.NetDownBytesPerSec + s.NetUpBytesPerSec) / 1024d);
+        DrawSparkline(NetLine, _netHist, Math.Max(50, _netHist.Max()));
     }
 
-    private static double ToGb(ulong bytes) => bytes / 1024d / 1024 / 1024;
+    private void SetMetric(TextBlock number, Polyline line, Queue<double> history,
+        double value, double max, StatusLevel level, string text)
+    {
+        var brush = LevelBrush(level);
+        number.Text = text;
+        number.Foreground = brush;
+        line.Stroke = brush;
+        Push(history, value);
+        DrawSparkline(line, history, max);
+    }
+
+    private static void Push(Queue<double> history, double value)
+    {
+        history.Enqueue(value);
+        while (history.Count > HistoryLength) history.Dequeue();
+    }
+
+    private static void DrawSparkline(Polyline line, Queue<double> history, double maxValue)
+    {
+        if (history.Count < 2)
+        {
+            line.Points = new PointCollection();
+            return;
+        }
+
+        var width = line.ActualWidth > 0 ? line.ActualWidth : 100;
+        var height = line.ActualHeight > 0 ? line.ActualHeight : 22;
+        var values = history.ToArray();
+        var stepX = width / Math.Max(1, HistoryLength - 1);
+        var start = HistoryLength - values.Length;
+
+        var points = new PointCollection();
+        for (var i = 0; i < values.Length; i++)
+        {
+            var normalized = maxValue <= 0 ? 0 : Math.Min(1, values[i] / maxValue);
+            points.Add(new Point((start + i) * stepX, height - normalized * height));
+        }
+
+        line.Points = points;
+    }
 
     private static string FormatRate(double bytesPerSec)
     {
@@ -260,82 +264,179 @@ public partial class DashboardView : UserControl
         return kb >= 1024 ? $"{kb / 1024:0.#} MB/s" : $"{kb:0.#} KB/s";
     }
 
-    private static string FormatUptime(TimeSpan ts)
+    // ===================== Procesos =====================
+
+    private void UpdateProcesses()
     {
-        if (ts.TotalDays >= 1) return $"{(int)ts.TotalDays}d {ts.Hours}h {ts.Minutes}m";
-        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m";
-        return $"{ts.Minutes}m {ts.Seconds}s";
-    }
-
-    // ===================== Top procesos =====================
-
-    private async Task RefreshProcessesAsync()
-    {
-        if (_refreshingProcesses) return;
-        _refreshingProcesses = true;
-
-        try
-        {
-            _groups = await Task.Run(() =>
+        var top = _groups
+            .Where(g => !string.Equals(g.Root.Name, "Idle", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(g => g.AnyFrozen)   // los congelados van fijos delante
+            .ThenByDescending(g => g.TotalCpu)
+            .Take(5)
+            .Select(g =>
             {
-                _processes.Refresh();
-                return _processes.BuildGroups();
-            });
+                var cpu = g.TotalCpu;
+                var level = g.AnyFrozen ? StatusLevel.Warning
+                    : cpu >= 95 ? StatusLevel.Defcon
+                    : cpu >= 80 ? StatusLevel.Warning
+                    : StatusLevel.Online;
 
-            RebuildTopProcesses();
-        }
-        catch (Exception ex)
-        {
-            LogService.Error("Fallo el refresco de procesos en el dashboard", ex);
-        }
-        finally
-        {
-            _refreshingProcesses = false;
-        }
-    }
+                var name = g.MemberCount > 1 ? $"{g.Root.Name} \u00D7{g.MemberCount}" : g.Root.Name;
 
-    private void Metric_Checked(object sender, RoutedEventArgs e)
-    {
-        // Checked tambien se dispara al cargar el XAML (la cabecera CPU viene marcada), cuando
-        // los demas controles aun no existen: hasta Loaded no hacemos nada.
-        if (!IsLoaded) return;
-
-        if (sender is RadioButton { Tag: string tag } && Enum.TryParse<ProcMetric>(tag, out var metric))
-        {
-            _metric = metric;
-            RebuildTopProcesses();
-        }
-    }
-
-    private void RebuildTopProcesses()
-    {
-        // Desempates por RAM para que el orden no baile cuando todo vale 0 (p. ej. GPU).
-        IEnumerable<ProcessGroup> ordered = _metric switch
-        {
-            ProcMetric.Ram => _groups.OrderByDescending(g => g.TotalRamMB),
-            ProcMetric.Gpu => _groups.OrderByDescending(g => g.TotalGpu).ThenByDescending(g => g.TotalRamMB),
-            _ => _groups.OrderByDescending(g => g.TotalCpu).ThenByDescending(g => g.TotalRamMB)
-        };
-
-        var rows = ordered
-            .Take(TopProcessCount)
-            .Select(g => new TopProcessRow
-            {
-                Icon = g.Root.Icon,
-                Name = g.Root.Name,
-                CountLabel = g.MemberCount > 1 ? $"\u00d7{g.MemberCount}" : "",
-                CpuText = $"{g.TotalCpu:0}%",
-                RamText = FormatMemory(g.TotalRamMB),
-                GpuText = $"{g.TotalGpu:0}%",
-                IsCpu = _metric == ProcMetric.Cpu,
-                IsRam = _metric == ProcMetric.Ram,
-                IsGpu = _metric == ProcMetric.Gpu
+                return new ProcCell
+                {
+                    Name = name,
+                    Cpu = cpu,
+                    Info = g.AnyFrozen ? "congelado" : $"{cpu:0}% \u00B7 {g.TotalRamMB:0} MB",
+                    Bar = LevelBrush(level),
+                    InfoBrush = level == StatusLevel.Online ? B("Brush.TextDim") : LevelBrush(level)
+                };
             })
             .ToList();
 
-        TopProcessesList.ItemsSource = rows;
+        ProcItems.ItemsSource = top;
     }
 
-    private static string FormatMemory(double megabytes) =>
-        megabytes >= 1024 ? $"{megabytes / 1024:0.#} GB" : $"{megabytes:0} MB";
+    // ===================== Registro y uplink =====================
+
+    private void UpdateLog()
+    {
+        if (_shownLogVersion == _logVersion) return;
+        _shownLogVersion = _logVersion;
+
+        var rows = _evaluator.History
+            .Take(_logExpanded ? LogExpanded : LogCollapsed)
+            .Select(ev =>
+            {
+                var (fg, bg) = ev.Tag switch
+                {
+                    "uplink" => (B("Brush.Uplink"), B("Brush.UplinkDim")),
+                    "warning" => (B("Brush.Warning"), B("Brush.WarningDim")),
+                    "defcon" => (B("Brush.Danger"), B("Brush.DangerDim")),
+                    _ => (B("Brush.Accent"), B("Brush.AccentDim"))
+                };
+
+                return new LogRow
+                {
+                    Time = ev.Time.ToString("HH:mm:ss"),
+                    Tag = ev.Tag.ToUpperInvariant(),
+                    Message = ev.Message,
+                    TagFg = fg,
+                    TagBg = bg
+                };
+            })
+            .ToList();
+
+        LogItems.ItemsSource = rows;
+        LogEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void LogToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _logExpanded = !_logExpanded;
+        LogToggleButton.Content = _logExpanded ? "menos" : "ver todo";
+        _shownLogVersion = -1; // fuerza reconstruir
+        UpdateLog();
+    }
+
+    private void UpdateUplink()
+    {
+        var rows = _uplink.Devices.Select(d =>
+        {
+            var problem = d.State == UplinkState.Problem;
+            var live = d.State is UplinkState.Active or UplinkState.Transferring;
+
+            var parts = new List<string>();
+            if (d.ConnectionLabel.Length > 0) parts.Add(d.ConnectionLabel);
+            parts.Add(string.IsNullOrWhiteSpace(d.Detail) ? d.StateLabel : d.Detail);
+
+            return new UplinkRow
+            {
+                Icon = d.Icon,
+                Name = d.Name,
+                Detail = string.Join(" \u00B7 ", parts),
+                IconBrush = problem ? B("Brush.Warning") : B("Brush.Uplink"),
+                DotBrush = problem ? B("Brush.Warning") : live ? B("Brush.Uplink") : B("Brush.TextDim")
+            };
+        }).ToList();
+
+        UplinkItems.ItemsSource = rows;
+        UplinkEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ===================== Accesos (juegos, comandos, carpetas) =====================
+
+    /// <summary>Recarga los accesos cada vez que se entra en la vista: cambios hechos en
+    /// Juegos, Comandos o Carpetas aparecen aqui sin reiniciar. Los servicios de comandos y
+    /// carpetas se recrean porque leen su archivo una sola vez al construirse.</summary>
+    private void LoadAccess()
+    {
+        var games = GameLibraryService.Instance.Games
+            .Where(g => !g.Hidden)
+            .OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue)
+            .ThenByDescending(g => g.Favorite)
+            .Take(MaxGames)
+            .Select(g => new GameTile(g))
+            .ToList();
+
+        GamesItems.ItemsSource = games;
+        GamesEmpty.Visibility = games.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        _commands = new CommandsService();
+        CommandsItems.ItemsSource = _commands.Commands
+            .OrderByDescending(c => c.Favorite)
+            .ThenByDescending(c => c.LastUsed ?? DateTime.MinValue)
+            .Take(MaxShortcuts)
+            .ToList();
+
+        _folders = new FolderShortcutsService();
+        FoldersItems.ItemsSource = _folders.Folders
+            .Where(f => !f.Hidden)
+            .Take(MaxShortcuts)
+            .ToList();
+    }
+
+    private void GameTile_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2) return;
+        if (((FrameworkElement)sender).DataContext is not GameTile tile) return;
+
+        if (!GameLibraryService.Instance.Launch(tile.Game))
+        {
+            _evaluator.Report(StatusLevel.Warning, tile.Name, $"no se pudo lanzar {tile.Name}");
+        }
+    }
+
+    private void IconTile_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2) return;
+
+        switch (((FrameworkElement)sender).DataContext)
+        {
+            case CommandShortcut command:
+                _commands.Launch(command);
+                break;
+            case FolderShortcut folder:
+                if (!folder.Exists)
+                    _evaluator.Report(StatusLevel.Warning, folder.Name, $"carpeta no encontrada: {folder.Path}");
+                _folders.Open(folder);
+                break;
+        }
+    }
+
+    // ===================== Reproductor =====================
+
+    private async void PlayPause_Click(object sender, RoutedEventArgs e) => await _nowPlaying.TogglePlayPauseAsync();
+    private async void Next_Click(object sender, RoutedEventArgs e) => await _nowPlaying.NextAsync();
+    private async void Previous_Click(object sender, RoutedEventArgs e) => await _nowPlaying.PreviousAsync();
+
+    private void ProgressSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
+        _draggingSlider = true;
+
+    private async void ProgressSlider_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_draggingSlider) return;
+        _draggingSlider = false;
+        await _nowPlaying.SeekAsync(ProgressSlider.Value);
+    }
 }

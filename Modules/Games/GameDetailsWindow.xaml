@@ -166,13 +166,21 @@
                                FontFamily="{DynamicResource Font.Mono}" FontSize="11"
                                Foreground="{DynamicResource Brush.TextDim}" />
 
-                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
                         <Button Content="Jugar" Style="{StaticResource AccentButton}"
-                                Padding="26,9" Click="Play_Click" />
+                                Padding="26,9" Margin="0,0,8,6" Click="Play_Click" />
+                        <Button x:Name="OpenFolderButton" Content="Abrir carpeta"
+                                Style="{StaticResource GhostButton}" Padding="14,9" Margin="0,0,8,6"
+                                ToolTip="Abre la carpeta de instalacion del juego"
+                                Click="OpenFolder_Click" />
+                        <Button x:Name="ManageButton" Content="Gestionar"
+                                Style="{StaticResource GhostButton}" Padding="14,9" Margin="0,0,8,6"
+                                ToolTip="Ejecutar como administrador, editar, favorito, ocultar, eliminar"
+                                Click="Manage_Click" />
                         <Button x:Name="StoreButton" Content="Abrir en la tienda"
-                                Style="{StaticResource GhostButton}" Margin="8,0,0,0"
-                                Padding="14,9" Click="OpenStore_Click" />
-                    </StackPanel>
+                                Style="{StaticResource GhostButton}" Padding="14,9" Margin="0,0,0,6"
+                                Click="OpenStore_Click" />
+                    </WrapPanel>
                 </StackPanel>
             </Grid>
 

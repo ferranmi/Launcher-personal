@@ -58,5 +58,19 @@ public static class GameInfoStore
         }
     }
 
+    /// <summary>Borra la ficha de un juego (al eliminarlo de la biblioteca).</summary>
+    public static void Delete(string gameId)
+    {
+        try
+        {
+            var path = PathFor(gameId);
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"No se pudo borrar la ficha del juego {gameId}", ex);
+        }
+    }
+
     private static string PathFor(string gameId) => Path.Combine(Folder, $"{gameId}.json");
 }

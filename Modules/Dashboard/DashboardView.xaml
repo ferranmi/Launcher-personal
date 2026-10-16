@@ -4,57 +4,129 @@
              xmlns:conv="clr-namespace:Launcher.Core.Converters">
 
     <UserControl.Resources>
-        <conv:PathToBitmapConverter x:Key="PathToBitmap" />
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <conv:PathToBitmapConverter x:Key="PathToBitmap" />
         <conv:PlayPauseGlyphConverter x:Key="PlayPauseGlyph" />
 
-        <!-- ===================== TEXTOS DE SECCION ===================== -->
-        <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
-        </Style>
+        <!-- Azul de UPLINK y variantes tenues. Mover a Theme.Dark.xaml cuando se confirme el color. -->
+        <SolidColorBrush x:Key="Brush.Uplink" Color="#FF4C9AFF" />
+        <SolidColorBrush x:Key="Brush.UplinkDim" Color="#334C9AFF" />
+        <SolidColorBrush x:Key="Brush.WarningDim" Color="#33E0B84C" />
+        <SolidColorBrush x:Key="Brush.DangerDim" Color="#33E5484D" />
 
-        <Style x:Key="SectionLink" TargetType="TextBlock">
+        <!-- ===================== FONDO (vectorial, sin imagenes) ===================== -->
+        <!-- Rejilla tipo mapa tactico: lineas verdes muy tenues cada 48 px -->
+        <DrawingBrush x:Key="Bg.Grid" TileMode="Tile"
+                      Viewport="0,0,48,48" ViewportUnits="Absolute"
+                      Viewbox="0,0,48,48" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing>
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#123ECF7E" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                    <GeometryDrawing.Geometry>
+                        <PathGeometry Figures="M 0,0 L 48,0 M 0,0 L 0,48" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- Resplandor verde en la parte superior (como la luz de un monitor) -->
+        <LinearGradientBrush x:Key="Bg.TopGlow" StartPoint="0.5,0" EndPoint="0.5,1">
+            <GradientStop Color="#1F3ECF7E" Offset="0" />
+            <GradientStop Color="#003ECF7E" Offset="0.45" />
+        </LinearGradientBrush>
+
+        <!-- Vineta: oscurece los bordes para centrar la atencion -->
+        <RadialGradientBrush x:Key="Bg.Vignette" RadiusX="0.85" RadiusY="0.85">
+            <GradientStop Color="#00000000" Offset="0.5" />
+            <GradientStop Color="#AA000000" Offset="1" />
+        </RadialGradientBrush>
+
+        <!-- Scanlines: una linea oscura cada 3 px, casi imperceptible -->
+        <DrawingBrush x:Key="Bg.Scanlines" TileMode="Tile"
+                      Viewport="0,0,6,3" ViewportUnits="Absolute"
+                      Viewbox="0,0,6,3" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing Brush="#14000000">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,6,1" />
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- ===================== TEXTO ===================== -->
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
             <Setter Property="FontSize" Value="10.5" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                </Trigger>
-            </Style.Triggers>
+        </Style>
+        <Style x:Key="TileLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        </Style>
+        <Style x:Key="TileNumber" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style x:Key="TileDetail" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
 
-        <!-- Tarjeta clicable (carpetas, comandos, juegos) -->
+        <!-- ===================== TARJETAS ===================== -->
         <Style x:Key="TileStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
             <Setter Property="Cursor" Value="Hand" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderStrong}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
                     <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- ===================== BARRA DE PROGRESO ===================== -->
-        <Style x:Key="DashBar" TargetType="ProgressBar">
-            <Setter Property="Height" Value="6" />
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Barra fina (misma plantilla que AccentProgressBar del Monitor) -->
+        <Style x:Key="ThinBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="5" />
             <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Minimum" Value="0" />
-            <Setter Property="Maximum" Value="100" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Border Background="{TemplateBinding Background}" CornerRadius="3" ClipToBounds="True">
                             <Grid x:Name="PART_Track">
-                                <Rectangle x:Name="PART_Indicator"
-                                           Fill="{TemplateBinding Foreground}"
-                                           HorizontalAlignment="Left"
-                                           RadiusX="3" RadiusY="3" />
+                                <Rectangle x:Name="PART_Indicator" Fill="{TemplateBinding Foreground}"
+                                           HorizontalAlignment="Left" RadiusX="3" RadiusY="3" />
                             </Grid>
                         </Border>
                     </ControlTemplate>
@@ -62,26 +134,14 @@
             </Setter>
         </Style>
 
-        <Style x:Key="MetricLabel" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
-            <Setter Property="FontSize" Value="10.5" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-
-        <Style x:Key="MetricValue" TargetType="TextBlock" BasedOn="{StaticResource MetricLabel}">
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-        </Style>
-
-        <!-- ===================== REPRODUCTOR COMPACTO ===================== -->
-        <Style x:Key="MiniTransport" TargetType="Button">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
+        <!-- ===================== REPRODUCTOR (copiado de MediaView) ===================== -->
+        <Style x:Key="TransportButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
             <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
             <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
             <Setter Property="Cursor" Value="Hand" />
@@ -89,9 +149,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="16">
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="19">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -104,37 +163,23 @@
             </Setter>
         </Style>
 
-        <Style x:Key="MiniPlay" TargetType="Button" BasedOn="{StaticResource MiniTransport}">
-            <Setter Property="Width" Value="38" />
-            <Setter Property="Height" Value="38" />
+        <Style x:Key="PlayButtonStyle" TargetType="Button" BasedOn="{StaticResource TransportButtonStyle}">
+            <Setter Property="Width" Value="50" />
+            <Setter Property="Height" Value="50" />
+            <Setter Property="FontSize" Value="18" />
             <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
             <Setter Property="Foreground" Value="#FF07130D" />
             <Setter Property="BorderThickness" Value="0" />
-        </Style>
-
-        <!-- ===================== PROCESOS: CABECERAS Y VALORES ===================== -->
-        <!-- La cabecera de cada metrica es un RadioButton: elegirla ordena la lista. -->
-        <Style x:Key="MetricHeader" TargetType="RadioButton">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Effect" Value="{DynamicResource Effect.AccentGlow}" />
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="Arrow" Text="&#x25BE;" Margin="0,0,3,0" Visibility="Collapsed"
-                                       Foreground="{DynamicResource Brush.Accent}" />
-                            <ContentPresenter />
-                        </StackPanel>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="25">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                                <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentHover}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -142,428 +187,405 @@
             </Setter>
         </Style>
 
-        <Style x:Key="ProcValue" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+        <Style x:Key="MinimalSliderStyle" TargetType="Slider">
+            <Setter Property="Height" Value="16" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2" Background="{DynamicResource Brush.Accent}" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2" Background="{DynamicResource Brush.Border}" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="12" Height="12">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Fill="{DynamicResource Brush.Accent}" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style x:Key="ProcValueCpu" TargetType="TextBlock" BasedOn="{StaticResource ProcValue}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsCpu}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                    <Setter Property="FontWeight" Value="Bold" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <!-- ===================== PLANTILLAS ===================== -->
+        <DataTemplate x:Key="GameTileTemplate">
+            <Border Width="86" Margin="0,0,10,10" Background="Transparent" Cursor="Hand"
+                    ToolTip="{Binding Name}" MouseLeftButtonDown="GameTile_MouseLeftButtonDown">
+                <StackPanel>
+                    <Border Style="{StaticResource TileStyle}" Height="112" ClipToBounds="True">
+                        <Grid>
+                            <Border Background="{DynamicResource Brush.SurfaceActive}" Margin="1"
+                                    Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                                <TextBlock Text="{Binding Initial}" FontFamily="{DynamicResource Font.Mono}"
+                                           FontSize="30" FontWeight="Bold" Foreground="{DynamicResource Brush.TextDim}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Image Source="{Binding CoverPath, Converter={StaticResource PathToBitmap}}"
+                                   Stretch="UniformToFill" Margin="1"
+                                   Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" Margin="0,5,0,0" FontSize="11"
+                               Foreground="{DynamicResource Brush.TextPrimary}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
 
-        <Style x:Key="ProcValueRam" TargetType="TextBlock" BasedOn="{StaticResource ProcValue}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsRam}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                    <Setter Property="FontWeight" Value="Bold" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <!-- Comandos y carpetas comparten plantilla: ambos tienen Icon y Name -->
+        <DataTemplate x:Key="IconTileTemplate">
+            <Border Style="{StaticResource TileStyle}" Width="84" Height="70" Margin="0,0,8,8"
+                    ToolTip="{Binding Name}" MouseLeftButtonDown="IconTile_MouseLeftButtonDown">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding Icon}" FontFamily="{DynamicResource Font.Icons}" FontSize="20"
+                               Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" Margin="0,6,0,0" FontSize="11" MaxWidth="74"
+                               TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
 
-        <Style x:Key="ProcValueGpu" TargetType="TextBlock" BasedOn="{StaticResource ProcValue}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsGpu}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                    <Setter Property="FontWeight" Value="Bold" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <DataTemplate x:Key="LogRowTemplate">
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Time}" FontFamily="{DynamicResource Font.Mono}"
+                           FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Background="{Binding TagBg}" CornerRadius="3" Padding="5,1" Margin="8,0,8,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Tag}" FontFamily="{DynamicResource Font.Mono}" FontSize="9"
+                               Foreground="{Binding TagFg}" />
+                </Border>
+                <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="UplinkRowTemplate">
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="26" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontFamily="{DynamicResource Font.Icons}"
+                           FontSize="16" Foreground="{Binding IconBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                    <TextBlock Text="{Binding Detail}" FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextDim}" />
+                </StackPanel>
+                <Ellipse Grid.Column="2" Width="7" Height="7" Fill="{Binding DotBrush}"
+                         VerticalAlignment="Center" Margin="8,0,0,0" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ProcCellTemplate">
+            <Border Style="{StaticResource CardStyle}" Padding="9,7" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                    <ProgressBar Style="{StaticResource ThinBar}" Minimum="0" Maximum="100"
+                                 Value="{Binding Cpu, Mode=OneWay}" Foreground="{Binding Bar}" Margin="0,5,0,4" />
+                    <TextBlock Text="{Binding Info}" FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                               TextTrimming="CharacterEllipsis" Foreground="{Binding InfoBrush}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="0,0,6,0">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="250" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Fondo: rejilla + brillo superior + vineta (detras de todo, sin capturar el raton) -->
+        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
+
+        <!-- ===================== COLUMNA PRINCIPAL ===================== -->
+        <Grid Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- ===================== CABECERA: titulo, buscador, fecha ===================== -->
-            <Grid Grid.Row="0" Margin="0,0,0,18">
+            <!-- Cabecera: titulo + estado global + reloj -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Text="&gt; inicio_"
-                           FontFamily="{DynamicResource Font.Mono}" FontSize="14"
-                           Foreground="{DynamicResource Brush.TextSecondary}"
-                           VerticalAlignment="Center" />
-
-                <!-- Hueco para el futuro buscador unificado (modulo Buscar). -->
-                <TextBox Grid.Column="1" x:Name="SearchBox" Style="{StaticResource TextBoxStyle}"
-                         Tag="buscar... (proximamente)" IsEnabled="False" Opacity="0.6"
-                         MaxWidth="420" Margin="24,0" />
-
-                <TextBlock Grid.Column="2" x:Name="DateText"
-                           FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                           Foreground="{DynamicResource Brush.TextDim}"
-                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="&gt; dashboard_" FontFamily="{DynamicResource Font.Mono}"
+                           FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Border x:Name="GlobalStatusBorder" CornerRadius="4" Padding="10,3" BorderThickness="1"
+                            VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock x:Name="GlobalStatusText" Text="ONLINE" FontFamily="{DynamicResource Font.Mono}"
+                                   FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock x:Name="ClockText" Text="--:--:--" FontFamily="{DynamicResource Font.Mono}"
+                                   FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock x:Name="DateText" Text="" FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                                   Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Right" />
+                    </StackPanel>
+                </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="1">
+            <!-- Metricas -->
+            <Grid Grid.Row="1" Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="14" />
-                    <ColumnDefinition Width="320" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- ============================================================= -->
-                <!-- COLUMNA IZQUIERDA: accesos (juegos, carpetas, comandos)        -->
-                <!-- ============================================================= -->
-                <StackPanel Grid.Column="0">
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="CPU" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="CpuText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="CpuDetail" Text="" Style="{StaticResource TileDetail}" />
+                        <Polyline x:Name="CpuLine" Height="22" Margin="0,6,0,0" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Brush.Accent}" HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
 
-                    <!-- JUEGOS -->
-                    <Grid Margin="0,0,0,10">
-                        <TextBlock Text="JUEGOS" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                   Tag="games" HorizontalAlignment="Right"
-                                   MouseLeftButtonUp="SectionLink_Click" />
-                    </Grid>
-                    <ItemsControl x:Name="GamesItems" Margin="0,0,0,12">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource TileStyle}" Width="96" Margin="0,0,10,10"
-                                        ToolTip="{Binding Name}"
-                                        MouseLeftButtonUp="GameTile_Click">
-                                    <StackPanel>
-                                        <Grid Height="128">
-                                            <Border CornerRadius="7,7,0,0" ClipToBounds="True">
-                                                <Grid>
-                                                    <Border Background="{DynamicResource Brush.SurfaceActive}"
-                                                            Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
-                                                        <TextBlock Text="{Binding Initial}"
-                                                                   FontFamily="{DynamicResource Font.Mono}"
-                                                                   FontSize="34" FontWeight="Bold"
-                                                                   Foreground="{DynamicResource Brush.TextDim}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Border>
-                                                    <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToBitmap}}"
-                                                           Stretch="UniformToFill"
-                                                           Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}}" />
-                                                </Grid>
-                                            </Border>
-                                        </Grid>
-                                        <TextBlock Text="{Binding Name}" Margin="8,6,8,8"
-                                                   FontSize="11" TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos todavia_" Margin="0,0,0,12"
-                               FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                               Foreground="{DynamicResource Brush.TextDim}" Visibility="Collapsed" />
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="RAM" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="RamText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="RamDetail" Text="" Style="{StaticResource TileDetail}" />
+                        <Polyline x:Name="RamLine" Height="22" Margin="0,6,0,0" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Brush.Accent}" HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
 
-                    <!-- CARPETAS -->
-                    <Grid Margin="0,6,0,10">
-                        <TextBlock Text="CARPETAS" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                   Tag="folders" HorizontalAlignment="Right"
-                                   MouseLeftButtonUp="SectionLink_Click" />
-                    </Grid>
-                    <ItemsControl x:Name="FoldersItems" Margin="0,0,0,12">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource TileStyle}" Width="96" Height="82" Margin="0,0,10,10"
-                                        ToolTip="{Binding Path}"
-                                        MouseLeftButtonUp="FolderTile_Click">
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding Icon}"
-                                                   FontFamily="{DynamicResource Font.Icons}" FontSize="22"
-                                                   HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource Brush.Accent}" />
-                                        <TextBlock Text="{Binding Name}" Margin="0,7,0,0"
-                                                   FontSize="11" MaxWidth="84" TextAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
-                                        <TextBlock Text="no encontrada" Margin="0,2,0,0"
-                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="9"
-                                                   HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource Brush.Danger}"
-                                                   Visibility="{Binding Exists, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock x:Name="FoldersEmpty" Text="&gt; sin carpetas_" Margin="0,0,0,12"
-                               FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                               Foreground="{DynamicResource Brush.TextDim}" Visibility="Collapsed" />
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="GPU" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="GpuText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="GpuDetail" Text="" Style="{StaticResource TileDetail}" />
+                        <Polyline x:Name="GpuLine" Height="22" Margin="0,6,0,0" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Brush.Accent}" HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
 
-                    <!-- COMANDOS -->
-                    <Grid Margin="0,6,0,10">
-                        <TextBlock Text="COMANDOS" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                   Tag="commands" HorizontalAlignment="Right"
-                                   MouseLeftButtonUp="SectionLink_Click" />
-                    </Grid>
-                    <ItemsControl x:Name="CommandsItems" Margin="0,0,0,12">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource TileStyle}" Width="96" Height="82" Margin="0,0,10,10"
-                                        ToolTip="{Binding Name}"
-                                        MouseLeftButtonUp="CommandTile_Click">
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <Border Width="34" Height="34" CornerRadius="8"
-                                                Background="{DynamicResource Brush.AccentDim}"
-                                                HorizontalAlignment="Center">
-                                            <Grid>
-                                                <TextBlock Text="{Binding Icon}"
-                                                           FontFamily="{DynamicResource Font.Icons}" FontSize="16"
-                                                           Foreground="{DynamicResource Brush.Accent}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           Visibility="{Binding HasImageIcon, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                                                <Image Source="{Binding IconImagePath, Converter={StaticResource PathToBitmap}}"
-                                                       Width="22" Height="22" Stretch="Uniform"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                       Visibility="{Binding HasImageIcon, Converter={StaticResource BoolToVis}}" />
-                                            </Grid>
-                                        </Border>
-                                        <TextBlock Text="{Binding Name}" Margin="0,7,0,0"
-                                                   FontSize="11" MaxWidth="84" TextAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock x:Name="CommandsEmpty" Text="&gt; sin comandos_" Margin="0,0,0,12"
-                               FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                               Foreground="{DynamicResource Brush.TextDim}" Visibility="Collapsed" />
-                </StackPanel>
+                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="VRAM" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="VramText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="VramDetail" Text="" Style="{StaticResource TileDetail}" />
+                        <Polyline x:Name="VramLine" Height="22" Margin="0,6,0,0" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Brush.Accent}" HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
 
-                <!-- ============================================================= -->
-                <!-- COLUMNA DERECHA: informacion en vivo                           -->
-                <!-- ============================================================= -->
-                <StackPanel Grid.Column="2">
+                <Border Grid.Column="4" Style="{StaticResource CardStyle}" Padding="10,8">
+                    <StackPanel>
+                        <TextBlock Text="RED" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="NetDownText" Text="0 KB/s" Style="{StaticResource TileNumber}" FontSize="15" Margin="0,5,0,0" />
+                        <TextBlock x:Name="NetUpText" Text="0 KB/s" Style="{StaticResource TileDetail}" />
+                        <Polyline x:Name="NetLine" Height="22" Margin="0,6,0,0" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Brush.Accent}" HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-                    <!-- SISTEMA (version reducida de Monitor) -->
-                    <Border Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,14">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,12">
-                                <TextBlock Text="SISTEMA" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                           Tag="monitor" HorizontalAlignment="Right"
-                                           MouseLeftButtonUp="SectionLink_Click" />
+            <!-- Centro: accesos | info -->
+            <Grid Grid.Row="2" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="2*" MinWidth="220" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Accesos -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,6,0">
+                        <TextBlock Text="[ JUEGOS ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+                        <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
+                                   Margin="0,0,0,10" Visibility="Collapsed" />
+
+                        <TextBlock Text="[ COMANDOS ]" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+                        <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+
+                        <TextBlock Text="[ CARPETAS ]" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+                        <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Info: registro + uplink -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <TextBlock Text="[ REGISTRO ]" Style="{StaticResource SectionTitle}" />
+                                <Button x:Name="LogToggleButton" Content="ver todo" Style="{StaticResource LinkButton}"
+                                        HorizontalAlignment="Right" Click="LogToggle_Click" />
                             </Grid>
-
-                            <Grid Margin="0,0,0,9">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="CPU" Style="{StaticResource MetricLabel}" />
-                                <ProgressBar Grid.Column="1" x:Name="CpuBar" Style="{StaticResource DashBar}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" x:Name="CpuValue" Text="--" Margin="8,0,0,0" Style="{StaticResource MetricValue}" />
-                            </Grid>
-
-                            <Grid Margin="0,0,0,9">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="RAM" Style="{StaticResource MetricLabel}" />
-                                <ProgressBar Grid.Column="1" x:Name="RamBar" Style="{StaticResource DashBar}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" x:Name="RamValue" Text="--" Margin="8,0,0,0" Style="{StaticResource MetricValue}" />
-                            </Grid>
-
-                            <Grid Margin="0,0,0,9">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="GPU" Style="{StaticResource MetricLabel}" />
-                                <ProgressBar Grid.Column="1" x:Name="GpuBar" Style="{StaticResource DashBar}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" x:Name="GpuValue" Text="--" Margin="8,0,0,0" Style="{StaticResource MetricValue}" />
-                            </Grid>
-
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="44" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="VRAM" Style="{StaticResource MetricLabel}" />
-                                <ProgressBar Grid.Column="1" x:Name="VramBar" Style="{StaticResource DashBar}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" x:Name="VramValue" Text="--" Margin="8,0,0,0" Style="{StaticResource MetricValue}" />
-                            </Grid>
-
-                            <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
-                                    <TextBlock x:Name="NetText" Text="&#x2193; --   &#x2191; --"
-                                               FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
-                                               Foreground="{DynamicResource Brush.TextSecondary}" />
-                                    <TextBlock x:Name="DrivesText" Margin="0,4,0,0" TextWrapping="Wrap"
-                                               FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
-                                               Foreground="{DynamicResource Brush.TextSecondary}" />
-                                    <TextBlock x:Name="UptimeText" Margin="0,4,0,0"
-                                               FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
-                                               Foreground="{DynamicResource Brush.TextDim}" />
+                                    <ItemsControl x:Name="LogItems" ItemTemplate="{StaticResource LogRowTemplate}" />
+                                    <TextBlock x:Name="LogEmpty" Text="&gt; sin eventos_" Style="{StaticResource SectionTitle}"
+                                               Visibility="Collapsed" />
                                 </StackPanel>
-                            </Border>
-                        </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
                     </Border>
 
-                    <!-- REPRODUCIENDO -->
-                    <Border x:Name="NowPlayingCard" Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,14">
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="12">
                         <StackPanel>
-                            <Grid Margin="0,0,0,12">
-                                <TextBlock Text="REPRODUCIENDO" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                           Tag="media" HorizontalAlignment="Right"
-                                           MouseLeftButtonUp="SectionLink_Click" />
-                            </Grid>
-
-                            <StackPanel Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="56" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Width="56" Height="56" CornerRadius="6" ClipToBounds="True"
-                                            Background="{DynamicResource Brush.AccentDim}">
-                                        <Grid>
-                                            <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="22"
-                                                       Foreground="{DynamicResource Brush.Accent}" Opacity="0.6"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                       Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                                            <Image Source="{Binding AlbumArt}" Stretch="UniformToFill"
-                                                   Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}}" />
-                                        </Grid>
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
-                                        <TextBlock Text="{Binding Artist}" Margin="0,2,0,0" FontSize="11"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Brush.TextSecondary}" />
-                                        <TextBlock Text="{Binding SourceApp}" Margin="0,3,0,0"
-                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
-                                                   Foreground="{DynamicResource Brush.TextDim}" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <ProgressBar Margin="0,12,0,0" Height="4" Style="{StaticResource DashBar}"
-                                             Maximum="{Binding DurationSeconds}"
-                                             Value="{Binding PositionSeconds, Mode=OneWay}" />
-
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
-                                    <Button Content="&#xE892;" Style="{StaticResource MiniTransport}" Margin="0,0,10,0"
-                                            ToolTip="Anterior" Click="Previous_Click" />
-                                    <Button Content="{Binding IsPlaying, Converter={StaticResource PlayPauseGlyph}}"
-                                            Style="{StaticResource MiniPlay}" Click="PlayPause_Click" />
-                                    <Button Content="&#xE893;" Style="{StaticResource MiniTransport}" Margin="10,0,0,0"
-                                            ToolTip="Siguiente" Click="Next_Click" />
-                                </StackPanel>
-                            </StackPanel>
-
-                            <TextBlock Text="&gt; nada reproduciendose_"
-                                       FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                                       Foreground="{DynamicResource Brush.TextDim}"
-                                       Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                            <TextBlock Text="[ UPLINK ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
+                            <ItemsControl x:Name="UplinkItems" ItemTemplate="{StaticResource UplinkRowTemplate}" />
+                            <TextBlock x:Name="UplinkEmpty" Text="&gt; sin dispositivos externos_"
+                                       Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
                         </StackPanel>
                     </Border>
+                </Grid>
+            </Grid>
 
-                    <!-- PROCESOS (top 5) -->
-                    <Border Style="{StaticResource CardStyle}" Padding="14">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,10">
-                                <TextBlock Text="PROCESOS" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="ver todo &#x203A;" Style="{StaticResource SectionLink}"
-                                           Tag="processes" HorizontalAlignment="Right"
-                                           MouseLeftButtonUp="SectionLink_Click" />
-                            </Grid>
+            <!-- Barra inferior: procesos -->
+            <StackPanel Grid.Row="3">
+                <TextBlock Text="[ PROCESOS ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+                <ItemsControl x:Name="ProcItems" ItemTemplate="{StaticResource ProcCellTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Rows="1" Columns="5" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
 
-                            <!-- Cabeceras: elegir una ordena el top 5 por esa metrica -->
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="52" />
-                                    <ColumnDefinition Width="70" />
-                                    <ColumnDefinition Width="52" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="mayor consumo" VerticalAlignment="Center"
-                                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                                           Foreground="{DynamicResource Brush.TextDim}" />
-                                <RadioButton Grid.Column="1" Content="CPU" Tag="Cpu" GroupName="ProcMetric"
-                                             Style="{StaticResource MetricHeader}" IsChecked="True"
-                                             Checked="Metric_Checked" />
-                                <RadioButton Grid.Column="2" Content="RAM" Tag="Ram" GroupName="ProcMetric"
-                                             Style="{StaticResource MetricHeader}" Checked="Metric_Checked" />
-                                <RadioButton Grid.Column="3" Content="GPU" Tag="Gpu" GroupName="ProcMetric"
-                                             Style="{StaticResource MetricHeader}" Checked="Metric_Checked" />
-                            </Grid>
+        <!-- ===================== REPRODUCTOR ===================== -->
+        <Border x:Name="PlayerPanel" Grid.Column="1" Background="{DynamicResource Brush.Surface}"
+                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0"
+                Margin="14,0,0,0" Padding="14,12">
+            <Grid>
+                <StackPanel VerticalAlignment="Center"
+                            Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="[ MULTIMEDIA ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,12" />
 
-                            <ItemsControl x:Name="TopProcessesList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                                <ColumnDefinition Width="70" />
-                                                <ColumnDefinition Width="52" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <Grid VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
-                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource Brush.TextPrimary}" />
-                                                <TextBlock Grid.Column="2" Text="{Binding CountLabel}" Margin="5,0,0,0"
-                                                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource Brush.TextDim}" />
-                                            </Grid>
-
-                                            <TextBlock Grid.Column="1" Text="{Binding CpuText}" Style="{StaticResource ProcValueCpu}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding RamText}" Style="{StaticResource ProcValueRam}" />
-                                            <TextBlock Grid.Column="3" Text="{Binding GpuText}" Style="{StaticResource ProcValueGpu}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
+                    <Border Width="190" Height="190" CornerRadius="10" ClipToBounds="True" HorizontalAlignment="Center">
+                        <Border.Background>
+                            <RadialGradientBrush>
+                                <GradientStop Color="{DynamicResource Color.AccentDim}" Offset="0" />
+                                <GradientStop Color="{DynamicResource Color.Surface}" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                        <Grid>
+                            <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="48"
+                                       Foreground="{DynamicResource Brush.Accent}" Opacity="0.5"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                            <Image Source="{Binding AlbumArt}" Stretch="UniformToFill"
+                                   Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
                     </Border>
+
+                    <TextBlock Text="{Binding Title}" Margin="0,16,0,0" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Brush.TextPrimary}" TextAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Artist}" Margin="0,3,0,0" FontSize="12"
+                               Foreground="{DynamicResource Brush.TextSecondary}" TextAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <Border Style="{StaticResource BadgeStyle}" Margin="0,8,0,0" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding SourceApp}" FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                   Foreground="{DynamicResource Brush.Accent}" />
+                    </Border>
+
+                    <Grid Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding PositionText}" FontFamily="{DynamicResource Font.Mono}"
+                                   FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                        <Slider x:Name="ProgressSlider" Grid.Column="1" Margin="8,0" Minimum="0"
+                                Style="{StaticResource MinimalSliderStyle}"
+                                PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseLeftButtonDown"
+                                PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseLeftButtonUp" />
+                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" FontFamily="{DynamicResource Font.Mono}"
+                                   FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                        <Button Content="&#xE892;" Style="{StaticResource TransportButtonStyle}" Margin="0,0,12,0"
+                                ToolTip="Anterior" Click="Previous_Click" />
+                        <Button Content="{Binding IsPlaying, Converter={StaticResource PlayPauseGlyph}}"
+                                Style="{StaticResource PlayButtonStyle}" Click="PlayPause_Click" />
+                        <Button Content="&#xE893;" Style="{StaticResource TransportButtonStyle}" Margin="12,0,0,0"
+                                ToolTip="Siguiente" Click="Next_Click" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                    <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="34"
+                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Text="&gt; nada reproduciendose_" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
                 </StackPanel>
             </Grid>
-        </Grid>
-    </ScrollViewer>
+        </Border>
+
+        <!-- Scanlines por encima de todo (efecto CRT sutil) -->
+        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
+    </Grid>
 </UserControl>

@@ -65,7 +65,7 @@ public partial class GameDetailsWindow : Window
         UpdateEmptyStates();
 
         // Lo que el usuario escriba (informacion, notas) se guarda al cerrar.
-        Closing += (_, _) => SaveAll();
+        Closing += (_, _) => { if (!_deleted) SaveAll(); };
 
         _ready = true;
         Loaded += async (_, _) => await AutoRefreshAsync();
@@ -158,6 +158,106 @@ public partial class GameDetailsWindow : Window
     {
         var url = _info.Fetched.StoreUrl ?? (_info.SteamAppId is { } id ? $"https://store.steampowered.com/app/{id}" : null);
         if (!GameLinkLauncher.OpenUrl(url)) ShowStatus("No se ha podido abrir la tienda.");
+    }
+
+    // ===================== Carpeta y gestion =====================
+
+    /// <summary>True tras eliminar el juego: la ficha se borra y no se vuelve a guardar al cerrar.</summary>
+    private bool _deleted;
+
+    private void OpenFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (GameFolderLocator.Find(_game) is not { } location)
+        {
+            ShowStatus("No se ha encontrado la carpeta del juego. Si es de Steam o Epic, revisa las carpetas de sincronizacion en Configuracion.");
+            return;
+        }
+
+        if (!GameFolderLocator.TryOpen(location, out var error))
+        {
+            ShowStatus($"No se ha podido abrir la carpeta: {error}");
+        }
+    }
+
+    /// <summary>Menu "Gestionar": las mismas acciones del menu contextual de la tarjeta, para
+    /// no tener que volver a la biblioteca. El estado (favorito, oculto) se lee al abrirlo.</summary>
+    private void Manage_Click(object sender, RoutedEventArgs e)
+    {
+        var library = GameLibraryService.Instance;
+
+        var isLocalFile = !_game.ExecutablePath.Contains("://", StringComparison.Ordinal) &&
+                          File.Exists(_game.ExecutablePath);
+
+        var admin = new MenuItem { Header = "Ejecutar como administrador", IsEnabled = isLocalFile };
+        admin.Click += (_, _) =>
+        {
+            if (!library.Launch(_game, asAdmin: true)) ShowStatus("No se ha podido lanzar el juego.");
+        };
+
+        var edit = new MenuItem { Header = "Editar..." };
+        edit.Click += (_, _) =>
+        {
+            var dialog = new AddEditGameWindow(_game) { Owner = this };
+            if (dialog.ShowDialog() != true) return;
+
+            library.Update(_game);
+            PopulateHero();
+            ShowStatus("Juego actualizado.");
+        };
+
+        var favorite = new MenuItem { Header = _game.Favorite ? "Quitar de favoritos" : "Marcar como favorito" };
+        favorite.Click += (_, _) =>
+        {
+            _game.Favorite = !_game.Favorite;
+            library.Update(_game);
+            ShowStatus(_game.Favorite ? "Marcado como favorito." : "Quitado de favoritos.");
+        };
+
+        var hide = new MenuItem { Header = _game.Hidden ? "Mostrar en la biblioteca" : "Ocultar de la biblioteca" };
+        hide.Click += (_, _) =>
+        {
+            _game.Hidden = !_game.Hidden;
+            library.Update(_game);
+            ShowStatus(_game.Hidden
+                ? "Oculto. Lo encontraras en el filtro Ocultos de Juegos."
+                : "Vuelve a mostrarse en la biblioteca.");
+        };
+
+        var delete = new MenuItem { Header = "Eliminar de la biblioteca..." };
+        delete.Click += (_, _) => DeleteGame();
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = (UIElement)sender,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
+        };
+        menu.Items.Add(admin);
+        menu.Items.Add(edit);
+        menu.Items.Add(favorite);
+        menu.Items.Add(hide);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(delete);
+        menu.IsOpen = true;
+    }
+
+    private void DeleteGame()
+    {
+        var fromStore = _game.Source != GameSource.Manual && !string.IsNullOrWhiteSpace(_game.ExternalId);
+        var extra = fromStore
+            ? "\n\nNo volvera a aparecer al sincronizar. Puedes restaurarlo en Configuracion > Juegos."
+            : "";
+
+        // Aqui se pregunta siempre: ademas de quitar el juego, se borra su ficha (notas, enlaces...).
+        var result = MessageBox.Show(this,
+            $"Se quitara \"{_game.Name}\" del launcher y se borrara su ficha (enlaces, documentos y notas). Esto no borra el juego ni sus archivos.{extra}",
+            "Eliminar juego", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        _deleted = true;
+        GameLibraryService.Instance.Remove(_game);
+        GameInfoStore.Delete(_game.Id);
+        Close();
     }
 
     // ===================== Informacion =====================

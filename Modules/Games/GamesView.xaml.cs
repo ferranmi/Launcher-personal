@@ -381,23 +381,58 @@ public partial class GamesView : UserControl
         }
     }
 
+    private DispatcherTimer? _infoTimer;
+    private Game? _pendingInfoGame;
+
+    private void CancelPendingInfo()
+    {
+        _infoTimer?.Stop();
+        _infoTimer = null;
+        _pendingInfoGame = null;
+    }
+
     private void Card_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ClickCount != 2) return;
-        if (((FrameworkElement)sender).DataContext is Game game)
+        if (((FrameworkElement)sender).DataContext is not Game game) return;
+
+        // Doble clic: cancela la ficha pendiente y lanza el juego con sus parametros.
+        if (e.ClickCount >= 2)
         {
+            CancelPendingInfo();
             LaunchGame(game);
+            return;
         }
+
+        // Un clic: se espera lo que dura un doble clic de Windows por si llega el segundo.
+        CancelPendingInfo();
+        _pendingInfoGame = game;
+        _infoTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(System.Windows.Forms.SystemInformation.DoubleClickTime)
+        };
+        _infoTimer.Tick += (_, _) =>
+        {
+            var pending = _pendingInfoGame;
+            CancelPendingInfo();
+            if (pending != null) OpenInfo(pending);
+        };
+        _infoTimer.Start();
     }
+
+    private void OpenInfo(Game game)
+    {
+        new GameDetailsWindow(game) { Owner = Window.GetWindow(this) }.ShowDialog();
+
+        // La ficha puede haber cambiado, ocultado o eliminado el juego.
+        _view.Refresh();
+        UpdateEmptyState();
+    }
+
+    private void InfoMenuItem_Click(object sender, RoutedEventArgs e) => OpenInfo(GetGameFromMenuItem(sender));
 
     private void PlayMenuItem_Click(object sender, RoutedEventArgs e) => LaunchGame(GetGameFromMenuItem(sender));
 
-    private void InfoMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var game = GetGameFromMenuItem(sender);
-        new GameDetailsWindow(game) { Owner = Window.GetWindow(this) }.ShowDialog();
-    }
-    
+       
     private void RunAsAdminMenuItem_Click(object sender, RoutedEventArgs e) =>
         LaunchGame(GetGameFromMenuItem(sender), asAdmin: true);
 
