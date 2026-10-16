@@ -3,6 +3,7 @@ using System.IO;
 using System.Management;
 using Launcher.Core.Models;
 using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
 using Windows.Gaming.Input;
 using PowerStatus = Windows.System.Power.BatteryStatus;
 

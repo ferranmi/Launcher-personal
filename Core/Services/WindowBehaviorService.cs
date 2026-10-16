@@ -20,10 +20,12 @@ public sealed class WindowBehaviorService
     private const uint MOD_CONTROL = 0x2;
     private const uint MOD_SHIFT = 0x4;
     private const uint MOD_NOREPEAT = 0x4000;
+    private const int WM_NCHITTEST = 0x0084;
 
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr hIcon);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
 
         private const int WM_GETMINMAXINFO = 0x0024;
     private const uint MONITOR_DEFAULTTONEAREST = 2;
@@ -301,7 +303,7 @@ public sealed class WindowBehaviorService
         _hotkeyRegistered = false;
     }
 
-        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == WM_HOTKEY && wParam.ToInt32() == HotkeyId)
         {
@@ -313,8 +315,42 @@ public sealed class WindowBehaviorService
             FixMaximizedBounds(hwnd, lParam);
             handled = true;
         }
+        else if (msg == WM_NCHITTEST && _window.WindowState == WindowState.Normal)
+        {
+            var hit = HitTestEdges(hwnd, lParam);
+            if (hit != 0)
+            {
+                handled = true;
+                return (IntPtr)hit;
+            }
+        }
 
         return IntPtr.Zero;
+    }
+
+    /// <summary>Devuelve el codigo HT* si el cursor esta en un borde o esquina (6 px), o 0.</summary>
+    private int HitTestEdges(IntPtr hwnd, IntPtr lParam)
+    {
+        if (!GetWindowRect(hwnd, out var r)) return 0;
+
+        var x = (short)(lParam.ToInt64() & 0xFFFF);
+        var y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+        var border = (int)Math.Round(6 * System.Windows.Media.VisualTreeHelper.GetDpi(_window).DpiScaleX);
+
+        var left = x - r.Left < border;
+        var right = r.Right - x <= border;
+        var top = y - r.Top < border;
+        var bottom = r.Bottom - y <= border;
+
+        if (top && left) return 13;      // HTTOPLEFT
+        if (top && right) return 14;     // HTTOPRIGHT
+        if (bottom && left) return 16;   // HTBOTTOMLEFT
+        if (bottom && right) return 17;  // HTBOTTOMRIGHT
+        if (left) return 10;             // HTLEFT
+        if (right) return 11;            // HTRIGHT
+        if (top) return 12;              // HTTOP
+        if (bottom) return 15;           // HTBOTTOM
+        return 0;
     }
 
     /// <summary>Una ventana sin bordes y transparente maximiza sobre todo el monitor y tapa la

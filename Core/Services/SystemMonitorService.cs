@@ -93,6 +93,9 @@ public class SystemMonitorService : IDisposable
         };
     }
 
+    /// <summary>Si es false, Sample() no calcula el top de procesos (ahorra recorrer todos los procesos).</summary>
+    public bool IncludeTopProcesses { get; set; } = true;
+
     // ===================== CPU =====================
 
     private double SampleCpu()
@@ -426,6 +429,7 @@ public class SystemMonitorService : IDisposable
 
     private List<ProcessLoadInfo> SampleTopProcesses()
     {
+        var topProcesses = IncludeTopProcesses ? SampleTopProcesses() : new List<ProcessLoadInfo>();
         var now = DateTime.UtcNow;
         var results = new List<ProcessLoadInfo>();
         var seenPids = new HashSet<int>();
@@ -489,4 +493,5 @@ public class SystemMonitorService : IDisposable
         foreach (var c in _gpuMemCounters.Values) c.Dispose();
         foreach (var (read, write) in _diskIoCounters.Values) { read.Dispose(); write.Dispose(); }
     }
+
 }

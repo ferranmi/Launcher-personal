@@ -25,6 +25,8 @@ public partial class MainWindow : Window
 
         // Bandeja, atajo global, tamano/posicion recordados y arranque minimizado.
         WindowBehaviorService.Attach(this);
+        SystemStatusHost.Instance.Start(this);
+        Application.Current.Exit += (_, _) => SystemStatusHost.Instance.Dispose();
         VersionText.Text = $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0"}";
 
         _baseVersionText = VersionText.Text;
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
             {
                 Content = module.DisplayName,
                 Icon = module.Icon,
+                ToolTip = module.DisplayName,
                 GroupName = "MainNav",
                 Tag = module.Id
             };
@@ -203,5 +206,34 @@ public partial class MainWindow : Window
         // rompe "Cerrar a la bandeja". Con la bandeja desactivada, cerrar la unica
         // ventana termina la app igualmente.
         Close();
+    }
+
+    private void SidebarToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var settings = AppSettingsService.Instance;
+        settings.SidebarCollapsed = !settings.SidebarCollapsed;
+        settings.Save();
+        ApplySidebar();
+    }
+
+    private void ApplySidebar()
+    {
+        var collapsed = AppSettingsService.Instance.SidebarCollapsed;
+
+        SidebarColumn.Width = new GridLength(collapsed ? 60 : 200);
+        VersionText.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarToggleButton.ToolTip = collapsed ? "Expandir menu" : "Contraer menu";
+
+        foreach (var button in NavPanel.Children.OfType<NavButton>())
+            button.IsCompact = collapsed;
+    }
+
+    private void Maximize_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        MaximizeButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922"; // restaurar / maximizar
     }
 }

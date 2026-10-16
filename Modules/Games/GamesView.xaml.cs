@@ -10,6 +10,7 @@ using Launcher.Core.Interfaces;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
 using Launcher.Modules.Games.Providers;
+using System.Windows.Threading;
 
 namespace Launcher.Modules.Games;
 

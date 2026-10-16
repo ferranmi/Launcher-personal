@@ -30,13 +30,35 @@ public sealed class StatusEvaluator
         ["Disco"] = new(90, 97, 1, 1, 1, 2)
     };
 
+    /// <summary>Perfiles de sensibilidad: "relaxed", "normal" (por defecto) o "strict".</summary>
+    public static Dictionary<string, MetricThresholds> CreateThresholds(string? profile) => profile switch
+    {
+        "relaxed" => new Dictionary<string, MetricThresholds>
+        {
+            ["CPU"] = new(90, 98),
+            ["RAM"] = new(90, 97),
+            ["GPU"] = new(92, 99, DefconSamples: 15),
+            ["VRAM"] = new(95, 99, DefconSamples: 15),
+            ["Disco"] = new(93, 98, 1, 1, 1, 2)
+        },
+        "strict" => new Dictionary<string, MetricThresholds>
+        {
+            ["CPU"] = new(70, 90),
+            ["RAM"] = new(75, 90),
+            ["GPU"] = new(80, 95, DefconSamples: 6),
+            ["VRAM"] = new(85, 95, DefconSamples: 6),
+            ["Disco"] = new(85, 95, 1, 1, 1, 2)
+        },
+        _ => CreateDefaultThresholds()
+    };
+
     private sealed class MetricState
     {
         public StatusLevel Current;
         public int WarnRun, DefconRun, DownRun;
     }
 
-    private readonly Dictionary<string, MetricThresholds> _thresholds;
+    private Dictionary<string, MetricThresholds> _thresholds;
     private readonly Dictionary<string, MetricState> _states = new();
     private readonly Dictionary<string, int> _frozenRuns = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<StatusEvent> _history = new();
@@ -45,6 +67,10 @@ public sealed class StatusEvaluator
     {
         _thresholds = thresholds ?? CreateDefaultThresholds();
     }
+
+    /// <summary>Cambia los umbrales en caliente (p.ej. al cambiar el perfil en Configuracion).
+    /// Los estados actuales se conservan y se reevaluan en la siguiente lectura.</summary>
+    public void SetThresholds(Dictionary<string, MetricThresholds> thresholds) => _thresholds = thresholds;
 
     /// <summary>Registro, el mas reciente primero (maximo 200 entradas).</summary>
     public IReadOnlyList<StatusEvent> History => _history;
@@ -77,9 +103,9 @@ public sealed class StatusEvaluator
 
     /// <summary>Anade una entrada al registro desde fuera (Uplink, Visor de eventos...).
     /// Los Warning y Defcon tambien se guardan en el log de la app.</summary>
-    public void Report(StatusLevel level, string source, string message, bool isUplink = false)
+    public void Report(StatusLevel level, string source, string message, bool isUplink = false, DateTime? time = null)
     {
-        var ev = new StatusEvent(DateTime.Now, level, source, message, isUplink);
+        var ev = new StatusEvent(time ?? DateTime.Now, level, source, message, isUplink);
 
         _history.Insert(0, ev);
         if (_history.Count > MaxHistory)

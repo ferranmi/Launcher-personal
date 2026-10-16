@@ -10,9 +10,22 @@ using Launcher.Modules.Commands;
 using Launcher.Modules.Games;
 using Launcher.Modules.Processes;
 
+// System.Drawing entra por los usings implicitos de WinForms: se fijan los tipos de WPF.
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Point = System.Windows.Point;
+
 namespace Launcher.Modules.Dashboard;
 
 // ===================== Filas de las listas =====================
+
+public sealed record DashGameTile(Game Game)
+{
+    public string Name => Game.Name;
+    public string Initial => string.IsNullOrWhiteSpace(Game.Name) ? "?" : Game.Name[..1].ToUpperInvariant();
+    public string? CoverPath => Game.CoverImagePath;
+    public bool HasCover => Game.HasCover;
+}
 
 public sealed class LogRow
 {
@@ -376,7 +389,7 @@ public partial class DashboardView : UserControl
             .OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue)
             .ThenByDescending(g => g.Favorite)
             .Take(MaxGames)
-            .Select(g => new GameTile(g))
+            .Select(g => new DashGameTile(g))
             .ToList();
 
         GamesItems.ItemsSource = games;
@@ -399,7 +412,7 @@ public partial class DashboardView : UserControl
     private void GameTile_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount != 2) return;
-        if (((FrameworkElement)sender).DataContext is not GameTile tile) return;
+        if (((FrameworkElement)sender).DataContext is not DashGameTile tile) return;
 
         if (!GameLibraryService.Instance.Launch(tile.Game))
         {

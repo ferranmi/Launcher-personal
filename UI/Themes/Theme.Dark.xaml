@@ -97,7 +97,7 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Margin="4,0,0,0">
-                            <StackPanel Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
+                            <StackPanel x:Name="Row" Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="Icon"
                                            Text="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
                                            FontFamily="{StaticResource Font.Icons}"
@@ -128,6 +128,11 @@
                             <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
                             <Setter TargetName="Icon" Property="Foreground" Value="{StaticResource Brush.Accent}" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding IsCompact, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
+                            <Setter TargetName="Label" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Row" Property="Margin" Value="0" />
+                            <Setter TargetName="Row" Property="HorizontalAlignment" Value="Center" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

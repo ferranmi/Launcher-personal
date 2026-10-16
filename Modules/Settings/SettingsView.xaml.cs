@@ -62,6 +62,12 @@ public partial class SettingsView : UserControl
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         AboutRow.Tag = $"v{version?.ToString(3) ?? "0.1.0"}  ·  .NET {Environment.Version.Major}";
 
+        DashboardEffectsToggle.IsChecked = _settings.DashboardEffects;
+        BootSequenceToggle.IsChecked = _settings.BootSequence;
+        WindowsEventLogToggle.IsChecked = _settings.WindowsEventLog;
+        SelectChip(ThresholdPanel, _settings.ThresholdProfile);
+        SelectChip(IntervalPanel, _settings.StatusIntervalSeconds.ToString());
+
         _loading = false;
     }
 
@@ -202,6 +208,18 @@ public partial class SettingsView : UserControl
         {
             _settings.AutoApplyUpdates = on;
         }
+        else if (sender == DashboardEffectsToggle)
+        {
+            _settings.DashboardEffects = on;
+        }
+        else if (sender == BootSequenceToggle)
+        {
+            _settings.BootSequence = on;
+        }
+        else if (sender == WindowsEventLogToggle)
+        {
+            _settings.WindowsEventLog = on;
+        }
 
         _settings.Save();
     }
@@ -252,6 +270,14 @@ public partial class SettingsView : UserControl
             {
                 _settings.RefreshSeconds = seconds;
             }
+        }
+        else if (chip.GroupName == "ThresholdProfile")
+        {
+            _settings.ThresholdProfile = value;
+        }
+        else if (chip.GroupName == "StatusInterval" && int.TryParse(value, out var seconds))
+        {
+            _settings.StatusIntervalSeconds = seconds;
         }
 
         _settings.Save();

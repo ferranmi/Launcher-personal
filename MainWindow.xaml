@@ -45,6 +45,7 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="&#xE921;" Style="{StaticResource WindowButtonStyle}" Click="Minimize_Click" />
+                    <Button x:Name="MaximizeButton" Content="&#xE922;" Style="{StaticResource WindowButtonStyle}" Click="Maximize_Click" />
                     <Button Content="&#xE8BB;" Style="{StaticResource WindowButtonStyle}" Click="Close_Click" />
                 </StackPanel>
             </Grid>
@@ -52,7 +53,7 @@
             <!-- ===================== BODY ===================== -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition x:Name="SidebarColumn" Width="200" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -67,11 +68,14 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <StackPanel x:Name="NavPanel" Grid.Row="0" Margin="0,8,0,0" />
-                        <TextBlock x:Name="VersionText" Grid.Row="1" Text="v0.1.0"
-                                   Margin="20,0,0,14"
-                                   FontFamily="{DynamicResource Font.Mono}"
-                                   FontSize="10"
-                                   Foreground="{DynamicResource Brush.TextDim}" />
+                        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                            <Button x:Name="SidebarToggleButton" Content="&#xE700;" Style="{StaticResource WindowButtonStyle}"
+                                    Width="40" HorizontalAlignment="Left" Margin="14,0,0,6" ToolTip="Contraer menu"
+                                    Click="SidebarToggle_Click" />
+                            <TextBlock x:Name="VersionText" Text="v0.1.0" Margin="20,0,0,0"
+                                    FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                    Foreground="{DynamicResource Brush.TextDim}" />
+                        </StackPanel>
                     </Grid>
                 </Border>
 

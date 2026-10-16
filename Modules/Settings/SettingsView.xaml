@@ -266,6 +266,44 @@
                 <Button Content="Cambiar" Style="{StaticResource ActionButton}" Click="ChangeUpdateSource_Click" />
             </HeaderedContentControl>
             
+            <TextBlock Text="DASHBOARD" Style="{StaticResource SectionTitle}" />
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Sensibilidad de alertas"
+                    Tag="Cuando salta WARNING y DEFCON. Relajado deja mas margen (juegos, Ollama); estricto avisa antes.">
+                <StackPanel x:Name="ThresholdPanel" Orientation="Horizontal">
+                    <RadioButton Content="Relajado" Tag="relaxed" GroupName="ThresholdProfile" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Normal" Tag="normal" GroupName="ThresholdProfile" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Estricto" Tag="strict" GroupName="ThresholdProfile" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Frecuencia de lectura"
+                    Tag="Segundos entre lecturas con el dashboard abierto. Mas alto consume menos.">
+                <StackPanel x:Name="IntervalPanel" Orientation="Horizontal">
+                    <RadioButton Content="1 s" Tag="1" GroupName="StatusInterval" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="2 s" Tag="2" GroupName="StatusInterval" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="5 s" Tag="5" GroupName="StatusInterval" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Efectos de fondo"
+                    Tag="Rejilla, resplandor y scanlines detras del dashboard.">
+                <ToggleButton x:Name="DashboardEffectsToggle" Style="{StaticResource SwitchStyle}"
+                            Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Secuencia de arranque"
+                    Tag="Animacion de inicio la primera vez que abres el dashboard en cada sesion.">
+                <ToggleButton x:Name="BootSequenceToggle" Style="{StaticResource SwitchStyle}"
+                            Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Eventos de Windows"
+                    Tag="Muestra en el registro los errores graves del Visor de eventos (se lee cada minuto en segundo plano).">
+                <ToggleButton x:Name="WindowsEventLogToggle" Style="{StaticResource SwitchStyle}"
+                            Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
+            </HeaderedContentControl>
+
             <!-- ===================== DATOS ===================== -->
             <TextBlock Text="DATOS" Style="{StaticResource SectionTitle}" />
 

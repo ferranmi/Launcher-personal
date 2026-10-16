@@ -54,6 +54,20 @@ public class AppSettingsService
     /// <summary>Color de acento en formato #RRGGBB (ver ThemeService).</summary>
     public string AccentColor { get; set; } = DefaultAccent;
 
+    // ----- Dashboard -----
+    /// <summary>"relaxed", "normal" o "strict".</summary>
+    public string ThresholdProfile { get; set; } = "normal";
+
+    /// <summary>Segundos entre lecturas con el dashboard visible (1, 2 o 5).</summary>
+    public int StatusIntervalSeconds { get; set; } = 1;
+
+    public bool DashboardEffects { get; set; } = true;
+    public bool BootSequence { get; set; } = true;
+    public bool WindowsEventLog { get; set; } = true;
+
+    // ----- Ventana -----
+    public bool SidebarCollapsed { get; set; }
+
     // ----- Monitor y Procesos -----
 
     /// <summary>Intervalo de refresco en segundos. 0 = automatico (1 s en Monitor,
@@ -136,6 +150,12 @@ public class AppSettingsService
         CheckUpdatesOnStartup = true;
         RefreshSeconds = 0; // 0 = automatico
         AutoApplyUpdates = true;
+        ThresholdProfile = "normal";
+        StatusIntervalSeconds = 1;
+        DashboardEffects = true;
+        BootSequence = true;
+        WindowsEventLog = true;
+        SidebarCollapsed = false;
         // aqui el valor por defecto del color de acento, con el nombre de tu propiedad
         Save();
     }
