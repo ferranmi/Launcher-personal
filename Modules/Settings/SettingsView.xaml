@@ -189,6 +189,28 @@
                               Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
             </HeaderedContentControl>
 
+            <TextBlock Text="FONDO" Style="{StaticResource SectionTitle}" />
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Tipo de fondo"
+                                    Tag="La animacion se pausa sola con la ventana oculta o minimizada.">
+                <WrapPanel x:Name="BackgroundPanel" MaxWidth="330" HorizontalAlignment="Right">
+                    <RadioButton Content="Ninguno" Tag="none" GroupName="Background" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Degradado" Tag="gradient" GroupName="Background" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Animado" Tag="animated" GroupName="Background" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Imagen" Tag="image" GroupName="Background" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </WrapPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl x:Name="BackgroundImageRow" Style="{StaticResource SettingRow}" Header="Imagen de fondo">
+                <Button Content="Elegir..." Style="{StaticResource ActionButton}" Click="ChooseBackgroundImage_Click" />
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Intensidad del fondo"
+                                    Tag="Mas baja = mas sutil y mejor legibilidad.">
+                <Slider x:Name="BackgroundOpacitySlider" Width="160" Minimum="0.05" Maximum="1"
+                        ValueChanged="BackgroundOpacity_ValueChanged" />
+            </HeaderedContentControl>
+
             <!-- ===================== JUEGOS ===================== -->
             <TextBlock Text="JUEGOS" Style="{StaticResource SectionTitle}" />
 

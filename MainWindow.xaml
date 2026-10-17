@@ -80,9 +80,11 @@
                 </Border>
 
                 <!-- Content -->
-                <Border Grid.Column="1" Background="{DynamicResource Brush.Background}">
+                <Grid Grid.Column="1">
+                    <Border Background="{DynamicResource Brush.Background}" />
+                    <Border x:Name="BackgroundLayer" IsHitTestVisible="False" />
                     <ContentControl x:Name="ContentArea" Margin="20" />
-                </Border>
+                </Grid>
             </Grid>
         </Grid>
     </Border>

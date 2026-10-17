@@ -54,6 +54,10 @@ public partial class SettingsView : UserControl
         SelectChip(StartModulePanel, _settings.StartModule);
         SelectChip(AccentPanel, _settings.AccentColor);
         SelectChip(RefreshPanel, _settings.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
+        SelectChip(BackgroundPanel, _settings.BackgroundMode);
+        BackgroundOpacitySlider.Value = _settings.BackgroundOpacity;
+        BackgroundImageRow.Tag = _settings.BackgroundImagePath ?? "Sin imagen seleccionada";
+
 
         UpdateSyncFoldersSummary();
         UpdateIgnoredSummary();
@@ -279,6 +283,10 @@ public partial class SettingsView : UserControl
         {
             _settings.StatusIntervalSeconds = seconds;
         }
+        else if (chip.GroupName == "Background")
+        {
+            _settings.BackgroundMode = value;
+        }
 
         _settings.Save();
     }
@@ -489,5 +497,27 @@ public partial class SettingsView : UserControl
         _settings.UpdateSource = dialog.SelectedPath;
         _settings.Save();
         RefreshUpdateRow();
+    }
+
+    private void ChooseBackgroundImage_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Selecciona la imagen de fondo",
+            Filter = "Imagenes (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+
+        _settings.BackgroundImagePath = dialog.FileName;
+        _settings.BackgroundMode = "image";
+        _settings.Save();
+        LoadFromState();
+    }
+
+    private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading) return;
+        _settings.BackgroundOpacity = e.NewValue;
+        _settings.Save();
     }
 }

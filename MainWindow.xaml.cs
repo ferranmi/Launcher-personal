@@ -25,6 +25,7 @@ public partial class MainWindow : Window
 
         // Bandeja, atajo global, tamano/posicion recordados y arranque minimizado.
         WindowBehaviorService.Attach(this);
+        BackgroundService.Attach(BackgroundLayer, this);
         SystemStatusHost.Instance.Start(this);
         Application.Current.Exit += (_, _) => SystemStatusHost.Instance.Dispose();
         VersionText.Text = $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0"}";
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
             new PlaceholderModule("music",     "Musica",        "\uEC4F", 3),
             new PlaceholderModule("search",    "Buscar",        "\uE721", 4),
             new Launcher.Modules.Commands.CommandsModule(),
+            new Launcher.Modules.Devices.DevicesModule(),
             new Launcher.Modules.Monitor.MonitorModule(),
             new Launcher.Modules.Processes.ProcessesModule(),
             new Launcher.Modules.Settings.SettingsModule(),
@@ -56,6 +58,11 @@ public partial class MainWindow : Window
 
         BuildSidebar();
         SelectStartModule();
+        Navigator.Register(id =>
+        {
+            var button = NavPanel.Children.OfType<NavButton>().FirstOrDefault(b => (string?)b.Tag == id);
+            if (button != null) button.IsChecked = true;
+        });
     }
 
     private void BuildSidebar()
