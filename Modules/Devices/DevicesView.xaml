@@ -61,6 +61,10 @@
                                         <TextBlock Text="{Binding Name}" FontSize="13"
                                                    Foreground="{DynamicResource Brush.TextPrimary}"
                                                    TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Summary}" Margin="0,3,0,0" FontSize="11.5"
+                                                   Foreground="{DynamicResource Brush.TextSecondary}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Visibility="{Binding HasSummary, Converter={StaticResource BoolToVis}}" />
                                         <TextBlock Text="{Binding Details}" Margin="0,3,0,0"
                                                    FontFamily="{DynamicResource Font.Mono}" FontSize="10"
                                                    Foreground="{DynamicResource Brush.TextDim}"

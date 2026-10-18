@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Launcher.Core.Interfaces;
 using Launcher.Core.Models;
@@ -65,6 +66,20 @@ public partial class MainWindow : Window
         });
     }
 
+    // Abreviaturas del menu lateral cuando se estrecha (entre ~90 y ~165 px). Los modulos que no esten aqui
+    // usan las tres primeras letras de su nombre.
+    private static readonly Dictionary<string, string> ShortNames = new()
+    {
+        ["dashboard"] = "INI", ["games"] = "JUE", ["folders"] = "CAR", ["media"] = "MUL", ["music"] = "MUS",
+        ["search"] = "BUS", ["commands"] = "CMD", ["monitor"] = "MON", ["processes"] = "PRO",
+        ["devices"] = "DIS", ["settings"] = "CFG"
+    };
+
+    private static string Abbreviate(IModule module) =>
+        ShortNames.TryGetValue(module.Id, out var abbreviation)
+            ? abbreviation
+            : module.DisplayName[..Math.Min(3, module.DisplayName.Length)].ToUpperInvariant();
+
     private void BuildSidebar()
     {
         foreach (var module in _modules.OrderBy(m => m.Order))
@@ -72,6 +87,7 @@ public partial class MainWindow : Window
             var navButton = new NavButton
             {
                 Content = module.DisplayName,
+                ShortText = Abbreviate(module),
                 Icon = module.Icon,
                 ToolTip = module.DisplayName,
                 GroupName = "MainNav",
@@ -223,16 +239,59 @@ public partial class MainWindow : Window
         ApplySidebar();
     }
 
+    /// <summary>Ancho del menu expandido que eligio el usuario arrastrando el divisor (200 por defecto).</summary>
+    private static double SavedSidebarWidth() =>
+        AppSettingsService.Instance.Layouts.TryGetValue("sidebar", out var v) && v.Length > 0
+            ? Math.Clamp(v[0], 90, 320)
+            : 200;
+
+    private void SidebarSplitter_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        // Mientras arrastras: < 90 px solo iconos, hasta ~165 px abreviaturas y a partir de ahi el nombre completo.
+        ApplySidebarMode(SidebarColumn.ActualWidth);
+    }
+
+    private void SidebarSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        var settings = AppSettingsService.Instance;
+        var width = SidebarColumn.ActualWidth;
+
+        if (width < 90)
+        {
+            settings.SidebarCollapsed = true;
+        }
+        else
+        {
+            settings.SidebarCollapsed = false;
+            settings.Layouts["sidebar"] = new[] { Math.Clamp(width, 90, 320) };
+        }
+
+        settings.Save();
+        ApplySidebar();
+    }
+
     private void ApplySidebar()
     {
         var collapsed = AppSettingsService.Instance.SidebarCollapsed;
 
-        SidebarColumn.Width = new GridLength(collapsed ? 60 : 200);
-        VersionText.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarColumn.Width = new GridLength(collapsed ? 60 : SavedSidebarWidth());
         SidebarToggleButton.ToolTip = collapsed ? "Expandir menu" : "Contraer menu";
 
+        ApplySidebarMode(collapsed ? 60 : SavedSidebarWidth());
+    }
+
+    /// <summary>Segun el ancho del menu: solo iconos, abreviaturas o nombres completos.</summary>
+    private void ApplySidebarMode(double width)
+    {
+        var compact = width < 90;
+        var abbreviated = !compact && width < 165;
+
+        VersionText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         foreach (var button in NavPanel.Children.OfType<NavButton>())
-            button.IsCompact = collapsed;
+        {
+            button.IsCompact = compact;
+            button.IsShort = abbreviated;
+        }
     }
 
     private void Maximize_Click(object sender, RoutedEventArgs e) =>

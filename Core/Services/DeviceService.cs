@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using Launcher.Core.Models;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Enumeration;
@@ -79,7 +81,7 @@ public static class DeviceService
         try
         {
             using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, Manufacturer, PNPClass, DeviceID, ConfigManagerErrorCode " +
+                "SELECT Name, Manufacturer, PNPClass, DeviceID, HardwareID, ConfigManagerErrorCode " +
                 "FROM Win32_PnPEntity WHERE Present = TRUE");
 
             foreach (ManagementObject obj in searcher.Get())
@@ -101,8 +103,15 @@ public static class DeviceService
                     var manufacturer = obj["Manufacturer"] as string ?? "";
                     var errorCode = obj["ConfigManagerErrorCode"] is { } code ? Convert.ToInt32(code) : 0;
 
+                    var (vendorBrand, vidPid) = IdentifyVendor(id, obj["HardwareID"] as string[]);
+                    var busName = ReadBusReportedName(id);
+
                     var device = new DeviceInfo
                     {
+                        Brand = vendorBrand ?? CleanManufacturer(manufacturer),
+                        Model = busName != null && !IsGenericName(busName) ? busName
+                              : !IsGenericName(name) ? name : "",
+                        VidPid = vidPid,
                         Name = name,
                         Manufacturer = manufacturer,
                         Group = group,
@@ -191,6 +200,91 @@ public static class DeviceService
         await Collect(BluetoothDevice.GetDeviceSelectorFromConnectionStatus(BluetoothConnectionStatus.Connected));
         await Collect(BluetoothLEDevice.GetDeviceSelectorFromConnectionStatus(BluetoothConnectionStatus.Connected));
         return names;
+    }
+
+    // ===================== Marca y modelo =====================
+
+    private static readonly Regex VidPidRegex = new(
+        @"VID[_&]([0-9A-F]{4,8})&PID[_&]([0-9A-F]{4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    // Fabricantes USB habituales (VID asignado por USB-IF). Los desconocidos se muestran solo como codigo.
+    private static readonly Dictionary<string, string> UsbVendors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["046D"] = "Logitech", ["1532"] = "Razer", ["1B1C"] = "Corsair", ["1038"] = "SteelSeries",
+        ["045E"] = "Microsoft", ["054C"] = "Sony", ["057E"] = "Nintendo", ["05AC"] = "Apple",
+        ["04E8"] = "Samsung", ["0781"] = "SanDisk", ["0951"] = "Kingston / HyperX", ["0BDA"] = "Realtek",
+        ["8087"] = "Intel", ["0B05"] = "ASUS", ["413C"] = "Dell", ["03F0"] = "HP", ["17EF"] = "Lenovo",
+        ["0D8C"] = "C-Media", ["1395"] = "Sennheiser", ["0A12"] = "Cambridge Silicon Radio", ["0A5C"] = "Broadcom",
+        ["04F2"] = "Chicony", ["0C45"] = "Microdia", ["10C4"] = "Silicon Labs", ["0403"] = "FTDI",
+        ["2109"] = "VIA Labs", ["05E3"] = "Genesys Logic", ["1A86"] = "QinHeng (CH340)", ["2717"] = "Xiaomi",
+    };
+
+    // Identificadores de empresa de Bluetooth SIG (cuando el fabricante lo declara asi).
+    private static readonly Dictionary<string, string> BluetoothVendors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["004C"] = "Apple", ["0006"] = "Microsoft", ["0075"] = "Samsung", ["012D"] = "Sony", ["00E0"] = "Google",
+        ["000F"] = "Broadcom", ["0002"] = "Intel", ["001D"] = "Qualcomm", ["0087"] = "Garmin", ["009E"] = "Bose",
+        ["0157"] = "Anker", ["0171"] = "Amazon", ["038F"] = "Xiaomi", ["0310"] = "Logitech", ["0494"] = "JBL / Harman",
+    };
+
+    /// <summary>Marca y codigo fabricante:producto a partir del DeviceID o de los HardwareID (VID_xxxx&amp;PID_xxxx).</summary>
+    private static (string? Brand, string VidPid) IdentifyVendor(string deviceId, string[]? hardwareIds)
+    {
+        var candidates = new List<string> { deviceId };
+        if (hardwareIds != null) candidates.AddRange(hardwareIds);
+
+        foreach (var text in candidates)
+        {
+            var m = VidPidRegex.Match(text);
+            if (!m.Success) continue;
+
+            var vid = m.Groups[1].Value.ToUpperInvariant();
+            var pid = m.Groups[2].Value.ToUpperInvariant();
+
+            // 8 digitos = origen (0001 Bluetooth SIG, 0002 USB-IF) + codigo de 4 digitos.
+            var source = vid.Length == 8 ? vid[..4] : "0002";
+            var code = vid.Length == 8 ? vid[4..] : vid;
+
+            var table = source == "0001" ? BluetoothVendors : UsbVendors;
+            return (table.TryGetValue(code, out var brand) ? brand : null, $"{code}:{pid}");
+        }
+
+        return (null, "");
+    }
+
+    /// <summary>El fabricante del driver suele ser "(Standard system devices)" o "Microsoft": solo vale si es una marca real.</summary>
+    private static string CleanManufacturer(string manufacturer)
+    {
+        var m = manufacturer.Trim();
+        if (m.Length == 0 || m.StartsWith('(')) return "";
+
+        var lower = m.ToLowerInvariant();
+        return lower is "microsoft" or "generic" or "compatible" || lower.Contains("standard") ? "" : m;
+    }
+
+    /// <summary>Nombre de producto que el propio dispositivo declara por USB (BusReportedDeviceDesc), si Windows lo guarda.
+    /// Mejor esfuerzo: sin permisos o sin la clave devuelve null.</summary>
+    private static string? ReadBusReportedName(string deviceId)
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                $@"SYSTEM\CurrentControlSet\Enum\{deviceId}\Properties\{{540b947e-8b40-45bc-a8a2-6a0b894cbda2}}\0004");
+            var value = key?.GetValue("") as string;
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsGenericName(string name)
+    {
+        var n = name.ToLowerInvariant();
+        return n.Contains("hid") || n.Contains("composite") || n.Contains("compuesto") || n.Contains("generic") ||
+               n.Contains("compatible") || n.Contains("dispositivo de entrada") || n.Contains("input device") ||
+               n.StartsWith("usb ") || n.StartsWith("dispositivo usb");
     }
 
     // ===================== App del fabricante =====================

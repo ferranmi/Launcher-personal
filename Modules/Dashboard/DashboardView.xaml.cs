@@ -60,7 +60,6 @@ public sealed class ProcCell
 /// </summary>
 public partial class DashboardView : UserControl
 {
-    private const int HistoryLength = 40;
     private const int MaxGames = 8;
     private const int MaxShortcuts = 12;
     private const int LogCollapsed = 6;
@@ -73,8 +72,6 @@ public partial class DashboardView : UserControl
     private readonly NowPlayingService _nowPlaying = new();
     private readonly NowPlayingInfo _info;
     private readonly DispatcherTimer _timer;
-
-    private readonly Queue<double> _cpuHist = new(), _ramHist = new(), _gpuHist = new(), _vramHist = new(), _netHist = new();
 
     private CommandsService _commands = new();
     private FolderShortcutsService _folders = new();
@@ -91,6 +88,21 @@ public partial class DashboardView : UserControl
     public DashboardView()
     {
         InitializeComponent();
+
+        // Tamano de las partes fijas (alto del monitor, ancho del reproductor): se recuerda al arrastrar sus divisores.
+        var defaultColumns = RootGrid.ColumnDefinitions.Select(col => col.Width).ToArray();
+        var defaultRows = RootGrid.RowDefinitions.Select(row => row.Height).ToArray();
+        LayoutPersistence.Attach(RootGrid, "dash.cols", columns: true);
+        LayoutPersistence.Attach(RootGrid, "dash.rows");
+
+        // "Restablecer disposicion" (clic derecho en el tablero) tambien devuelve esas partes a su tamano original.
+        CenterBoard.LayoutReset += (_, _) =>
+        {
+            for (var i = 0; i < defaultColumns.Length; i++) RootGrid.ColumnDefinitions[i].Width = defaultColumns[i];
+            for (var i = 0; i < defaultRows.Length; i++) RootGrid.RowDefinitions[i].Height = defaultRows[i];
+            LayoutPersistence.Reset("dash.cols");
+            LayoutPersistence.Reset("dash.rows");
+        };
 
         _info = _nowPlaying.Info;
         PlayerPanel.DataContext = _info;
@@ -208,67 +220,30 @@ public partial class DashboardView : UserControl
     {
         StatusLevel Lvl(string key) => report.Metrics.TryGetValue(key, out var l) ? l : StatusLevel.Online;
 
-        SetMetric(CpuText, CpuLine, _cpuHist, s.CpuPercent, 100, Lvl("CPU"), $"{s.CpuPercent:0}%");
+        SetMetric(CpuText, Lvl("CPU"), $"{s.CpuPercent:0}%");
         CpuDetail.Text = $"{Environment.ProcessorCount} hilos";
 
         var ramUsed = s.RamUsedBytes / 1024d / 1024 / 1024;
         var ramTotal = s.RamTotalBytes / 1024d / 1024 / 1024;
-        SetMetric(RamText, RamLine, _ramHist, s.RamPercent, 100, Lvl("RAM"), $"{s.RamPercent:0}%");
+        SetMetric(RamText, Lvl("RAM"), $"{s.RamPercent:0}%");
         RamDetail.Text = $"{ramUsed:0.#} / {ramTotal:0.#} GB";
 
-        SetMetric(GpuText, GpuLine, _gpuHist, s.GpuPercent, 100, Lvl("GPU"), $"{s.GpuPercent:0}%");
+        SetMetric(GpuText, Lvl("GPU"), $"{s.GpuPercent:0}%");
         GpuDetail.Text = s.GpuName;
 
         var vramUsed = s.VramUsedBytes / 1024d / 1024 / 1024;
         var vramTotal = s.VramTotalBytes / 1024d / 1024 / 1024;
-        SetMetric(VramText, VramLine, _vramHist, s.VramPercent, 100, Lvl("VRAM"), $"{s.VramPercent:0}%");
+        SetMetric(VramText, Lvl("VRAM"), $"{s.VramPercent:0}%");
         VramDetail.Text = vramTotal > 0 ? $"{vramUsed:0.#} / {vramTotal:0.#} GB" : $"{vramUsed:0.#} GB";
 
         NetDownText.Text = $"\u2193 {FormatRate(s.NetDownBytesPerSec)}";
         NetUpText.Text = $"\u2191 {FormatRate(s.NetUpBytesPerSec)}";
-        Push(_netHist, (s.NetDownBytesPerSec + s.NetUpBytesPerSec) / 1024d);
-        DrawSparkline(NetLine, _netHist, Math.Max(50, _netHist.Max()));
     }
 
-    private void SetMetric(TextBlock number, Polyline line, Queue<double> history,
-        double value, double max, StatusLevel level, string text)
+    private void SetMetric(TextBlock number, StatusLevel level, string text)
     {
-        var brush = LevelBrush(level);
         number.Text = text;
-        number.Foreground = brush;
-        line.Stroke = brush;
-        Push(history, value);
-        DrawSparkline(line, history, max);
-    }
-
-    private static void Push(Queue<double> history, double value)
-    {
-        history.Enqueue(value);
-        while (history.Count > HistoryLength) history.Dequeue();
-    }
-
-    private static void DrawSparkline(Polyline line, Queue<double> history, double maxValue)
-    {
-        if (history.Count < 2)
-        {
-            line.Points = new PointCollection();
-            return;
-        }
-
-        var width = line.ActualWidth > 0 ? line.ActualWidth : 100;
-        var height = line.ActualHeight > 0 ? line.ActualHeight : 22;
-        var values = history.ToArray();
-        var stepX = width / Math.Max(1, HistoryLength - 1);
-        var start = HistoryLength - values.Length;
-
-        var points = new PointCollection();
-        for (var i = 0; i < values.Length; i++)
-        {
-            var normalized = maxValue <= 0 ? 0 : Math.Min(1, values[i] / maxValue);
-            points.Add(new Point((start + i) * stepX, height - normalized * height));
-        }
-
-        line.Points = points;
+        number.Foreground = LevelBrush(level);
     }
 
     private static string FormatRate(double bytesPerSec)

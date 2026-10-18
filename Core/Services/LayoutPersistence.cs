@@ -5,9 +5,10 @@ using System.Windows.Controls.Primitives;
 namespace Launcher.Core.Services;
 
 /// <summary>
-/// Recuerda las alturas (o anchos) de las filas/columnas "*" de un Grid cuando el
-/// usuario arrastra un GridSplitter. Uso: LayoutPersistence.Attach(MiGrid, "home.right").
-/// Pon MinHeight/MinWidth en las definiciones para que nada se colapse del todo.
+/// Recuerda el tamano de las filas/columnas de un Grid que el usuario cambia arrastrando un GridSplitter:
+/// tanto las proporcionales ("*") como las de tamano fijo en pixeles; las "Auto" no se tocan.
+/// Uso: LayoutPersistence.Attach(MiGrid, "clave") (filas) o Attach(MiGrid, "clave", columns: true).
+/// Pon MinHeight/MaxHeight (o MinWidth/MaxWidth) en las definiciones para que nada se desborde.
 /// </summary>
 public static class LayoutPersistence
 {
@@ -34,8 +35,8 @@ public static class LayoutPersistence
     }
 
     private static double[] Read(Grid grid, bool columns) => columns
-        ? grid.ColumnDefinitions.Select(c => c.Width.IsStar ? c.ActualWidth : 0).ToArray()
-        : grid.RowDefinitions.Select(r => r.Height.IsStar ? r.ActualHeight : 0).ToArray();
+        ? grid.ColumnDefinitions.Select(c => c.Width.IsAuto ? 0 : c.ActualWidth).ToArray()
+        : grid.RowDefinitions.Select(r => r.Height.IsAuto ? 0 : r.ActualHeight).ToArray();
 
     private static void Write(Grid grid, double[] values, bool columns)
     {
@@ -43,16 +44,18 @@ public static class LayoutPersistence
         {
             for (var i = 0; i < Math.Min(values.Length, grid.ColumnDefinitions.Count); i++)
             {
-                if (values[i] > 0 && grid.ColumnDefinitions[i].Width.IsStar)
-                    grid.ColumnDefinitions[i].Width = new GridLength(values[i], GridUnitType.Star);
+                var def = grid.ColumnDefinitions[i];
+                if (values[i] <= 0 || def.Width.IsAuto) continue;
+                def.Width = new GridLength(values[i], def.Width.IsStar ? GridUnitType.Star : GridUnitType.Pixel);
             }
         }
         else
         {
             for (var i = 0; i < Math.Min(values.Length, grid.RowDefinitions.Count); i++)
             {
-                if (values[i] > 0 && grid.RowDefinitions[i].Height.IsStar)
-                    grid.RowDefinitions[i].Height = new GridLength(values[i], GridUnitType.Star);
+                var def = grid.RowDefinitions[i];
+                if (values[i] <= 0 || def.Height.IsAuto) continue;
+                def.Height = new GridLength(values[i], def.Height.IsStar ? GridUnitType.Star : GridUnitType.Pixel);
             }
         }
     }

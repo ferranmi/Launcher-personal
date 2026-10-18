@@ -122,10 +122,27 @@ public class FolderShortcutsService
             return;
         }
 
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        try
         {
-            FileName = folder.Path,
-            UseShellExecute = true
-        });
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = folder.Path,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception first)
+        {
+            // Algunas rutas (p.ej. en otro disco que tarda en responder) fallan con ShellExecute
+            // (error 1726, "llamada a procedimiento remoto"): se reintenta con el Explorador directamente.
+            try
+            {
+                System.Diagnostics.Process.Start("explorer.exe", $"\"{folder.Path}\"");
+            }
+            catch (Exception second)
+            {
+                // Abrir una carpeta nunca debe tumbar la app: queda en el registro.
+                LogService.Error($"No se pudo abrir la carpeta '{folder.Name}' ({folder.Path}) con ShellExecute: {first.Message}", second);
+            }
+        }
     }
 }

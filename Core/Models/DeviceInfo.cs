@@ -20,6 +20,15 @@ public class DeviceInfo
 
     public string? SettingsUri { get; set; }
 
+    /// <summary>Marca (p.ej. Logitech), deducida del identificador de fabricante USB/Bluetooth o del fabricante del driver.</summary>
+    public string Brand { get; set; } = "";
+
+    /// <summary>Modelo/producto tal y como lo declara el propio aparato (si Windows lo guarda y no es un nombre generico).</summary>
+    public string Model { get; set; } = "";
+
+    /// <summary>Identificador fabricante:producto en hexadecimal (p.ej. 046D:C08B), si el aparato lo tiene.</summary>
+    public string VidPid { get; set; } = "";
+
     // App del fabricante
     public string? VendorKeyword { get; set; }
     public string? VendorLabel { get; set; }
@@ -32,13 +41,26 @@ public class DeviceInfo
 
     public string AppButtonText => VendorPath != null ? $"Abrir {VendorLabel}" : "Asignar app...";
 
-    public string Details
+    /// <summary>Linea con marca y modelo (vacia si no se ha podido averiguar nada mas que el nombre).</summary>
+    public string Summary
     {
         get
         {
             var parts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(Manufacturer) && !Manufacturer.StartsWith('(')) parts.Add(Manufacturer);
-            parts.Add(Connection);
+            if (!string.IsNullOrWhiteSpace(Brand)) parts.Add(Brand);
+            if (!string.IsNullOrWhiteSpace(Model) && !Model.Equals(Name, StringComparison.OrdinalIgnoreCase)) parts.Add(Model);
+            return string.Join("  \u00B7  ", parts);
+        }
+    }
+
+    public bool HasSummary => Summary.Length > 0;
+
+    public string Details
+    {
+        get
+        {
+            var parts = new List<string> { Connection };
+            if (VidPid.Length > 0) parts.Add($"ID {VidPid}");
             parts.Add(HasProblem ? "con error" : IsConnected ? "conectado" : "emparejado");
             return string.Join("  \u00B7  ", parts);
         }

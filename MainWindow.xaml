@@ -53,7 +53,8 @@
             <!-- ===================== BODY ===================== -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="SidebarColumn" Width="200" />
+                    <ColumnDefinition x:Name="SidebarColumn" Width="200" MinWidth="60" MaxWidth="320" />
+                    <ColumnDefinition Width="6" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -79,8 +80,29 @@
                     </Grid>
                 </Border>
 
+                <!-- Divisor: arrastra para cambiar el ancho del menu (por debajo de ~110 px pasa a solo iconos) -->
+                <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" ResizeDirection="Columns" ShowsPreview="False"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"
+                              Cursor="SizeWE" ToolTip="Arrastra para cambiar el ancho del menu"
+                              DragDelta="SidebarSplitter_DragDelta" DragCompleted="SidebarSplitter_DragCompleted">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="Transparent">
+                                <Border x:Name="Line" Width="2" Height="30" CornerRadius="1"
+                                        Background="{DynamicResource Brush.Border}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
                 <!-- Content -->
-                <Grid Grid.Column="1">
+                <Grid Grid.Column="2">
                     <Border Background="{DynamicResource Brush.Background}" />
                     <Border x:Name="BackgroundLayer" IsHitTestVisible="False" />
                     <ContentControl x:Name="ContentArea" Margin="20" />

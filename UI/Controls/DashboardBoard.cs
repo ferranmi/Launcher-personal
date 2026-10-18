@@ -85,6 +85,9 @@ public class DashboardBoard : Panel
     private Cell? _target;
     private List<Slot>? _plan; // disposicion resultante si se soltara ahora (null = no cabe)
 
+    /// <summary>Se dispara tras "Restablecer disposicion" (para que el dashboard restablezca tambien el resto).</summary>
+    public event EventHandler? LayoutReset;
+
     public DashboardBoard()
     {
         Background = WpfBrushes.Transparent; // sin fondo no recibe el clic derecho
@@ -171,6 +174,7 @@ public class DashboardBoard : Panel
         _dragging = false;
         _pressPoint = e.GetPosition(this);
         _startRect = CellRect(ReadCell(box), new Size(ActualWidth, ActualHeight));
+        LogService.Info($"Tablero: pulsado '{GetKey(box)}' ({(resize ? "tamano" : "mover")})");
         e.Handled = true;
     }
 
@@ -210,11 +214,12 @@ public class DashboardBoard : Panel
         {
             var w = Clamp(_startRect.Width + dx, MinColSpan * px - Gap, size.Width - _startRect.X);
             var h = Clamp(_startRect.Height + dy, MinRowSpan * py - Gap, size.Height - _startRect.Y);
-            _dragRect = new Rect(_startRect.X, _startRect.Y, w, h);
-
             var cs = (int)Clamp(Math.Round((w + Gap) / px), MinColSpan, Columns - current.C);
             var rs = (int)Clamp(Math.Round((h + Gap) / py), MinRowSpan, Rows - current.R);
             _target = new Cell(current.C, current.R, cs, rs);
+
+            // La caja salta de celda en celda mientras arrastras (no queda a medias): lo que ves es lo que queda.
+            _dragRect = CellRect(_target.Value, size);
         }
 
         _plan = _target is Cell tc ? Plan(_pressBox, tc) : null;
@@ -236,6 +241,7 @@ public class DashboardBoard : Panel
         var point = e.GetPosition(this);
 
         EndPress();
+        LogService.Info($"Tablero: soltado '{GetKey(box)}' arrastrando={wasDragging} cabe={plan != null}");
 
         if (!wasDragging)
         {
@@ -458,5 +464,6 @@ public class DashboardBoard : Panel
         settings.Save();
         InvalidateMeasure();
         InvalidateArrange();
+        LayoutReset?.Invoke(this, EventArgs.Empty);
     }
 }

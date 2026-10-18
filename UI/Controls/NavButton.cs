@@ -16,6 +16,30 @@ public class NavButton : RadioButton
     public static readonly DependencyProperty IsCompactProperty =
         DependencyProperty.Register(nameof(IsCompact), typeof(bool), typeof(NavButton), new PropertyMetadata(false));
 
+    public static readonly DependencyProperty IsShortProperty =
+        DependencyProperty.Register(nameof(IsShort), typeof(bool), typeof(NavButton),
+            new PropertyMetadata(false, (d, e) => ((NavButton)d).OnIsShortChanged((bool)e.NewValue)));
+
+    /// <summary>Texto abreviado (p.ej. "JUE") que se muestra cuando IsShort esta activo.</summary>
+    public string? ShortText { get; set; }
+
+    private string? _fullText;
+
+    /// <summary>Menu a ancho intermedio: en lugar del nombre completo se muestra la abreviatura.</summary>
+    public bool IsShort
+    {
+        get => (bool)GetValue(IsShortProperty);
+        set => SetValue(IsShortProperty, value);
+    }
+
+    private void OnIsShortChanged(bool isShort)
+    {
+        _fullText ??= Content as string;
+        if (_fullText == null) return;
+
+        Content = isShort && !string.IsNullOrEmpty(ShortText) ? ShortText : _fullText;
+    }
+
     public string Icon
     {
         get => (string)GetValue(IconProperty);
