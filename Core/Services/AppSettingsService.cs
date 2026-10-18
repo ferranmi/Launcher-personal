@@ -16,6 +16,13 @@ public class AppSettingsService
 
     private static readonly string ConfigPath = Path.Combine(AppFolder, "config.json");
 
+    /// <summary>Color de acento por defecto (el verde fosforo del tema).</summary>
+    public const string DefaultAccent = "#3ECF7E";
+
+    /// <summary>Carpeta (o URL) por defecto donde estan las versiones empaquetadas con vpk.</summary>
+    public static readonly string DefaultUpdateSource = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
+
     private static AppSettingsService? _instance;
     public static AppSettingsService Instance => _instance ??= Load();
 
@@ -44,15 +51,42 @@ public class AppSettingsService
     /// <summary>"None", "Ctrl+Alt+L", "Ctrl+Alt+Space" o "Ctrl+Shift+Space".</summary>
     public string Hotkey { get; set; } = "None";
 
+    /// <summary>Color de acento en formato #RRGGBB (ver ThemeService).</summary>
+    public string AccentColor { get; set; } = DefaultAccent;
+
+    // ----- Dashboard -----
+    /// <summary>"relaxed", "normal" o "strict".</summary>
+    public string ThresholdProfile { get; set; } = "normal";
+
+    /// <summary>Segundos entre lecturas con el dashboard visible (1, 2 o 5).</summary>
+    public int StatusIntervalSeconds { get; set; } = 1;
+
+    public bool DashboardEffects { get; set; } = true;
+    public bool BootSequence { get; set; } = true;
+    public bool WindowsEventLog { get; set; } = true;
+
+    // ----- Ventana -----
+    public bool SidebarCollapsed { get; set; }
+
     // ----- Fondo -----
     /// <summary>"none", "gradient", "animated" o "image".</summary>
     public string BackgroundMode { get; set; } = "none";
     public string? BackgroundImagePath { get; set; }
+
     /// <summary>0.05 - 1.0. Baja = mas sutil, el contenido se lee mejor.</summary>
     public double BackgroundOpacity { get; set; } = 0.35;
 
     // ----- Disposicion de contenedores (ver LayoutPersistence) -----
     public Dictionary<string, double[]> Layouts { get; set; } = new();
+
+    // ----- Monitor y Procesos -----
+
+    /// <summary>Intervalo de refresco en segundos. 0 = automatico (1 s en Monitor,
+    /// 1,5 s en Procesos). Usa GetRefreshSeconds para leerlo con el valor automatico.</summary>
+    public double RefreshSeconds { get; set; }
+
+    /// <summary>Pedir confirmacion antes de finalizar un proceso o un grupo.</summary>
+    public bool ConfirmKillProcess { get; set; } = true;
 
     // ----- Juegos -----
     public bool SyncOnStartup { get; set; }
@@ -62,14 +96,18 @@ public class AppSettingsService
     public string CardSize { get; set; } = "medium";
 
     // ----- Actualizaciones -----
-    public static readonly string DefaultUpdateSource = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "LauncherReleases");
 
     /// <summary>Carpeta (o URL) donde estan las versiones empaquetadas con vpk.</summary>
     public string UpdateSource { get; set; } = DefaultUpdateSource;
 
     /// <summary>Busca versiones nuevas al abrir y cada 6 horas.</summary>
     public bool CheckUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>Si hay version nueva, la descarga e instala sin preguntar (reinicia la app).</summary>
+    public bool AutoApplyUpdates { get; set; } = true;
+
+    /// <summary>Devuelve el intervalo elegido, o autoSeconds si esta en "automatico".</summary>
+    public double GetRefreshSeconds(double autoSeconds) => RefreshSeconds > 0 ? RefreshSeconds : autoSeconds;
 
     private static AppSettingsService Load()
     {
@@ -116,15 +154,24 @@ public class AppSettingsService
         RememberWindowBounds = true;
         WindowLeft = WindowTop = WindowWidth = WindowHeight = null;
         Hotkey = "None";
-        BackgroundMode = "none";
-        BackgroundImagePath = null;
-        BackgroundOpacity = 0.35;
-        Layouts.Clear();
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
+        RefreshSeconds = 0; // 0 = automatico
+        AutoApplyUpdates = true;
+        ThresholdProfile = "normal";
+        StatusIntervalSeconds = 1;
+        DashboardEffects = true;
+        BootSequence = true;
+        WindowsEventLog = true;
+        SidebarCollapsed = false;
+        AccentColor = DefaultAccent;
+        BackgroundMode = "none";
+        BackgroundImagePath = null;
+        BackgroundOpacity = 0.35;
+        Layouts.Clear();
         Save();
     }
 

@@ -1,7 +1,8 @@
 <UserControl x:Class="Launcher.Modules.Dashboard.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:conv="clr-namespace:Launcher.Core.Converters">
+             xmlns:conv="clr-namespace:Launcher.Core.Converters"
+             xmlns:svc="clr-namespace:Launcher.Core.Services">
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
@@ -61,6 +62,77 @@
             <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
             <Setter Property="FontSize" Value="10.5" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+        </Style>
+        <!-- Etiqueta [ X ] clicable: mismo aspecto que SectionTitle, navega al menu (svc:Navigator.To) -->
+        <Style x:Key="SectionLink" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="ToolTip" Value="Abrir este menu" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Divisor vertical (accesos | info). Esta aqui y no solo en Shared.Styles para que el
+             dashboard cargue aunque Shared.Styles.xaml sea una version antigua. -->
+        <Style x:Key="VPanelSplitterStyle" TargetType="GridSplitter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="ShowsPreview" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="Transparent">
+                            <Border x:Name="Line" Background="{DynamicResource Brush.Border}"
+                                    CornerRadius="1" Width="2" Height="30"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Divisor horizontal (entre bloques apilados): igual de autonomo -->
+        <Style x:Key="PanelSplitterStyle" TargetType="GridSplitter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="ShowsPreview" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="Transparent">
+                            <Border x:Name="Line" Background="{DynamicResource Brush.Border}"
+                                    CornerRadius="1" Width="30" Height="2"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="TileLabel" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
@@ -325,23 +397,24 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="250" />
         </Grid.ColumnDefinitions>
+        <!-- Cabecera y metricas ocupan todo el ancho (tambien sobre la columna del reproductor);
+             el reproductor solo ocupa la fila central; los procesos, otra vez todo el ancho. -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
         <!-- Fondo: rejilla + brillo superior + vineta (detras de todo, sin capturar el raton) -->
-        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
-        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
-        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Grid.RowSpan="4" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Grid.RowSpan="4" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Grid.RowSpan="4" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
 
-        <!-- ===================== COLUMNA PRINCIPAL ===================== -->
-        <Grid Grid.Column="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <!-- ===================== CONTENIDO (cabecera, metricas, centro, procesos) ===================== -->
 
             <!-- Cabecera: titulo + estado global + reloj -->
-            <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -365,7 +438,7 @@
             </Grid>
 
             <!-- Metricas -->
-            <Grid Grid.Row="1" Margin="0,0,0,14">
+            <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -426,49 +499,89 @@
             </Grid>
 
             <!-- Centro: accesos | info -->
-            <Grid Grid.Row="2" Margin="0,0,0,14">
+            <Grid x:Name="CenterGrid" Grid.Row="2" Grid.Column="0" Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="3*" MinWidth="260" />
                     <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="2*" MinWidth="220" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Accesos -->
-                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="0,0,6,0">
-                        <TextBlock Text="[ JUEGOS ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
-                        <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
-                                   Margin="0,0,0,10" Visibility="Collapsed" />
-
-                        <TextBlock Text="[ COMANDOS ]" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
-                        <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-
-                        <TextBlock Text="[ CARPETAS ]" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
-                        <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- Info: registro + uplink -->
-                <Grid Grid.Column="2">
+                <!-- Accesos: tres bloques con altura ajustable (arrastrar los divisores) -->
+                <Grid x:Name="AccessGrid" Grid.Column="0" Margin="0,0,6,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="2*" MinHeight="90" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" MinHeight="70" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" MinHeight="70" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,12">
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Button Content="[ JUEGOS ]" svc:Navigator.To="games" Style="{StaticResource SectionLink}" Margin="0,0,0,8" />
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
+                                           Margin="0,0,0,10" Visibility="Collapsed" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <GridSplitter Grid.Row="1" Style="{StaticResource PanelSplitterStyle}" ResizeDirection="Rows" />
+
+                    <Grid Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Button Content="[ COMANDOS ]" svc:Navigator.To="commands" Style="{StaticResource SectionLink}" Margin="0,0,0,8" />
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <GridSplitter Grid.Row="3" Style="{StaticResource PanelSplitterStyle}" ResizeDirection="Rows" />
+
+                    <Grid Grid.Row="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Button Content="[ CARPETAS ]" svc:Navigator.To="folders" Style="{StaticResource SectionLink}" Margin="0,0,0,8" />
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- Divisor vertical: accesos | info -->
+                <GridSplitter Grid.Column="1" Style="{StaticResource VPanelSplitterStyle}" ResizeDirection="Columns" />
+
+                <!-- Info: registro + uplink -->
+                <Grid x:Name="InfoGrid" Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*" MinHeight="90" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" MinHeight="70" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="12">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -489,36 +602,46 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="[ UPLINK ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
-                            <ItemsControl x:Name="UplinkItems" ItemTemplate="{StaticResource UplinkRowTemplate}" />
-                            <TextBlock x:Name="UplinkEmpty" Text="&gt; sin dispositivos externos_"
-                                       Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
-                        </StackPanel>
+                    <GridSplitter Grid.Row="1" Style="{StaticResource PanelSplitterStyle}" ResizeDirection="Rows" />
+
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Button Content="[ UPLINK ]" svc:Navigator.To="devices" Style="{StaticResource SectionLink}" Margin="0,0,0,10" />
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <ItemsControl x:Name="UplinkItems" ItemTemplate="{StaticResource UplinkRowTemplate}" />
+                                    <TextBlock x:Name="UplinkEmpty" Text="&gt; sin dispositivos externos_"
+                                               Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
                     </Border>
                 </Grid>
             </Grid>
 
             <!-- Barra inferior: procesos -->
-            <StackPanel Grid.Row="3">
-                <TextBlock Text="[ PROCESOS ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+            <StackPanel Grid.Row="3" Grid.ColumnSpan="2">
+                <Button Content="[ PROCESOS ]" svc:Navigator.To="processes" Style="{StaticResource SectionLink}" Margin="0,0,0,8" />
                 <ItemsControl x:Name="ProcItems" ItemTemplate="{StaticResource ProcCellTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><UniformGrid Rows="1" Columns="5" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
             </StackPanel>
-        </Grid>
 
         <!-- ===================== REPRODUCTOR ===================== -->
-        <Border x:Name="PlayerPanel" Grid.Column="1" Background="{DynamicResource Brush.Surface}"
+        <Border x:Name="PlayerPanel" Grid.Row="2" Grid.Column="1" Background="{DynamicResource Brush.Surface}"
                 BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0"
                 Margin="14,0,0,0" Padding="14,12">
             <Grid>
-                <StackPanel VerticalAlignment="Center"
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Center">
+                <StackPanel Width="190"
                             Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="[ MULTIMEDIA ]" Style="{StaticResource SectionTitle}" Margin="0,0,0,12" />
+                    <Button Content="[ MULTIMEDIA ]" svc:Navigator.To="media" Style="{StaticResource SectionLink}" Margin="0,0,0,12" />
 
                     <Border Width="190" Height="190" CornerRadius="10" ClipToBounds="True" HorizontalAlignment="Center">
                         <Border.Background>
@@ -574,6 +697,7 @@
                                 ToolTip="Siguiente" Click="Next_Click" />
                     </StackPanel>
                 </StackPanel>
+                </Viewbox>
 
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                             Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
@@ -586,6 +710,6 @@
         </Border>
 
         <!-- Scanlines por encima de todo (efecto CRT sutil) -->
-        <Rectangle Grid.ColumnSpan="2" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
+        <Rectangle Grid.ColumnSpan="2" Grid.RowSpan="4" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
     </Grid>
 </UserControl>

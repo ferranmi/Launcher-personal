@@ -1,6 +1,6 @@
 namespace Launcher.Core.Models;
 
-public enum UplinkKind { Headphones, Microphone, Gamepad, Drive }
+public enum UplinkKind { Headphones, Microphone, Gamepad, Drive, Keyboard, Mouse, Camera, Other }
 
 /// <summary>Wireless = inalambrico sin saber si es Bluetooth (p.ej. receptor propio de un mando).</summary>
 public enum UplinkConnection { Unknown, Bluetooth, Wired, Wireless }
@@ -27,6 +27,10 @@ public record UplinkDevice(
         UplinkKind.Headphones => "\uE7F6",
         UplinkKind.Microphone => "\uE720",
         UplinkKind.Gamepad => "\uE7FC",
+        UplinkKind.Keyboard => "\uE765",
+        UplinkKind.Mouse => "\uE962",
+        UplinkKind.Camera => "\uE722",
+        UplinkKind.Other => "\uE772",
         _ => "\uE88E"
     };
 

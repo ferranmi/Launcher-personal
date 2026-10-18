@@ -39,6 +39,9 @@ public sealed class UplinkService : IDisposable
     // Datos lentos (WMI), reemplazados por completo desde un hilo de fondo.
     private volatile HashSet<string> _bluetoothNames = new(StringComparer.OrdinalIgnoreCase);
     private volatile HashSet<string> _usbLetters = new(StringComparer.OrdinalIgnoreCase);
+    private bool _wmiErrorLogged; // el fallo de WMI se registra una sola vez, no cada ciclo
+    private bool _othersErrorLogged;
+    private volatile List<UplinkDevice> _others = new(); // teclados, ratones, camaras y otros Bluetooth/USB (datos lentos)
     private volatile bool _slowReady;
     private int _slowRunning;
     private DateTime _nextSlow = DateTime.MinValue;
@@ -82,6 +85,7 @@ public sealed class UplinkService : IDisposable
         found.AddRange(ScanAudio());
         found.AddRange(ScanDrives());
         found.AddRange(ScanGamepads());
+        found.AddRange(ScanOthers(found));
 
         Apply(found);
     }
@@ -374,6 +378,69 @@ public sealed class UplinkService : IDisposable
         return result;
     }
 
+    // ===================== Otros dispositivos (teclado, raton, camara, Bluetooth) =====================
+
+    /// <summary>Devuelve los "otros" dispositivos leidos en el ciclo lento, quitando los que ya salen
+    /// como auriculares, micro, mando o unidad (el mismo aparato puede estar en varias listas de Windows).</summary>
+    private IEnumerable<UplinkDevice> ScanOthers(List<UplinkDevice> already)
+    {
+        foreach (var other in _others)
+        {
+            var duplicate = already.Any(a =>
+                a.Name.Contains(other.Name, StringComparison.OrdinalIgnoreCase) ||
+                other.Name.Contains(a.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (!duplicate) yield return other;
+        }
+    }
+
+    /// <summary>Teclados, ratones, camaras, impresoras y dispositivos Bluetooth conectados ahora, a partir de
+    /// DeviceService (WMI + estado de conexion Bluetooth). Solo externos: USB o Bluetooth.</summary>
+    private static List<UplinkDevice> ReadOtherDevices()
+    {
+        var result = new List<UplinkDevice>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Esto corre en un hilo de fondo: esperar aqui no bloquea la interfaz.
+        var devices = DeviceService.QueryAsync().GetAwaiter().GetResult();
+
+        foreach (var d in devices.Where(d => d.IsExternal && d.IsConnected && !d.HasProblem))
+        {
+            UplinkKind kind;
+            string label;
+
+            switch (d.Group)
+            {
+                case "Teclados": kind = UplinkKind.Keyboard; label = "Teclado"; break;
+                case "Ratones": kind = UplinkKind.Mouse; label = "Raton"; break;
+                case "Camaras": kind = UplinkKind.Camera; label = "Camara"; break;
+                case "Bluetooth":
+                case "Impresoras": kind = UplinkKind.Other; label = "Dispositivo"; break;
+                default: continue; // audio, mandos y unidades ya tienen su propio detector
+            }
+
+            var connection = d.Connection == "Bluetooth" ? UplinkConnection.Bluetooth : UplinkConnection.Wired;
+
+            // Muchos teclados/ratones solo se llaman "Dispositivo de entrada USB" o "HID-compliant mouse".
+            var name = LooksGeneric(d.Name)
+                ? $"{label} {(connection == UplinkConnection.Bluetooth ? "Bluetooth" : "USB")}"
+                : d.Name;
+
+            if (!seen.Add($"{kind}|{name}")) continue; // un mismo aparato aparece varias veces (una por interfaz)
+
+            result.Add(new UplinkDevice($"pnp:{d.DeviceId}", name, kind, connection, UplinkState.Connected));
+        }
+
+        return result;
+    }
+
+    private static bool LooksGeneric(string name)
+    {
+        var n = name.ToLowerInvariant();
+        return n.Contains("hid") || n.StartsWith("usb") || n.Contains("compatible") ||
+               n.Contains("input") || n.Contains("entrada");
+    }
+
     // ===================== Datos lentos (WMI, en segundo plano) =====================
 
     private void KickSlowRefreshIfDue()
@@ -387,12 +454,33 @@ public sealed class UplinkService : IDisposable
         {
             try
             {
-                _bluetoothNames = ReadBluetoothNames();
-                _usbLetters = ReadUsbDriveLetters();
-            }
-            catch (Exception ex)
-            {
-                LogService.Error("Uplink: fallo al leer WMI", ex);
+                try
+                {
+                    _bluetoothNames = ReadBluetoothNames();
+                    _usbLetters = ReadUsbDriveLetters();
+                }
+                catch (Exception ex)
+                {
+                    if (!_wmiErrorLogged)
+                    {
+                        _wmiErrorLogged = true;
+                        LogService.Error("Uplink: fallo al leer WMI (no se repetira en esta sesion)", ex);
+                    }
+                }
+
+                // Aparte: si esto falla, auriculares, unidades y mandos siguen funcionando.
+                try
+                {
+                    _others = ReadOtherDevices();
+                }
+                catch (Exception ex)
+                {
+                    if (!_othersErrorLogged)
+                    {
+                        _othersErrorLogged = true;
+                        LogService.Error("Uplink: fallo al leer otros dispositivos (no se repetira en esta sesion)", ex);
+                    }
+                }
             }
             finally
             {
@@ -425,6 +513,27 @@ public sealed class UplinkService : IDisposable
         return names;
     }
 
+    /// <summary>Enumera una consulta WMI sin lanzar si WMI devuelve "No encontrado" a mitad
+    /// (un disco que se retira entre consultas, una particion sin letra...): termina la lista y ya.</summary>
+    private static IEnumerable<ManagementObject> SafeEnumerate(ManagementObjectSearcher searcher)
+    {
+        ManagementObjectCollection? collection;
+        try { collection = searcher.Get(); }
+        catch (ManagementException) { collection = null; }
+        if (collection == null) yield break;
+
+        using var enumerator = collection.GetEnumerator();
+        while (true)
+        {
+            bool hasNext;
+            try { hasNext = enumerator.MoveNext(); }
+            catch (ManagementException) { hasNext = false; }
+
+            if (!hasNext) yield break;
+            yield return (ManagementObject)enumerator.Current;
+        }
+    }
+
     /// <summary>Letras de unidad que cuelgan de un disco con interfaz USB. Los discos USB que
     /// usan UASP a veces se anuncian como SCSI y no aparecerian aqui.</summary>
     private static HashSet<string> ReadUsbDriveLetters()
@@ -434,7 +543,7 @@ public sealed class UplinkService : IDisposable
         using var disks = new ManagementObjectSearcher(
             "SELECT DeviceID FROM Win32_DiskDrive WHERE InterfaceType = 'USB'");
 
-        foreach (ManagementObject disk in disks.Get())
+        foreach (ManagementObject disk in SafeEnumerate(disks))
         {
             using (disk)
             {
@@ -444,7 +553,7 @@ public sealed class UplinkService : IDisposable
                 using var partitions = new ManagementObjectSearcher(
                     $"ASSOCIATORS OF {{Win32_DiskDrive.DeviceID='{diskId}'}} WHERE AssocClass = Win32_DiskDriveToDiskPartition");
 
-                foreach (ManagementObject partition in partitions.Get())
+                foreach (ManagementObject partition in SafeEnumerate(partitions))
                 {
                     using (partition)
                     {
@@ -454,7 +563,7 @@ public sealed class UplinkService : IDisposable
                         using var logicals = new ManagementObjectSearcher(
                             $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partitionId}'}} WHERE AssocClass = Win32_LogicalDiskToPartition");
 
-                        foreach (ManagementObject logical in logicals.Get())
+                        foreach (ManagementObject logical in SafeEnumerate(logicals))
                         {
                             using (logical)
                             {

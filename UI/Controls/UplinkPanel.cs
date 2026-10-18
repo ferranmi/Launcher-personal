@@ -5,6 +5,8 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
+using Brush = System.Windows.Media.Brush;
+using FontFamily = System.Windows.Media.FontFamily;
 
 namespace Launcher.UI.Controls;
 
