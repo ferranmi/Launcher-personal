@@ -5,5 +5,6 @@ public enum CommandCategory
     App,
     Peripheral,
     System,
-    Cli
+    Cli,
+    Web
 }

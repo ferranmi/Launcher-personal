@@ -79,12 +79,24 @@ public class CommandShortcut : INotifyPropertyChanged
     [JsonIgnore]
     public bool HasImageIcon => !string.IsNullOrWhiteSpace(IconImagePath) && File.Exists(IconImagePath);
 
+    // ----- Solo categoria Web (la direccion va en Target) -----
+
+    /// <summary>Perfil de Brave para abrir la web sin inicio automatico ("Default" = el principal).</summary>
+    public string BrowserProfile { get; set; } = "Default";
+
+    /// <summary>Iniciar sesion automaticamente con la credencial guardada en el Administrador de Windows.</summary>
+    public bool AutoLogin { get; set; }
+
+    /// <summary>Nombre de la credencial en el Administrador de credenciales (nunca la contrasena).</summary>
+    public string? CredentialKey { get; set; }
+
     public DateTime? LastUsed { get; set; }
 
     public string CategoryLabel => Category switch
     {
         CommandCategory.Peripheral => "Periferico",
         CommandCategory.System => "Sistema",
+        CommandCategory.Web => "Web",
         CommandCategory.Cli => "CLI",
         _ => "Aplicacion"
     };

@@ -1,0 +1,128 @@
+<Window x:Class="Launcher.Modules.Commands.WebShortcutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Web"
+        Height="640" Width="460"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="FieldBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}" />
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="FieldPassword" TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource Brush.Background}"
+            BorderBrush="{DynamicResource Brush.BorderStrong}"
+            BorderThickness="1"
+            CornerRadius="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.6" />
+        </Border.Effect>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock x:Name="HeaderText" Grid.Row="0" Text="&gt; Anadir web"
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="16"
+                       Foreground="{DynamicResource Brush.TextPrimary}"
+                       Margin="0,0,0,18" MouseLeftButtonDown="Header_MouseLeftButtonDown" />
+
+            <StackPanel Grid.Row="1">
+                <TextBlock Text="Nombre" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="NameBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+
+                <TextBlock Text="Direccion web" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="UrlBox" Style="{StaticResource FieldBox}" Margin="0,0,0,14" />
+
+                <TextBlock Text="Perfil de Brave" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="ProfileBox" Style="{StaticResource FieldBox}" Margin="0,0,0,4" />
+                <TextBlock Text="Default es tu perfil principal. Solo se usa si NO activas el inicio de sesion automatico."
+                           Style="{StaticResource HintText}" Margin="0,0,0,14" />
+
+                <CheckBox x:Name="IncognitoCheck" Content="Abrir en modo incognito"
+                          Foreground="{DynamicResource Brush.TextSecondary}"
+                          FontFamily="{DynamicResource Font.Mono}" FontSize="11" Margin="0,0,0,14" />
+
+                <CheckBox x:Name="AutoLoginCheck" Content="Iniciar sesion automaticamente"
+                          Foreground="{DynamicResource Brush.TextSecondary}"
+                          FontFamily="{DynamicResource Font.Mono}" FontSize="11" Margin="0,0,0,10"
+                          Checked="AutoLogin_Changed" Unchecked="AutoLogin_Changed" />
+
+                <StackPanel x:Name="LoginPanel" Visibility="Collapsed">
+                    <TextBlock Text="Usuario o correo" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="UserBox" Style="{StaticResource FieldBox}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="Contrasena" Style="{StaticResource FieldLabel}" />
+                    <PasswordBox x:Name="PasswordBox" Style="{StaticResource FieldPassword}" Margin="0,0,0,6" />
+                    <TextBlock x:Name="PasswordHint" Style="{StaticResource HintText}" Margin="0,0,0,10" />
+
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Se guarda cifrada en el Administrador de credenciales de Windows, no en el Launcher. Con inicio automatico, Brave se abre con una carpeta de perfil propia del Launcher (no tu perfil Default), porque Brave ya no permite controlar el perfil principal. Si falla (contrasena erronea, falta de contrasena...) recibiras un aviso." />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button Content="Cancelar" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="Cancel_Click" />
+                <Button Content="Guardar" Style="{StaticResource AccentButton}" Click="Save_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

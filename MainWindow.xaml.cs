@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         WindowBehaviorService.Attach(this);
         BackgroundService.Attach(BackgroundLayer, this);
         SystemStatusHost.Instance.Start(this);
+        NotificationService.Initialize(SystemStatusHost.Instance.Evaluator); // avisos de Windows para warnings y errores
         Application.Current.Exit += (_, _) => SystemStatusHost.Instance.Dispose();
         VersionText.Text = $"v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0"}";
 

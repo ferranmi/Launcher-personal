@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using Launcher.Core.Models;
+using Launcher.Core.Services;
 using Microsoft.Win32;
 
 namespace Launcher.Modules.Commands;
@@ -92,6 +93,9 @@ public class CommandsService
 
     public void Remove(CommandShortcut command)
     {
+        // Al borrar una web con inicio automatico, tambien se borra su credencial guardada.
+        if (!string.IsNullOrEmpty(command.CredentialKey)) Launcher.Core.Services.CredentialStore.Delete(command.CredentialKey);
+
         Commands.Remove(command);
         Save();
     }
@@ -242,6 +246,14 @@ public class CommandsService
     public void Launch(CommandShortcut command)
     {
         if (string.IsNullOrWhiteSpace(command.Target)) return;
+
+        if (command.Category == CommandCategory.Web)
+        {
+            WebLauncher.Launch(command);
+            command.LastUsed = DateTime.Now;
+            Save();
+            return;
+        }
 
         var startInfo = new ProcessStartInfo { UseShellExecute = true };
 

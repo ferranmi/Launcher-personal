@@ -341,22 +341,66 @@
         </DataTemplate>
 
         <DataTemplate x:Key="LogRowTemplate">
-            <Grid Margin="0,0,0,6">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{Binding Time}" FontFamily="{DynamicResource Font.Mono}"
-                           FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Background="{Binding TagBg}" CornerRadius="3" Padding="5,1" Margin="8,0,8,0"
-                        VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Tag}" FontFamily="{DynamicResource Font.Mono}" FontSize="9"
-                               Foreground="{Binding TagFg}" />
-                </Border>
-                <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5" TextWrapping="Wrap"
-                           Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
-            </Grid>
+            <!-- Aviso = "bloqueo de radar" (ambar, etiqueta parpadeante); problema = "misil entrante"
+                 (rojo, fila resaltada y etiqueta que late mas rapido). El resto de entradas, como antes. -->
+            <Border Margin="0,0,0,6" Padding="6,3,6,3" CornerRadius="4" BorderThickness="3,0,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Brush.WarningDim}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsDefcon}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource Brush.DangerDim}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Time}" FontFamily="{DynamicResource Font.Mono}"
+                               FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Background="{Binding TagBg}" CornerRadius="3" Padding="5,1" Margin="8,0,8,0"
+                            VerticalAlignment="Center">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.45" Duration="0:0:0.9" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsDefcon}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.2" Duration="0:0:0.4" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding Tag}" FontFamily="{DynamicResource Font.Mono}" FontSize="9"
+                                   FontWeight="Bold" Foreground="{Binding TagFg}" />
+                    </Border>
+                    <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="UplinkRowTemplate">

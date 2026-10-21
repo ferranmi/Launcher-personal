@@ -122,6 +122,17 @@ public partial class CommandsView : UserControl
         }
     }
 
+    private void AddWeb_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new WebShortcutWindow { Owner = Window.GetWindow(this) };
+        if (dialog.ShowDialog() == true && dialog.Result != null)
+        {
+            _service.Add(dialog.Result);
+            _view.Refresh();
+            UpdateEmptyState();
+        }
+    }
+
     private void Suggestions_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new CommandSuggestionsWindow(_service.Commands) { Owner = Window.GetWindow(this) };
@@ -168,8 +179,13 @@ public partial class CommandsView : UserControl
     private void EditMenuItem_Click(object sender, RoutedEventArgs e)
     {
         var cmd = GetCommandFromMenuItem(sender);
-        var dialog = new AddEditCommandWindow(cmd) { Owner = Window.GetWindow(this) };
-        if (dialog.ShowDialog() == true)
+
+        // Las webs tienen su propio dialogo (perfil, incognito, inicio de sesion automatico).
+        var saved = cmd.Category == CommandCategory.Web
+            ? new WebShortcutWindow(cmd) { Owner = Window.GetWindow(this) }.ShowDialog() == true
+            : new AddEditCommandWindow(cmd) { Owner = Window.GetWindow(this) }.ShowDialog() == true;
+
+        if (saved)
         {
             _service.Update(cmd);
             _view.Refresh();

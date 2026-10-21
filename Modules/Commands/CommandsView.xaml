@@ -92,6 +92,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <TextBox x:Name="SearchBox" Grid.Column="0" Style="{StaticResource ToolbarBox}"
@@ -108,7 +109,9 @@
             <Button Grid.Column="2" Content="Sugerencias" Style="{StaticResource ToolButton}"
                     Margin="0,0,10,0" Click="Suggestions_Click" />
 
-            <Button Grid.Column="3" Content="+ Anadir" Style="{StaticResource ToolButton}" Click="AddCommand_Click" />
+            <Button Grid.Column="3" Content="+ Web" Style="{StaticResource ToolButton}" Margin="0,0,10,0" Click="AddWeb_Click" />
+
+            <Button Grid.Column="4" Content="+ Anadir" Style="{StaticResource ToolButton}" Click="AddCommand_Click" />
         </Grid>
 
         <!-- ===================== FILTROS (chips) ===================== -->

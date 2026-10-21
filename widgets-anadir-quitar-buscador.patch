@@ -1,0 +1,266 @@
+diff --git a/Modules/Dashboard/DashboardView.xaml b/Modules/Dashboard/DashboardView.xaml
+index 3f4f547..f4e1271 100644
+--- a/Modules/Dashboard/DashboardView.xaml
++++ b/Modules/Dashboard/DashboardView.xaml
+@@ -3,7 +3,8 @@
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:conv="clr-namespace:Launcher.Core.Converters"
+              xmlns:svc="clr-namespace:Launcher.Core.Services"
+-             xmlns:ctl="clr-namespace:Launcher.UI.Controls">
++             xmlns:ctl="clr-namespace:Launcher.UI.Controls"
++             xmlns:search="clr-namespace:Launcher.Modules.Search">
+ 
+     <UserControl.Resources>
+         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+@@ -579,6 +580,14 @@
+                                    Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
+                     </Grid>
+                 </ctl:BoardBox>
++
++                <!-- Buscador: empieza oculto; clic derecho en el tablero > Anadir widget > Buscar -->
++                <ctl:BoardBox ctl:DashboardBoard.Key="search" ctl:DashboardBoard.StartHidden="True"
++                              ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
++                              ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="4"
++                              Title="[ BUSCAR ]" TitleTarget="search">
++                    <search:SearchView FocusOnLoad="False" />
++                </ctl:BoardBox>
+             </ctl:DashboardBoard>
+ 
+             <!-- Barra inferior: procesos -->
+diff --git a/UI/Controls/BoardBox.cs b/UI/Controls/BoardBox.cs
+index c6de405..e03a058 100644
+--- a/UI/Controls/BoardBox.cs
++++ b/UI/Controls/BoardBox.cs
+@@ -88,8 +88,28 @@ public class BoardBox : UserControl
+         header.Children.Add(handle);
+         Grid.SetColumn(_title, 1);
+         header.Children.Add(_title);
+-        Grid.SetColumn(_extra, 2);
+-        header.Children.Add(_extra);
++
++        // Boton para quitar la caja del tablero (se puede volver a anadir con clic derecho > Anadir widget).
++        var close = new TextBlock
++        {
++            Text = "\u00D7",
++            FontSize = 16,
++            Foreground = (Brush)app.FindResource("Brush.BorderStrong"),
++            Margin = new Thickness(10, -2, 0, 0),
++            VerticalAlignment = VerticalAlignment.Center,
++            Cursor = Cursors.Hand,
++            ToolTip = "Quitar este widget"
++        };
++        close.MouseEnter += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.Danger");
++        close.MouseLeave += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.BorderStrong");
++        close.MouseLeftButtonDown += (_, e) => e.Handled = true; // que no empiece a arrastrar la caja
++        close.MouseLeftButtonUp += (_, e) => { Board?.RemoveBox(this); e.Handled = true; };
++
++        var right = new StackPanel { Orientation = Orientation.Horizontal };
++        right.Children.Add(_extra);
++        right.Children.Add(close);
++        Grid.SetColumn(right, 2);
++        header.Children.Add(right);
+         header.MouseLeftButtonDown += (_, e) => Board?.BeginPress(this, e, resize: false);
+ 
+         var bodyHost = new Grid { ClipToBounds = true }; // sin scroll: lo que no cabe se recorta
+diff --git a/UI/Controls/DashboardBoard.cs b/UI/Controls/DashboardBoard.cs
+index 505f4cd..9ea1ffd 100644
+--- a/UI/Controls/DashboardBoard.cs
++++ b/UI/Controls/DashboardBoard.cs
+@@ -58,6 +58,13 @@ public class DashboardBoard : Panel
+     public static readonly DependencyProperty KeyProperty =
+         DependencyProperty.RegisterAttached("Key", typeof(string), typeof(DashboardBoard), new PropertyMetadata(null));
+ 
++    /// <summary>Caja que empieza oculta (no aparece hasta que el usuario la anade con clic derecho > Anadir widget).</summary>
++    public static readonly DependencyProperty StartHiddenProperty =
++        DependencyProperty.RegisterAttached("StartHidden", typeof(bool), typeof(DashboardBoard), new PropertyMetadata(false));
++
++    public static bool GetStartHidden(DependencyObject d) => (bool)d.GetValue(StartHiddenProperty);
++    public static void SetStartHidden(DependencyObject d, bool v) => d.SetValue(StartHiddenProperty, v);
++
+     public static int GetCol(DependencyObject d) => (int)d.GetValue(ColProperty);
+     public static void SetCol(DependencyObject d, int v) => d.SetValue(ColProperty, v);
+     public static int GetRow(DependencyObject d) => (int)d.GetValue(RowProperty);
+@@ -74,6 +81,7 @@ public class DashboardBoard : Panel
+     private readonly record struct Cell(int C, int R, int CS, int RS);
+ 
+     private readonly Dictionary<BoardBox, Cell> _defaults = new();
++    private readonly Dictionary<string, BoardBox> _removed = new(); // widgets quitados (siguen vivos para poder volver a anadirlos)
+     private bool _initialized;
+ 
+     private BoardBox? _pressBox;
+@@ -92,11 +100,8 @@ public class DashboardBoard : Panel
+     {
+         Background = WpfBrushes.Transparent; // sin fondo no recibe el clic derecho
+ 
+-        var menu = new ContextMenu();
+-        var reset = new MenuItem { Header = "Restablecer disposicion" };
+-        reset.Click += (_, _) => ResetLayout();
+-        menu.Items.Add(reset);
+-        ContextMenu = menu;
++        ContextMenu = new ContextMenu();
++        ContextMenuOpening += (_, _) => BuildMenu();
+ 
+         Loaded += (_, _) => Initialize();
+     }
+@@ -394,6 +399,112 @@ public class DashboardBoard : Panel
+         return false;
+     }
+ 
++    // ===================== Quitar y anadir widgets =====================
++
++    private string HiddenKey(BoardBox box) => StorageKey(box) + ".hidden";
++
++    private void BuildMenu()
++    {
++        var menu = ContextMenu!;
++        menu.Items.Clear();
++
++        var add = new MenuItem { Header = "Anadir widget", IsEnabled = _removed.Count > 0 };
++        foreach (var removed in _removed.Values.OrderBy(b => b.Title))
++        {
++            var box = removed;
++            var item = new MenuItem { Header = box.Title.Trim('[', ']', ' ') };
++            item.Click += (_, _) =>
++            {
++                if (!AddBox(box))
++                {
++                    MessageBox.Show(Window.GetWindow(this),
++                        "No hay hueco libre en el tablero. Reduce o quita otra caja y vuelve a intentarlo.",
++                        "Anadir widget", MessageBoxButton.OK, MessageBoxImage.Information);
++                }
++            };
++            add.Items.Add(item);
++        }
++
++        menu.Items.Add(add);
++        menu.Items.Add(new Separator());
++
++        var reset = new MenuItem { Header = "Restablecer disposicion" };
++        reset.Click += (_, _) => ResetLayout();
++        menu.Items.Add(reset);
++    }
++
++    /// <summary>Quita la caja del tablero (sigue disponible en "Anadir widget"). Se recuerda entre sesiones.</summary>
++    internal void RemoveBox(BoardBox box)
++    {
++        var key = GetKey(box);
++        if (string.IsNullOrEmpty(key) || !Children.Contains(box)) return;
++
++        Save(); // guarda antes la posicion de todas, para que al volver recupere la suya
++
++        Children.Remove(box);
++        _removed[key] = box;
++
++        var settings = AppSettingsService.Instance;
++        settings.Layouts[HiddenKey(box)] = new double[] { 1 };
++        settings.Save();
++
++        InvalidateMeasure();
++        InvalidateArrange();
++    }
++
++    /// <summary>Vuelve a poner una caja quitada: en su ultima posicion si sigue libre, si no en la de fabrica,
++    /// y si tampoco en el primer hueco libre donde quepa. Devuelve false si no hay sitio.</summary>
++    public bool AddBox(BoardBox box)
++    {
++        var key = GetKey(box);
++        if (string.IsNullOrEmpty(key) || Children.Contains(box)) return false;
++
++        var settings = AppSettingsService.Instance;
++        var occupied = Boxes().Select(ReadCell).ToList();
++        bool Free(Cell c) => Fits(c) && !occupied.Any(o => Overlaps(o, c));
++
++        Cell? spot = null;
++
++        if (settings.Layouts.TryGetValue(StorageKey(box), out var v) && v.Length == 4)
++        {
++            var saved = new Cell((int)v[0], (int)v[1], (int)v[2], (int)v[3]);
++            if (Free(saved)) spot = saved;
++        }
++
++        if (spot == null && _defaults.TryGetValue(box, out var factory) && Free(factory)) spot = factory;
++
++        var size = ReadCell(box);
++        spot ??= FindFreeSpot(size.CS, size.RS, Free);
++        spot ??= FindFreeSpot(MinColSpan, MinRowSpan, Free);
++
++        if (spot is not Cell found) return false;
++
++        WriteCell(box, found);
++        _removed.Remove(key);
++        Children.Add(box);
++
++        settings.Layouts[HiddenKey(box)] = new double[] { 0 };
++        Save();
++
++        InvalidateMeasure();
++        InvalidateArrange();
++        return true;
++    }
++
++    private Cell? FindFreeSpot(int colSpan, int rowSpan, Func<Cell, bool> free)
++    {
++        for (var r = 0; r + rowSpan <= Rows; r++)
++        {
++            for (var c = 0; c + colSpan <= Columns; c++)
++            {
++                var candidate = new Cell(c, r, colSpan, rowSpan);
++                if (free(candidate)) return candidate;
++            }
++        }
++
++        return null;
++    }
++
+     // ===================== Guardar / cargar / restablecer =====================
+ 
+     private void Initialize()
+@@ -404,6 +515,22 @@ public class DashboardBoard : Panel
+         foreach (var box in Boxes()) _defaults[box] = ReadCell(box);
+ 
+         var settings = AppSettingsService.Instance;
++
++        // Cajas quitadas por el usuario (o que empiezan ocultas): salen del tablero antes de calcular nada.
++        foreach (var box in Boxes().ToList())
++        {
++            var key = GetKey(box);
++            if (string.IsNullOrEmpty(key)) continue;
++
++            var hidden = settings.Layouts.TryGetValue(HiddenKey(box), out var h) && h.Length > 0
++                ? h[0] > 0
++                : GetStartHidden(box);
++            if (!hidden) continue;
++
++            Children.Remove(box);
++            _removed[key] = box;
++        }
++
+         var proposal = new Dictionary<BoardBox, Cell>();
+ 
+         foreach (var box in Boxes())
+@@ -458,7 +585,24 @@ public class DashboardBoard : Panel
+         foreach (var (box, cell) in _defaults)
+         {
+             WriteCell(box, cell);
+-            if (!string.IsNullOrEmpty(GetKey(box))) settings.Layouts.Remove(StorageKey(box));
++            if (!string.IsNullOrEmpty(GetKey(box)))
++            {
++                settings.Layouts.Remove(StorageKey(box));
++                settings.Layouts.Remove(HiddenKey(box));
++            }
++        }
++
++        // Cada caja vuelve a estar como de fabrica: visibles las normales, ocultas las StartHidden.
++        foreach (var box in _defaults.Keys.ToList())
++        {
++            var key = GetKey(box);
++            if (string.IsNullOrEmpty(key)) continue;
++
++            var shouldHide = GetStartHidden(box);
++            var isRemoved = _removed.ContainsKey(key);
++
++            if (shouldHide && !isRemoved) { Children.Remove(box); _removed[key] = box; }
++            else if (!shouldHide && isRemoved) { _removed.Remove(key); Children.Add(box); }
+         }
+ 
+         settings.Save();
