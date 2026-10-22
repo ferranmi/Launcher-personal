@@ -88,6 +88,10 @@ public class AppSettingsService
     /// <summary>Pedir confirmacion antes de finalizar un proceso o un grupo.</summary>
     public bool ConfirmKillProcess { get; set; } = true;
 
+    // ----- Musica -----
+    /// <summary>Carpeta de la biblioteca musical. Vacia = sin configurar.</summary>
+    public string MusicFolder { get; set; } = "";
+
     // ----- Juegos -----
     public bool SyncOnStartup { get; set; }
     public bool ConfirmDelete { get; set; } = true;

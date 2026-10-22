@@ -12,16 +12,13 @@ public partial class SearchView : UserControl
     private readonly ObservableCollection<SearchResult> _results = new();
     private CancellationTokenSource? _cts;
 
-    /// <summary>En el modulo Buscar la barra recibe el foco al entrar; como widget del Dashboard se pone a false.</summary>
-    public bool FocusOnLoad { get; set; } = true;
-
     public SearchView()
     {
         InitializeComponent();
         ResultsList.ItemsSource = _results;
 
         // Loaded se dispara cada vez que se vuelve a este modulo: foco directo a la barra.
-        Loaded += (_, _) => { if (FocusOnLoad) { QueryBox.Focus(); QueryBox.SelectAll(); } };
+        Loaded += (_, _) => { QueryBox.Focus(); QueryBox.SelectAll(); };
     }
 
     private async void QueryBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -71,7 +68,7 @@ public partial class SearchView : UserControl
                 e.Handled = true;
                 break;
             case Key.Enter:
-                ExecuteSelected();
+                ExecuteSelected(Keyboard.Modifiers.HasFlag(ModifierKeys.Control)); // Ctrl+Enter: mostrar en carpeta
                 e.Handled = true;
                 break;
             case Key.Escape:
@@ -91,13 +88,13 @@ public partial class SearchView : UserControl
 
     private void Results_MouseDoubleClick(object sender, MouseButtonEventArgs e) => ExecuteSelected();
 
-    private void ExecuteSelected()
+    private void ExecuteSelected(bool reveal = false)
     {
         if (ResultsList.SelectedItem is not SearchResult result) return;
 
         try
         {
-            result.Execute();
+            (reveal && result.Reveal != null ? result.Reveal : result.Execute)();
         }
         catch (Exception ex)
         {

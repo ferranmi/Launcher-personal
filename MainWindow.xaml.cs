@@ -46,7 +46,7 @@ public partial class MainWindow : Window
             new GamesModule(),
             new FoldersModule(),
             new Launcher.Modules.Media.MediaModule(),
-            new PlaceholderModule("music",     "Musica",        "\uEC4F", 3),
+            new Launcher.Modules.Music.MusicModule(),
             new PlaceholderModule("search",    "Buscar",        "\uE721", 4),
             new Launcher.Modules.Commands.CommandsModule(),
             new Launcher.Modules.Devices.DevicesModule(),
@@ -59,6 +59,7 @@ public partial class MainWindow : Window
         ModuleCatalog.Register(_modules);
 
         BuildSidebar();
+        ApplySidebar();
         SelectStartModule();
         Navigator.Register(id =>
         {

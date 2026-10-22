@@ -34,12 +34,6 @@ public sealed class LogRow
     public string Message { get; init; } = "";
     public Brush TagBg { get; init; } = Brushes.Transparent;
     public Brush TagFg { get; init; } = Brushes.White;
-
-    /// <summary>Aviso (Warning): "bloqueo de radar". Se resalta la fila y parpadea la etiqueta.</summary>
-    public bool IsWarning { get; init; }
-
-    /// <summary>Problema grave (Defcon/error): "misil entrante". Fila en rojo y etiqueta que late mas rapido.</summary>
-    public bool IsDefcon { get; init; }
 }
 
 public sealed class UplinkRow
@@ -313,14 +307,7 @@ public partial class DashboardView : UserControl
                 return new LogRow
                 {
                     Time = ev.Time.ToString("HH:mm:ss"),
-                    Tag = ev.Tag switch
-                    {
-                        "warning" => "BLOQUEO DE RADAR",
-                        "defcon" => "MISIL ENTRANTE",
-                        _ => ev.Tag.ToUpperInvariant()
-                    },
-                    IsWarning = ev.Tag == "warning",
-                    IsDefcon = ev.Tag == "defcon",
+                    Tag = ev.Tag.ToUpperInvariant(),
                     Message = ev.Message,
                     TagFg = fg,
                     TagBg = bg
@@ -331,6 +318,8 @@ public partial class DashboardView : UserControl
         LogItems.ItemsSource = rows;
         LogEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private void AddWidget_Click(object sender, RoutedEventArgs e) => CenterBoard.ShowMenu((FrameworkElement)sender);
 
     private void LogToggle_Click(object sender, RoutedEventArgs e)
     {

@@ -7,6 +7,7 @@ public class SearchService
 {
     private readonly List<ISearchProvider> _providers = new()
     {
+        new PathSearchProvider(),
         new GamesSearchProvider(),
         new CommandsSearchProvider(),
         new FoldersSearchProvider(),

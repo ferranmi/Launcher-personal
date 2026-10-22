@@ -88,8 +88,28 @@ public class BoardBox : UserControl
         header.Children.Add(handle);
         Grid.SetColumn(_title, 1);
         header.Children.Add(_title);
-        Grid.SetColumn(_extra, 2);
-        header.Children.Add(_extra);
+
+        // Boton para quitar la caja del tablero (se puede volver a anadir con clic derecho > Anadir widget).
+        var close = new TextBlock
+        {
+            Text = "\u00D7",
+            FontSize = 16,
+            Foreground = (Brush)app.FindResource("Brush.BorderStrong"),
+            Margin = new Thickness(10, -2, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Cursor = Cursors.Hand,
+            ToolTip = "Quitar este widget"
+        };
+        close.MouseEnter += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.Danger");
+        close.MouseLeave += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.BorderStrong");
+        close.MouseLeftButtonDown += (_, e) => e.Handled = true; // que no empiece a arrastrar la caja
+        close.MouseLeftButtonUp += (_, e) => { Board?.RemoveBox(this); e.Handled = true; };
+
+        var right = new StackPanel { Orientation = Orientation.Horizontal };
+        right.Children.Add(_extra);
+        right.Children.Add(close);
+        Grid.SetColumn(right, 2);
+        header.Children.Add(right);
         header.MouseLeftButtonDown += (_, e) => Board?.BeginPress(this, e, resize: false);
 
         var bodyHost = new Grid { ClipToBounds = true }; // sin scroll: lo que no cabe se recorta

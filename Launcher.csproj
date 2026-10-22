@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.1.28</Version>
+    <Version>0.1.32g</Version>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
@@ -25,12 +25,10 @@
     <Page Include="App.xaml" />
   </ItemGroup>
 
-  <!-- Evita la ambiguedad UserControl/Application/RadioButton/Button entre
-       System.Windows.Forms y System.Windows.*: quitamos el using global
-       implicito de WinForms. Donde de verdad necesitamos tipos de WinForms
-       (dialogos de carpeta) ya se usa el alias "WinForms = System.Windows.Forms". -->
+  <!-- Evita ambiguedades entre WinForms/Drawing y WPF (UserControl, Brush, Button...). -->
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,6 +38,7 @@
     <PackageReference Include="System.Management" Version="10.0.*" />
     <PackageReference Include="Microsoft.Playwright" Version="1.*" />
     <PackageReference Include="System.Data.OleDb" Version="9.0.0" />
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
 
 </Project>

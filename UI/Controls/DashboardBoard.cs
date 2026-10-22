@@ -58,6 +58,13 @@ public class DashboardBoard : Panel
     public static readonly DependencyProperty KeyProperty =
         DependencyProperty.RegisterAttached("Key", typeof(string), typeof(DashboardBoard), new PropertyMetadata(null));
 
+    /// <summary>Caja que empieza oculta (no aparece hasta que el usuario la anade con clic derecho > Anadir widget).</summary>
+    public static readonly DependencyProperty StartHiddenProperty =
+        DependencyProperty.RegisterAttached("StartHidden", typeof(bool), typeof(DashboardBoard), new PropertyMetadata(false));
+
+    public static bool GetStartHidden(DependencyObject d) => (bool)d.GetValue(StartHiddenProperty);
+    public static void SetStartHidden(DependencyObject d, bool v) => d.SetValue(StartHiddenProperty, v);
+
     public static int GetCol(DependencyObject d) => (int)d.GetValue(ColProperty);
     public static void SetCol(DependencyObject d, int v) => d.SetValue(ColProperty, v);
     public static int GetRow(DependencyObject d) => (int)d.GetValue(RowProperty);
@@ -74,6 +81,7 @@ public class DashboardBoard : Panel
     private readonly record struct Cell(int C, int R, int CS, int RS);
 
     private readonly Dictionary<BoardBox, Cell> _defaults = new();
+    private readonly Dictionary<string, BoardBox> _removed = new(); // widgets quitados (siguen vivos para poder volver a anadirlos)
     private bool _initialized;
 
     private BoardBox? _pressBox;
@@ -92,11 +100,8 @@ public class DashboardBoard : Panel
     {
         Background = WpfBrushes.Transparent; // sin fondo no recibe el clic derecho
 
-        var menu = new ContextMenu();
-        var reset = new MenuItem { Header = "Restablecer disposicion" };
-        reset.Click += (_, _) => ResetLayout();
-        menu.Items.Add(reset);
-        ContextMenu = menu;
+        ContextMenu = new ContextMenu();
+        ContextMenuOpening += (_, _) => BuildMenu();
 
         Loaded += (_, _) => Initialize();
     }
@@ -394,6 +399,122 @@ public class DashboardBoard : Panel
         return false;
     }
 
+    // ===================== Quitar y anadir widgets =====================
+
+    private string HiddenKey(BoardBox box) => StorageKey(box) + ".hidden";
+
+    /// <summary>Abre el menu (Anadir widget / Restablecer) junto a un control, p.ej. el boton "+ widget" del Dashboard.</summary>
+    public void ShowMenu(FrameworkElement anchor)
+    {
+        BuildMenu();
+        var menu = ContextMenu!;
+        menu.PlacementTarget = anchor;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private void BuildMenu()
+    {
+        var menu = ContextMenu!;
+        menu.Items.Clear();
+
+        var add = new MenuItem { Header = "Anadir widget", IsEnabled = _removed.Count > 0 };
+        foreach (var removed in _removed.Values.OrderBy(b => b.Title))
+        {
+            var box = removed;
+            var item = new MenuItem { Header = box.Title.Trim('[', ']', ' ') };
+            item.Click += (_, _) =>
+            {
+                if (!AddBox(box))
+                {
+                    MessageBox.Show(Window.GetWindow(this),
+                        "No hay hueco libre en el tablero. Reduce o quita otra caja y vuelve a intentarlo.",
+                        "Anadir widget", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            };
+            add.Items.Add(item);
+        }
+
+        menu.Items.Add(add);
+        menu.Items.Add(new Separator());
+
+        var reset = new MenuItem { Header = "Restablecer disposicion" };
+        reset.Click += (_, _) => ResetLayout();
+        menu.Items.Add(reset);
+    }
+
+    /// <summary>Quita la caja del tablero (sigue disponible en "Anadir widget"). Se recuerda entre sesiones.</summary>
+    internal void RemoveBox(BoardBox box)
+    {
+        var key = GetKey(box);
+        if (string.IsNullOrEmpty(key) || !Children.Contains(box)) return;
+
+        Save(); // guarda antes la posicion de todas, para que al volver recupere la suya
+
+        Children.Remove(box);
+        _removed[key] = box;
+
+        var settings = AppSettingsService.Instance;
+        settings.Layouts[HiddenKey(box)] = new double[] { 1 };
+        settings.Save();
+
+        InvalidateMeasure();
+        InvalidateArrange();
+    }
+
+    /// <summary>Vuelve a poner una caja quitada: en su ultima posicion si sigue libre, si no en la de fabrica,
+    /// y si tampoco en el primer hueco libre donde quepa. Devuelve false si no hay sitio.</summary>
+    public bool AddBox(BoardBox box)
+    {
+        var key = GetKey(box);
+        if (string.IsNullOrEmpty(key) || Children.Contains(box)) return false;
+
+        var settings = AppSettingsService.Instance;
+        var occupied = Boxes().Select(ReadCell).ToList();
+        bool Free(Cell c) => Fits(c) && !occupied.Any(o => Overlaps(o, c));
+
+        Cell? spot = null;
+
+        if (settings.Layouts.TryGetValue(StorageKey(box), out var v) && v.Length == 4)
+        {
+            var saved = new Cell((int)v[0], (int)v[1], (int)v[2], (int)v[3]);
+            if (Free(saved)) spot = saved;
+        }
+
+        if (spot == null && _defaults.TryGetValue(box, out var factory) && Free(factory)) spot = factory;
+
+        var size = ReadCell(box);
+        spot ??= FindFreeSpot(size.CS, size.RS, Free);
+        spot ??= FindFreeSpot(MinColSpan, MinRowSpan, Free);
+
+        if (spot is not Cell found) return false;
+
+        WriteCell(box, found);
+        _removed.Remove(key);
+        Children.Add(box);
+
+        settings.Layouts[HiddenKey(box)] = new double[] { 0 };
+        Save();
+
+        InvalidateMeasure();
+        InvalidateArrange();
+        return true;
+    }
+
+    private Cell? FindFreeSpot(int colSpan, int rowSpan, Func<Cell, bool> free)
+    {
+        for (var r = 0; r + rowSpan <= Rows; r++)
+        {
+            for (var c = 0; c + colSpan <= Columns; c++)
+            {
+                var candidate = new Cell(c, r, colSpan, rowSpan);
+                if (free(candidate)) return candidate;
+            }
+        }
+
+        return null;
+    }
+
     // ===================== Guardar / cargar / restablecer =====================
 
     private void Initialize()
@@ -404,26 +525,66 @@ public class DashboardBoard : Panel
         foreach (var box in Boxes()) _defaults[box] = ReadCell(box);
 
         var settings = AppSettingsService.Instance;
-        var proposal = new Dictionary<BoardBox, Cell>();
 
+        // Cajas quitadas por el usuario (o que empiezan ocultas): salen del tablero antes de calcular nada.
+        foreach (var box in Boxes().ToList())
+        {
+            var key = GetKey(box);
+            if (string.IsNullOrEmpty(key)) continue;
+
+            var hidden = settings.Layouts.TryGetValue(HiddenKey(box), out var h) && h.Length > 0
+                ? h[0] > 0
+                : GetStartHidden(box);
+            if (!hidden) continue;
+
+            Children.Remove(box);
+            _removed[key] = box;
+        }
+
+        // Posiciones guardadas por el usuario. Un archivo con otra rejilla o a medias no debe romper el
+        // tablero: si lo guardado no es coherente, se ignora entero y todas las cajas usan su sitio de fabrica.
+        var saved = new Dictionary<BoardBox, Cell>();
         foreach (var box in Boxes())
         {
             var key = GetKey(box);
             if (!string.IsNullOrEmpty(key) &&
                 settings.Layouts.TryGetValue(StorageKey(box), out var v) && v.Length == 4)
             {
-                proposal[box] = new Cell((int)v[0], (int)v[1], (int)v[2], (int)v[3]);
-            }
-            else
-            {
-                proposal[box] = ReadCell(box);
+                saved[box] = new Cell((int)v[0], (int)v[1], (int)v[2], (int)v[3]);
             }
         }
 
-        // Un archivo guardado con otra rejilla o a medias no debe romper el tablero: se ignora entero.
-        if (!IsValid(proposal.Values.ToList())) return;
+        if (!IsValid(saved.Values.ToList())) saved.Clear();
 
-        foreach (var (box, cell) in proposal) WriteCell(box, cell);
+        foreach (var (box, cell) in saved) WriteCell(box, cell);
+        var occupied = saved.Values.ToList();
+
+        // Cajas sin posicion guardada (p.ej. un widget nuevo tras actualizar): su sitio de fabrica si esta
+        // libre; si no, el primer hueco donde quepa. Si el tablero esta lleno, quedan fuera (siguen en
+        // "Anadir widget") hasta que haya sitio; no se marcan como quitadas por el usuario.
+        bool Free(Cell c) => Fits(c) && !occupied.Any(o => Overlaps(o, c));
+
+        foreach (var box in Boxes().Where(b => !saved.ContainsKey(b)).ToList())
+        {
+            var key = GetKey(box);
+            var size = ReadCell(box);
+
+            Cell? spot = Free(size) ? size : null;
+            spot ??= FindFreeSpot(size.CS, size.RS, Free);
+            spot ??= FindFreeSpot(MinColSpan, MinRowSpan, Free);
+
+            if (spot is Cell found)
+            {
+                WriteCell(box, found);
+                occupied.Add(found);
+            }
+            else if (!string.IsNullOrEmpty(key))
+            {
+                LogService.Info($"Tablero: sin hueco para '{key}'; queda disponible en Anadir widget");
+                Children.Remove(box);
+                _removed[key] = box;
+            }
+        }
     }
 
     private bool IsValid(List<Cell> cells)
@@ -458,7 +619,24 @@ public class DashboardBoard : Panel
         foreach (var (box, cell) in _defaults)
         {
             WriteCell(box, cell);
-            if (!string.IsNullOrEmpty(GetKey(box))) settings.Layouts.Remove(StorageKey(box));
+            if (!string.IsNullOrEmpty(GetKey(box)))
+            {
+                settings.Layouts.Remove(StorageKey(box));
+                settings.Layouts.Remove(HiddenKey(box));
+            }
+        }
+
+        // Cada caja vuelve a estar como de fabrica: visibles las normales, ocultas las StartHidden.
+        foreach (var box in _defaults.Keys.ToList())
+        {
+            var key = GetKey(box);
+            if (string.IsNullOrEmpty(key)) continue;
+
+            var shouldHide = GetStartHidden(box);
+            var isRemoved = _removed.ContainsKey(key);
+
+            if (shouldHide && !isRemoved) { Children.Remove(box); _removed[key] = box; }
+            else if (!shouldHide && isRemoved) { _removed.Remove(key); Children.Add(box); }
         }
 
         settings.Save();

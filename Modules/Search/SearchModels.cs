@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Launcher.Modules.Search;
 
 /// <summary>Un resultado de la barra de busqueda. Execute es lo que ocurre al pulsar Enter.</summary>
@@ -9,6 +11,41 @@ public class SearchResult
     public string Category { get; init; } = "";
     public int Score { get; set; }
     public Action Execute { get; init; } = () => { };
+
+    /// <summary>Accion secundaria (Ctrl+Enter): para archivos y carpetas, mostrarlos en el Explorador.</summary>
+    public Action? Reveal { get; init; }
+}
+
+/// <summary>Abrir / mostrar archivos y carpetas igual que lo haria el Explorador de Windows.</summary>
+public static class PathOpener
+{
+    /// <summary>Abre con el programa asociado (archivos) o en el Explorador (carpetas).</summary>
+    public static void Open(string path)
+    {
+        if (!Directory.Exists(path) && !File.Exists(path))
+            throw new FileNotFoundException("La ruta ya no existe", path);
+
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = path,
+            UseShellExecute = true
+        });
+    }
+
+    /// <summary>Abre la carpeta que contiene el elemento, con el elemento seleccionado.</summary>
+    public static void Reveal(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Open(path);
+            return;
+        }
+
+        if (!File.Exists(path))
+            throw new FileNotFoundException("La ruta ya no existe", path);
+
+        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+    }
 }
 
 /// <summary>Fuente de resultados. Cada una busca en lo suyo; SearchService las lanza en paralelo.</summary>
