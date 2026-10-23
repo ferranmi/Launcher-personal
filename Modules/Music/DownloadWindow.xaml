@@ -76,14 +76,14 @@
                 <TextBlock Text="&gt; Descargar musica"
                            FontFamily="{DynamicResource Font.Mono}" FontSize="16"
                            Foreground="{DynamicResource Brush.TextPrimary}" />
-                <TextBlock Text="Se guarda como MP3 en tu biblioteca, con titulo y caratula."
+                <TextBlock Text="Se guarda como MP3 con titulo, artista, album y caratula verificados."
                            Margin="0,4,0,0"
                            FontFamily="{DynamicResource Font.Mono}" FontSize="10"
                            Foreground="{DynamicResource Brush.TextDim}" />
             </StackPanel>
 
             <StackPanel Grid.Row="1" Margin="0,0,0,14">
-                <TextBlock Text="Enlace (YouTube u otra web compatible)" Style="{StaticResource FieldLabel}" />
+                <TextBlock Text="Enlace, o escribe: artista - cancion" Style="{StaticResource FieldLabel}" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

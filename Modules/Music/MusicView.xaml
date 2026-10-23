@@ -114,6 +114,7 @@
                                         <MenuItem Header="Reproducir" Click="PlayMenuItem_Click" />
                                         <MenuItem Header="Abrir carpeta" Click="OpenFolderMenuItem_Click" />
                                         <Separator />
+                                        <MenuItem Header="Autocompletar datos" Click="AutoFillMenuItem_Click" />
                                         <MenuItem Header="Editar" Click="EditMenuItem_Click" />
                                         <Separator />
                                         <MenuItem Header="Eliminar" Click="DeleteMenuItem_Click" />

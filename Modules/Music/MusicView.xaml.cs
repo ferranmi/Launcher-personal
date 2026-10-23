@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -199,6 +200,58 @@ public partial class MusicView : UserControl
 
     private void OpenFolderMenuItem_Click(object sender, RoutedEventArgs e) =>
         _library.ShowInExplorer(GetTrackFromMenuItem(sender));
+
+    /// <summary>Busca en MusicBrainz los datos correctos de una cancion ya importada y los escribe
+    /// en el archivo. Si no hay una coincidencia fiable no toca nada.</summary>
+    private async void AutoFillMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var track = GetTrackFromMenuItem(sender);
+
+        MusicMetadata? meta = null;
+        try
+        {
+            meta = await MusicAutoService.ResolveForTrackAsync(track, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Fallo el autocompletado de '{track.Title}'", ex);
+        }
+
+        if (meta == null)
+        {
+            MessageBox.Show(Window.GetWindow(this),
+                "No he encontrado una coincidencia fiable (o no hay conexion). Puedes corregirlo a mano con Editar.",
+                "Autocompletar datos", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string? coverPath = null;
+        try
+        {
+            if (meta.CoverBytes != null)
+            {
+                coverPath = Path.Combine(Path.GetTempPath(), $"launcher_cover_{Guid.NewGuid():N}.jpg");
+                await File.WriteAllBytesAsync(coverPath, meta.CoverBytes);
+            }
+
+            var ok = _library.ApplyEdits(track, meta.Title, meta.Artist, meta.Album, meta.Year, coverPath, false);
+            if (!ok)
+            {
+                MessageBox.Show(Window.GetWindow(this),
+                    "No se han podido guardar los datos. Comprueba que el archivo no esta en uso.",
+                    "Autocompletar datos", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        finally
+        {
+            if (coverPath != null)
+            {
+                try { File.Delete(coverPath); } catch { /* limpieza best-effort */ }
+            }
+        }
+
+        _view.Refresh();
+    }
 
     private void EditMenuItem_Click(object sender, RoutedEventArgs e)
     {

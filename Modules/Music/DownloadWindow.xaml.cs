@@ -55,13 +55,13 @@ public partial class DownloadWindow : Window
 
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
+        // Puede ser un enlace (https://...) o texto como "artista - cancion".
         var url = UrlBox.Text.Trim();
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (url.Length == 0)
         {
-            MessageBox.Show(this, "Pega un enlace valido (que empiece por http:// o https://).",
-                "Enlace no valido", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "Pega un enlace o escribe \"artista - cancion\".",
+                "Falta informacion", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -85,8 +85,7 @@ public partial class DownloadWindow : Window
         {
             await tools.EnsureAsync(log, ct);
 
-            AppendLog("Descargando audio...");
-            var files = await MusicDownloadService.DownloadAsync(
+            var files = await MusicAutoService.AddAsync(
                 url, MusicLibraryService.Instance.Folder, log, ct);
 
             Downloaded.AddRange(files);

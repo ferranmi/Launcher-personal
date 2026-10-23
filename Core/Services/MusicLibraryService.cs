@@ -157,7 +157,7 @@ public class MusicLibraryService
         return imported;
     }
 
-    private static string UniquePath(string path)
+    internal static string UniquePath(string path)
     {
         if (!File.Exists(path)) return path;
 
