@@ -305,10 +305,17 @@
 
         <!-- ===================== PLANTILLAS ===================== -->
         <DataTemplate x:Key="GameTileTemplate">
-            <Border Width="86" Margin="0,0,10,10" Background="Transparent" Cursor="Hand"
+            <!-- Sin Width / Height / Margin: los pone FluidTilePanel -->
+            <Border Background="Transparent" Cursor="Hand"
                     ToolTip="{Binding Name}" MouseLeftButtonDown="GameTile_MouseLeftButtonDown">
-                <StackPanel>
-                    <Border Style="{StaticResource TileStyle}" Height="112" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Portada: ocupa todo el alto que sobra -->
+                    <Border Grid.Row="0" Style="{StaticResource TileStyle}" ClipToBounds="True">
                         <Grid>
                             <Border Background="{DynamicResource Brush.SurfaceActive}" Margin="1"
                                     Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
@@ -321,20 +328,23 @@
                                    Visibility="{Binding HasCover, Converter={StaticResource BoolToVis}}" />
                         </Grid>
                     </Border>
-                    <TextBlock Text="{Binding Name}" Margin="0,5,0,0" FontSize="11"
+
+                    <!-- Nombre -->
+                    <TextBlock Grid.Row="1" Text="{Binding Name}" Margin="0,5,0,0" FontSize="11"
                                Foreground="{DynamicResource Brush.TextPrimary}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                </Grid>
             </Border>
         </DataTemplate>
 
         <!-- Comandos y carpetas comparten plantilla: ambos tienen Icon y Name -->
         <DataTemplate x:Key="IconTileTemplate">
-            <Border Style="{StaticResource TileStyle}" Width="84" Height="70" Margin="0,0,8,8"
+            <!-- Sin Width / Height / Margin: los pone FluidTilePanel -->
+            <Border Style="{StaticResource TileStyle}"
                     ToolTip="{Binding Name}" MouseLeftButtonDown="IconTile_MouseLeftButtonDown">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
                     <TextBlock Text="{Binding Icon}" FontFamily="{DynamicResource Font.Icons}" FontSize="20"
                                Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding Name}" Margin="0,6,0,0" FontSize="11" MaxWidth="74"
+                    <TextBlock Text="{Binding Name}" Margin="6,6,6,0" FontSize="11"
                                TextAlignment="Center" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource Brush.TextPrimary}" />
                 </StackPanel>
@@ -530,7 +540,7 @@
                         <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <controls:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
+                                    <ctl:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                         </ItemsControl>
@@ -544,7 +554,9 @@
                               Title="[ COMANDOS ]" TitleTarget="commands">
                     <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><ctl:FitPanel /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate>
+                                <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                            </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
                 </ctl:BoardBox>
@@ -552,10 +564,10 @@
                 <ctl:BoardBox ctl:DashboardBoard.Key="folders" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="9"
                               ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="3"
                               Title="[ CARPETAS ]" TitleTarget="folders">
-                    <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource GameTileTemplate}">
+                    <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <controls:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
+                                <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Size = System.Windows.Size; // evita la ambiguedad con System.Drawing.Size (usings implicitos de WinForms)
 
 namespace Launcher.UI.Controls;
 
@@ -9,6 +10,8 @@ namespace Launcher.UI.Controls;
 ///  - Reparte TODO el ancho disponible entre esas columnas, asi las tarjetas crecen
 ///    de forma proporcional y no queda hueco a la derecha.
 ///  - Si el recuadro es mas estrecho que una tarjeta, usa 1 columna y la encoge: siempre se ve.
+///  - Si el recuadro es mas BAJO que una fila (FitHeight), la tarjeta se encoge manteniendo su
+///    proporcion hasta caber entera en vez de quedar recortada o invisible.
 ///  - El alto de cada tarjeta sale del ancho: alto = ancho * HeightRatio + ExtraHeight.
 ///
 /// Las tarjetas NO deben fijar Width/Height/Margin: el panel les da el tamano exacto.
@@ -32,6 +35,10 @@ public class FluidTilePanel : Panel
     public static readonly DependencyProperty ExtraHeightProperty = DependencyProperty.Register(
         nameof(ExtraHeight), typeof(double), typeof(FluidTilePanel),
         new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure));
+
+    public static readonly DependencyProperty FitHeightProperty = DependencyProperty.Register(
+        nameof(FitHeight), typeof(bool), typeof(FluidTilePanel),
+        new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsMeasure));
 
     /// <summary>Ancho minimo deseado de una tarjeta; define cuantas columnas caben.</summary>
     public double MinItemWidth
@@ -61,10 +68,19 @@ public class FluidTilePanel : Panel
         set => SetValue(ExtraHeightProperty, value);
     }
 
-    private (int Columns, double Width, double Height) Compute(double availableWidth)
+    /// <summary>Si el alto disponible es menor que una fila, encoge las tarjetas hasta que quepa
+    /// una fila entera. Las filas que no caben debajo se recortan (la caja no tiene scroll).</summary>
+    public bool FitHeight
+    {
+        get => (bool)GetValue(FitHeightProperty);
+        set => SetValue(FitHeightProperty, value);
+    }
+
+    private (int Columns, double Width, double Height) Compute(Size available)
     {
         var min = Math.Max(1, MinItemWidth);
         var gap = Math.Max(0, Spacing);
+        var availableWidth = available.Width;
 
         // Sin ancho conocido (contenedor sin limite), no se puede repartir: una columna minima.
         if (double.IsInfinity(availableWidth) || double.IsNaN(availableWidth) || availableWidth <= 0)
@@ -74,12 +90,22 @@ public class FluidTilePanel : Panel
         var width = Math.Max(1, (availableWidth - gap * (columns - 1)) / columns);
         var height = Math.Max(1, width * HeightRatio + ExtraHeight);
 
+        // Caja mas baja que una fila: se encoge la tarjeta (misma proporcion) para que se vea entera.
+        var availableHeight = available.Height;
+        if (FitHeight && !double.IsInfinity(availableHeight) && !double.IsNaN(availableHeight)
+            && availableHeight > 0 && height > availableHeight)
+        {
+            height = availableHeight;
+            width = Math.Max(1, (height - ExtraHeight) / Math.Max(0.01, HeightRatio));
+            columns = Math.Max(1, (int)Math.Floor((availableWidth + gap) / (width + gap)));
+        }
+
         return (columns, width, height);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var (columns, width, height) = Compute(availableSize.Width);
+        var (columns, width, height) = Compute(availableSize);
         var count = InternalChildren.Count;
 
         foreach (UIElement child in InternalChildren)
@@ -98,7 +124,7 @@ public class FluidTilePanel : Panel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var (columns, width, height) = Compute(finalSize.Width);
+        var (columns, width, height) = Compute(finalSize);
         var gap = Math.Max(0, Spacing);
 
         for (var i = 0; i < InternalChildren.Count; i++)
