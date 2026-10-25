@@ -66,6 +66,16 @@ public partial class MainWindow : Window
             var button = NavPanel.Children.OfType<NavButton>().FirstOrDefault(b => (string?)b.Tag == id);
             if (button != null) button.IsChecked = true;
         });
+
+        FolderNavigationService.NavigateRequested += () =>
+            Dispatcher.Invoke(() =>
+            {
+                Show();
+                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                var btn = NavPanel.Children.OfType<NavButton>()
+                    .FirstOrDefault(b => (string?)b.Tag == "folders");
+                if (btn != null) btn.IsChecked = true;
+            });
     }
 
     // Abreviaturas del menu lateral cuando se estrecha (entre ~90 y ~165 px). Los modulos que no esten aqui
@@ -111,6 +121,7 @@ public partial class MainWindow : Window
         var target = buttons.FirstOrDefault(b => (string?)b.Tag == wanted) ?? buttons.FirstOrDefault();
 
         if (target != null) target.IsChecked = true;
+        
     }
 
     private void NavigateTo(IModule module)

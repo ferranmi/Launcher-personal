@@ -353,15 +353,17 @@ public partial class GamesView : UserControl
 
     private Game GetGameFromMenuItem(object sender)
     {
-        var menuItem = (MenuItem)sender;
-        var contextMenu = (ContextMenu)menuItem.Parent;
-        var owner = (FrameworkElement)contextMenu.PlacementTarget;
-        return (Game)owner.DataContext;
+        if (sender is MenuItem { Parent: ContextMenu { PlacementTarget: FrameworkElement { DataContext: Game game } } })
+            return game;
+
+        return _contextGame!;
     }
 
     private void Card_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: Game game, ContextMenu: { } menu }) return;
+
+        _contextGame = game;
 
         foreach (var item in menu.Items.OfType<MenuItem>())
         {
@@ -375,7 +377,6 @@ public partial class GamesView : UserControl
                     break;
                 case "Admin":
                 case "OpenFolder":
-                    // Solo tienen sentido con un .exe local, no con steam:// ni protocolos.
                     item.IsEnabled = IsLocalFile(game);
                     break;
             }
@@ -384,6 +385,7 @@ public partial class GamesView : UserControl
 
     private DispatcherTimer? _infoTimer;
     private Game? _pendingInfoGame;
+    private Game? _contextGame;
 
     private void CancelPendingInfo()
     {
@@ -437,22 +439,6 @@ public partial class GamesView : UserControl
     private void RunAsAdminMenuItem_Click(object sender, RoutedEventArgs e) =>
         LaunchGame(GetGameFromMenuItem(sender), asAdmin: true);
 
-    private void OpenFolderMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var game = GetGameFromMenuItem(sender);
-        if (!IsLocalFile(game)) return;
-
-        try
-        {
-            // Abre el explorador con el .exe seleccionado.
-            Process.Start("explorer.exe", $"/select,\"{game.ExecutablePath}\"");
-        }
-        catch (Exception ex)
-        {
-            LogService.Error("No se pudo abrir la carpeta del juego", ex);
-        }
-    }
-
     private void EditMenuItem_Click(object sender, RoutedEventArgs e)
     {
         var game = GetGameFromMenuItem(sender);
@@ -505,5 +491,12 @@ public partial class GamesView : UserControl
         _library.Remove(game);
         _view.Refresh();
         UpdateEmptyState();
+    }
+
+    private void OpenFolderMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var game = GetGameFromMenuItem(sender);
+        if (!IsLocalFile(game)) return;
+        FolderNavigationService.Request(game.ExecutablePath);
     }
 }

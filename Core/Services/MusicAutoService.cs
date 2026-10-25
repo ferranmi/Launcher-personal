@@ -4,15 +4,25 @@ using Launcher.Core.Models;
 
 namespace Launcher.Core.Services;
 
+/// <summary>Resultado del primer paso: los datos identificados y las fuentes de audio posibles,
+/// listos para que el usuario los revise antes de descargar nada.</summary>
+public class MusicPreview
+{
+    public string Input { get; init; } = "";
+    public MusicMetadata Meta { get; init; } = new();
+
+    /// <summary>Fuentes de audio candidatas, la mejor primero. Con un enlace solo hay una.</summary>
+    public List<MusicSearchResult> Sources { get; init; } = new();
+}
+
 /// <summary>
-/// Flujo automatico completo. Acepta un enlace o texto "artista - cancion":
-///   - Enlace: lee el titulo/canal del video, genera candidatos (artista, titulo), los valida en
-///     MusicBrainz y descarga el audio.
-///   - Texto: valida "artista - cancion" en MusicBrainz, busca en YouTube la version que mejor
-///     coincide en duracion y canal, y la descarga.
-/// En ambos casos escribe en el MP3 los datos verificados (titulo, artista, album, ano, caratula
-/// oficial) y renombra el archivo a "Artista - Titulo.mp3". Si MusicBrainz no da una coincidencia
-/// fiable, usa el titulo limpiado y lo avisa para que se revise con Editar.
+/// Flujo automatico en dos pasos. Acepta un enlace o texto "artista - cancion":
+///   1. PrepareAsync: identifica la cancion (MusicBrainz) y localiza la fuente de audio, sin descargar.
+///      Enlace: lee titulo/canal del video y valida varias interpretaciones.
+///      Texto: identifica "artista - cancion" y busca en YouTube la version que mejor coincide.
+///   2. DownloadAsync: descarga la fuente elegida y escribe los datos revisados (titulo, artista,
+///      album, ano, caratula oficial), renombrando el archivo a "Artista - Titulo.mp3".
+/// Si MusicBrainz no da una coincidencia fiable, usa el titulo limpiado y lo marca como no verificado.
 /// </summary>
 public static class MusicAutoService
 {
@@ -26,19 +36,17 @@ public static class MusicAutoService
         Uri.TryCreate(input.Trim(), UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
-    // ===================== Descargar y completar =====================
+    // ===================== Paso 1: identificar y previsualizar =====================
 
-    public static async Task<List<string>> AddAsync(
-        string input, string folder, IProgress<string> log, CancellationToken ct)
+    public static async Task<MusicPreview> PrepareAsync(string input, IProgress<string> log, CancellationToken ct)
     {
         input = input.Trim();
         return IsUrl(input)
-            ? await FromUrlAsync(input, folder, log, ct)
-            : await FromTextAsync(input, folder, log, ct);
+            ? await PrepareFromUrlAsync(input, log, ct)
+            : await PrepareFromTextAsync(input, log, ct);
     }
 
-    private static async Task<List<string>> FromUrlAsync(
-        string url, string folder, IProgress<string> log, CancellationToken ct)
+    private static async Task<MusicPreview> PrepareFromUrlAsync(string url, IProgress<string> log, CancellationToken ct)
     {
         log.Report("Leyendo datos del enlace...");
         var info = await MusicDownloadService.GetInfoAsync(url, ct)
@@ -49,16 +57,15 @@ public static class MusicAutoService
         var meta = await MusicBrainzService.ResolveAsync(candidates, info.Duration, log, ct)
                    ?? Fallback(candidates, log);
 
-        log.Report((meta.Verified ? "Datos verificados: " : "Datos sin verificar: ") + meta.Summary);
-
-        log.Report("Descargando audio...");
-        var files = await MusicDownloadService.DownloadAsync(url, folder, log, ct);
-
-        return files.Select(f => Finalize(f, meta)).ToList();
+        return new MusicPreview
+        {
+            Input = url,
+            Meta = meta,
+            Sources = { new MusicSearchResult(url, info.Title, info.Channel ?? "", info.Duration) }
+        };
     }
 
-    private static async Task<List<string>> FromTextAsync(
-        string text, string folder, IProgress<string> log, CancellationToken ct)
+    private static async Task<MusicPreview> PrepareFromTextAsync(string text, IProgress<string> log, CancellationToken ct)
     {
         var candidates = MusicTitleCleaner.Candidates(text, null, null, null);
         if (candidates.Count == 0) throw new InvalidOperationException("Escribe algo como \"artista - cancion\".");
@@ -66,26 +73,21 @@ public static class MusicAutoService
         var meta = await MusicBrainzService.ResolveAsync(candidates, null, log, ct)
                    ?? Fallback(candidates, log);
 
-        log.Report((meta.Verified ? "Cancion identificada: " : "Cancion sin verificar: ") + meta.Summary);
-
         // Con la cancion identificada la busqueda en YouTube es mucho mas precisa.
         var query = string.IsNullOrWhiteSpace(meta.Artist) ? meta.Title : $"{meta.Artist} {meta.Title}";
 
-        log.Report("Buscando la mejor version en YouTube...");
+        log.Report("Buscando versiones en YouTube...");
         var results = await MusicDownloadService.SearchAsync(query, 6, ct);
         if (results.Count == 0) throw new InvalidOperationException("No he encontrado esa cancion en YouTube.");
 
         // La duracion oficial de MusicBrainz permite distinguir la version de estudio de directos o remixes.
-        var best = results
+        var ordered = results
             .Select(r => (Result: r, Score: ScoreResult(r, meta.Artist, meta.Title, meta.DurationSeconds, query)))
             .OrderByDescending(x => x.Score)
-            .First().Result;
+            .Select(x => x.Result)
+            .ToList();
 
-        log.Report($"Elegido: {best.Title} ({best.Channel})");
-        log.Report("Descargando audio...");
-
-        var files = await MusicDownloadService.DownloadAsync(best.Url, folder, log, ct);
-        return files.Select(f => Finalize(f, meta)).ToList();
+        return new MusicPreview { Input = text, Meta = meta, Sources = ordered };
     }
 
     /// <summary>Sin coincidencia fiable: titulo limpiado como mejor suposicion (prefiere un candidato con artista).</summary>
@@ -94,7 +96,7 @@ public static class MusicAutoService
         var pick = candidates.FirstOrDefault(c => c.Artist.Length > 0);
         if (string.IsNullOrWhiteSpace(pick.Title)) pick = candidates[0];
 
-        log.Report("No he encontrado una coincidencia fiable en MusicBrainz: uso el titulo limpiado (revisalo con Editar).");
+        log.Report("No he encontrado una coincidencia fiable en MusicBrainz: uso el titulo limpiado (revisalo antes de guardar).");
 
         return new MusicMetadata { Title = pick.Title, Artist = pick.Artist, Verified = false };
     }
@@ -137,10 +139,28 @@ public static class MusicAutoService
         return score;
     }
 
+    /// <summary>Miniatura de un video de YouTube (para la previsualizacion cuando no hay caratula oficial).</summary>
+    public static string? ThumbnailUrl(string url)
+    {
+        var m = Regex.Match(url, @"(?:v=|youtu\.be/|shorts/)([\w-]{11})");
+        return m.Success ? $"https://i.ytimg.com/vi/{m.Groups[1].Value}/hqdefault.jpg" : null;
+    }
+
+    // ===================== Paso 2: descargar con los datos revisados =====================
+
+    /// <summary>Descarga la fuente elegida y escribe en el MP3 los datos que el usuario ha revisado.</summary>
+    public static async Task<List<string>> DownloadAsync(
+        MusicSearchResult source, MusicMetadata meta, string folder, IProgress<string> log, CancellationToken ct)
+    {
+        log.Report("Descargando audio...");
+        var files = await MusicDownloadService.DownloadAsync(source.Url, folder, log, ct);
+        return files.Select(f => Finalize(f, meta)).ToList();
+    }
+
     // ===================== Escribir datos en el archivo =====================
 
-    /// <summary>Escribe las etiquetas verificadas, incrusta la caratula oficial (si la hay) y renombra
-    /// el archivo a "Artista - Titulo.mp3". Si algo falla, devuelve la ruta original sin tocar.</summary>
+    /// <summary>Escribe las etiquetas, incrusta la caratula oficial (si la hay) y renombra el archivo
+    /// a "Artista - Titulo.mp3". Si algo falla, devuelve la ruta original sin tocar.</summary>
     private static string Finalize(string path, MusicMetadata meta)
     {
         try

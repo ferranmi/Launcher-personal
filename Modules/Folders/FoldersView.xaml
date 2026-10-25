@@ -26,6 +26,62 @@
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Accent}" />
                                 <Setter Property="Foreground" Value="{DynamicResource Brush.Background}" />
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Boton pequeno de icono para la cabecera del panel -->
+        <Style x:Key="PanelIconButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.3" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fila del explorador: sin el azul de seleccion de sistema -->
+        <Style x:Key="EntryItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceActive}" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -54,64 +110,151 @@
             <Button Grid.Column="1" Content="+ Anadir carpeta" Style="{StaticResource ToolButton}" Click="AddFolder_Click" />
         </Grid>
 
-        <!-- ===================== GRID DE TARJETAS ===================== -->
+        <!-- ===================== CONTENIDO: accesos + panel lateral ===================== -->
         <Grid Grid.Row="1">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="FoldersItems">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Style="{StaticResource CardStyle}" Width="140" Height="120" Margin="0,0,14,14"
-                                    MouseLeftButtonDown="Card_MouseLeftButtonDown"
-                                    Cursor="Hand">
-                                <Border.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Abrir" Click="OpenMenuItem_Click" />
-                                        <Separator />
-                                        <MenuItem Header="Editar" Click="EditMenuItem_Click" />
-                                        <MenuItem Header="Eliminar" Click="DeleteMenuItem_Click"
-                                                  Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                                    </ContextMenu>
-                                </Border.ContextMenu>
+            <!-- Accesos directos -->
+            <Grid Grid.Column="0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="FoldersItems">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
 
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding Icon}"
-                                               FontFamily="{DynamicResource Font.Icons}"
-                                               FontSize="30"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource Brush.Accent}" />
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource CardStyle}" Width="140" Height="120" Margin="0,0,14,14"
+                                        MouseLeftButtonDown="Card_MouseLeftButtonDown"
+                                        Cursor="Hand">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Abrir en el panel" Click="OpenMenuItem_Click" />
+                                            <Separator />
+                                            <MenuItem Header="Editar" Click="EditMenuItem_Click" />
+                                            <MenuItem Header="Eliminar" Click="DeleteMenuItem_Click"
+                                                      Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
 
-                                    <TextBlock Text="{Binding Name}"
-                                               Margin="0,10,0,0"
-                                               FontSize="12.5"
-                                               TextAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="120"
-                                               Foreground="{DynamicResource Brush.TextPrimary}" />
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Icon}"
+                                                   FontFamily="{DynamicResource Font.Icons}"
+                                                   FontSize="30"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.Accent}" />
 
-                                    <TextBlock Text="no encontrada"
-                                               Margin="0,4,0,0"
-                                               FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource Brush.Danger}"
-                                               Visibility="{Binding Exists, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+                                        <TextBlock Text="{Binding Name}"
+                                                   Margin="0,10,0,0"
+                                                   FontSize="12.5"
+                                                   TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="120"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
 
-            <!-- Estado vacio -->
-            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
-                <TextBlock Text="&gt; sin carpetas_" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
-                           Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
-            </StackPanel>
+                                        <TextBlock Text="no encontrada"
+                                                   Margin="0,4,0,0"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.Danger}"
+                                                   Visibility="{Binding Exists, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Estado vacio -->
+                <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock Text="&gt; sin carpetas_" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
+                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ===================== PANEL LATERAL (explorador) ===================== -->
+            <Border x:Name="SidePanel" Grid.Column="1" Width="400" Margin="14,0,0,0"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Cabecera: atras, subir, Explorador de Windows, cerrar -->
+                    <Grid Grid.Row="0" Margin="10,10,10,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BackButton" Grid.Column="0" Content="&#xE72B;" ToolTip="Atras"
+                                Style="{StaticResource PanelIconButton}" Click="Back_Click" />
+                        <Button x:Name="UpButton" Grid.Column="1" Content="&#xE74A;" ToolTip="Carpeta superior"
+                                Style="{StaticResource PanelIconButton}" Click="Up_Click" />
+                        <TextBlock x:Name="PanelTitle" Grid.Column="2" Margin="8,0" VerticalAlignment="Center"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Button Grid.Column="3" Content="&#xE8BB;" ToolTip="Cerrar panel"
+                                Style="{StaticResource PanelIconButton}" Click="ClosePanel_Click" />
+                    </Grid>
+
+                    <!-- Ruta completa -->
+                    <TextBlock x:Name="PanelPath" Grid.Row="1" Margin="14,0,14,8"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                               Foreground="{DynamicResource Brush.TextDim}"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+
+                    <!-- Contenido de la carpeta -->
+                    <Grid Grid.Row="2">
+                        <ListBox x:Name="EntriesList"
+                                 Background="Transparent" BorderThickness="0"
+                                 Margin="6,0,6,6"
+                                 ItemContainerStyle="{StaticResource EntryItemStyle}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 MouseDoubleClick="Entries_MouseDoubleClick"
+                                 KeyDown="Entries_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Icon}"
+                                                   FontFamily="{DynamicResource Font.Icons}" FontSize="15"
+                                                   Width="26" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.Accent}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12.5"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Detail}" Margin="10,0,0,0"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.TextDim}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock x:Name="PanelMessage" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                   Foreground="{DynamicResource Brush.TextDim}" Visibility="Collapsed" />
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

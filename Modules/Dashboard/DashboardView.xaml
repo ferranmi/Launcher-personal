@@ -529,7 +529,9 @@
                     <Grid>
                         <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
                             <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><ctl:FitPanel /></ItemsPanelTemplate>
+                                <ItemsPanelTemplate>
+                                    <controls:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
+                                </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                         </ItemsControl>
                         <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
@@ -550,9 +552,11 @@
                 <ctl:BoardBox ctl:DashboardBoard.Key="folders" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="9"
                               ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="3"
                               Title="[ CARPETAS ]" TitleTarget="folders">
-                    <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                    <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource GameTileTemplate}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><ctl:FitPanel /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate>
+                                <controls:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
+                            </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
                 </ctl:BoardBox>

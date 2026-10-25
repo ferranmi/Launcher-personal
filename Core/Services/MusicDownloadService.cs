@@ -84,6 +84,19 @@ public static class MusicDownloadService
         return results;
     }
 
+    // ===================== Vista previa (streaming) =====================
+
+    /// <summary>Direccion directa del audio para escucharlo sin descargarlo. Prefiere M4A/AAC porque
+    /// es lo que el reproductor de Windows sabe abrir por red.</summary>
+    public static async Task<string?> GetStreamUrlAsync(string url, CancellationToken ct)
+    {
+        var output = await RunCaptureAsync(
+            new[] { "-g", "-f", "bestaudio[ext=m4a]/bestaudio", "--no-playlist", "--no-warnings", url }, ct);
+
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault(l => l.StartsWith("http", StringComparison.OrdinalIgnoreCase));
+    }
+
     // ===================== Descarga =====================
 
     /// <summary>Descarga el audio como MP3 en outputFolder y devuelve las rutas finales. Los datos
