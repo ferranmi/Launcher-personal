@@ -60,6 +60,7 @@ public partial class SettingsView : UserControl
 
 
         UpdateSyncFoldersSummary();
+        UpdateImageGenSummary();
         UpdateIgnoredSummary();
         UpdateDataSummaries();
 
@@ -453,6 +454,18 @@ public partial class SettingsView : UserControl
             i++;
         }
         return $"{size:0.#} {units[i]}";
+    }
+
+    private void ConfigureImageGen_Click(object sender, RoutedEventArgs e)
+    {
+        new Launcher.Modules.ImageGen.ImageGenSettingsWindow { Owner = Window.GetWindow(this) }.ShowDialog();
+        UpdateImageGenSummary();
+    }
+
+    private void UpdateImageGenSummary()
+    {
+        var s = Launcher.Modules.ImageGen.ImageGenSettings.Instance;
+        ImageGenRow.Tag = string.IsNullOrWhiteSpace(s.InstallPath) ? "Sin instalacion configurada." : s.InstallPath;
     }
 
     // ===================== Actualizaciones =====================

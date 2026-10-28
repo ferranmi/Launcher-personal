@@ -20,7 +20,11 @@ public class WildcardsExtension : SdExtension
     public override string DisplayName => "Wildcards";
     public override string Description => "Sustituye __nombre__ por una linea al azar de wildcards/nombre.txt (distinta en cada imagen del lote).";
 
-    public static readonly string Folder = Path.Combine(AppSettingsService.AppFolder, "imagegen", "wildcards");
+    public static readonly string DefaultFolder = Path.Combine(AppSettingsService.AppFolder, "imagegen", "wildcards");
+
+    /// <summary>La carpeta elegida en los ajustes de instalacion, o la del Launcher por defecto.</summary>
+    public static string Folder =>
+        ImageGenSettings.Instance.WildcardsFolder is { Length: > 0 } custom ? custom : DefaultFolder;
 
     private static readonly Regex Token = new(@"__([A-Za-z0-9_\-/]+)__", RegexOptions.Compiled);
 

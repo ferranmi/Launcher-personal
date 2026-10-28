@@ -149,6 +149,37 @@ public class StableDiffusionService
         }
     }
 
+    // ===================== Instalacion =====================
+
+    /// <summary>Flags con los que se lanzo A1111 (/sdapi/v1/cmd-flags), solo los de tipo texto.
+    /// Incluye data_dir (la raiz de la instalacion) y ckpt_dir/lora_dir/vae_dir si se personalizaron.
+    /// Devuelve un diccionario vacio si el servidor esta apagado.</summary>
+    public async Task<Dictionary<string, string>> GetCmdFlagsAsync()
+    {
+        var flags = new Dictionary<string, string>();
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+            using var doc = await GetDocAsync("/sdapi/v1/cmd-flags", cts.Token);
+
+            foreach (var property in doc.RootElement.EnumerateObject())
+            {
+                if (property.Value.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(property.Value.GetString()))
+                {
+                    flags[property.Name] = property.Value.GetString()!;
+                }
+            }
+        }
+        catch
+        {
+            // Servidor apagado o sin API: sin datos.
+        }
+
+        return flags;
+    }
+
     // ===================== VAE / extensiones =====================
 
     public async Task<List<string>> GetVaesAsync()

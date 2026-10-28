@@ -26,6 +26,7 @@ public partial class ImageGenView : UserControl
     private bool _generating;
     private bool _startingServer;
     private bool _loadedOnce;
+    private bool _autoStartTried;
     private CancellationTokenSource? _genCts;
     private int _imageIndex;
     private int _imageTotal; // > 1 solo cuando se genera imagen a imagen (wildcards)
@@ -78,11 +79,21 @@ public partial class ImageGenView : UserControl
             SetServerStatus(state == SdServerState.NoApi
                 ? "A1111 responde pero sin API. Anade --api a COMMANDLINE_ARGS en webui-user.bat y reinicialo."
                 : $"servidor apagado ({_settings.Url}). Pulsa \"Iniciar servidor\" o arrancalo a mano.");
+
+            // Arranque automatico (ajuste de instalacion): solo un intento por sesion.
+            if (state == SdServerState.Offline && _settings.AutoStartServer && !_autoStartTried)
+            {
+                _autoStartTried = true;
+                _ = StartServerAsync(askPath: false);
+            }
             return false;
         }
 
         try
         {
+            // Aprende la carpeta de instalacion y las carpetas personalizadas del propio servidor.
+            _settings.ApplyServerFlags(await _sd.GetCmdFlagsAsync());
+
             var models = await _sd.GetModelsAsync();
             ModelCombo.ItemsSource = models;
             var current = await _sd.GetCurrentModelTitleAsync();
@@ -132,11 +143,15 @@ public partial class ImageGenView : UserControl
 
     private async void Connect_Click(object sender, RoutedEventArgs e) => await ConnectAsync();
 
-    private async void StartServer_Click(object sender, RoutedEventArgs e)
+    private async void StartServer_Click(object sender, RoutedEventArgs e) => await StartServerAsync(askPath: true);
+
+    private async Task StartServerAsync(bool askPath)
     {
         if (_startingServer) return;
 
-        var bat = _settings.ServerBatPath;
+        var bat = _settings.EffectiveBatPath;
+        if (!askPath && (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat))) return;
+
         if (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat))
         {
             var dialog = new OpenFileDialog
@@ -148,6 +163,7 @@ public partial class ImageGenView : UserControl
 
             bat = dialog.FileName;
             _settings.ServerBatPath = bat;
+            if (string.IsNullOrWhiteSpace(_settings.InstallPath)) _settings.InstallPath = Path.GetDirectoryName(bat);
             _settings.Save();
         }
 
@@ -489,6 +505,15 @@ public partial class ImageGenView : UserControl
         VaeCombo.SelectedItem is string vae && vae != "Automatic" ? vae : null;
 
     private void Library_Click(object sender, RoutedEventArgs e) => Library.Visibility = Visibility.Visible;
+
+    private async void InstallSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ImageGenSettingsWindow { Owner = Window.GetWindow(this) };
+        dialog.ShowDialog();
+
+        // La URL o la instalacion pueden haber cambiado: volvemos a conectar.
+        if (dialog.Saved) await ConnectAsync();
+    }
 
     // ===================== Preview / galeria =====================
 

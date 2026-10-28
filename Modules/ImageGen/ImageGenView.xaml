@@ -154,7 +154,9 @@
                             Style="{StaticResource SecondaryButtonStyle}" Click="StartServer_Click" />
                 </StackPanel>
 
-                <Button Content="Biblioteca de generaciones" Margin="0,-6,0,16" Padding="12,6"
+                <Button Content="Instalacion y carpetas" Margin="0,-6,0,8" Padding="12,6"
+                        Style="{StaticResource SecondaryButtonStyle}" Click="InstallSettings_Click" />
+                <Button Content="Biblioteca de generaciones" Margin="0,0,0,16" Padding="12,6"
                         Style="{StaticResource SecondaryButtonStyle}" Click="Library_Click" />
 
                 <!-- Modelo -->
