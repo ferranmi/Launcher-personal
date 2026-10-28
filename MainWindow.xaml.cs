@@ -47,7 +47,8 @@ public partial class MainWindow : Window
             new FoldersModule(),
             new Launcher.Modules.Media.MediaModule(),
             new Launcher.Modules.Music.MusicModule(),
-            new PlaceholderModule("search",    "Buscar",        "\uE721", 4),
+            new Launcher.Modules.Network.NetworkModule(),
+            new Launcher.Modules.ImageGen.ImageGenModule(),
             new Launcher.Modules.Commands.CommandsModule(),
             new Launcher.Modules.Devices.DevicesModule(),
             new Launcher.Modules.Monitor.MonitorModule(),
@@ -83,8 +84,8 @@ public partial class MainWindow : Window
     private static readonly Dictionary<string, string> ShortNames = new()
     {
         ["dashboard"] = "INI", ["games"] = "JUE", ["folders"] = "CAR", ["media"] = "MUL", ["music"] = "MUS",
-        ["search"] = "BUS", ["commands"] = "CMD", ["monitor"] = "MON", ["processes"] = "PRO",
-        ["devices"] = "DIS", ["settings"] = "CFG"
+        ["Network"] = "RED", ["commands"] = "CMD", ["monitor"] = "MON", ["processes"] = "PRO",
+        ["devices"] = "DIS", ["image generation"] = "IMG", ["settings"] = "CFG"
     };
 
     private static string Abbreviate(IModule module) =>

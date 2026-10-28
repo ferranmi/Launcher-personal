@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,21 +9,26 @@ namespace Launcher.Modules.Folders;
 
 public partial class FoldersView : UserControl
 {
+    private const double DefaultPanelWidth = 680;
+    private const double PanelMinWidth = 380;
+
     private readonly FolderShortcutsService _service = new();
 
-    // Explorador del panel lateral
-    private readonly Stack<string> _back = new();
-    private string? _currentPath;
+    private bool _panelOpen;
+    private bool _expanded;
+    private double _panelWidth = DefaultPanelWidth;
 
     public FoldersView()
     {
         InitializeComponent();
         Refresh();
 
-        // Peticiones externas (buscador, asistente...): abrir una ruta en el panel.
+        Explorer.CloseRequested += () => SetPanelOpen(false);
+        Explorer.ExpandToggled += SetExpanded;
+
+        // Peticiones externas (buscador, asistente, juegos...): abrir una ruta en el explorador.
         FolderNavigationService.PathRequested += OnPathRequested;
         Loaded += (_, _) => ConsumePending();
-        Unloaded += (_, _) => { }; // la vista se cachea en MainWindow: no desuscribimos
     }
 
     private void OnPathRequested() => Dispatcher.BeginInvoke(ConsumePending);
@@ -36,8 +39,71 @@ public partial class FoldersView : UserControl
         if (path != null) OpenInPanel(path);
     }
 
-    /// <summary>ItemsSource es una lista simple (sin favoritos ni orden, de
-    /// momento) filtrada por Hidden; se reconstruye tras cada cambio.</summary>
+    /// <summary>Abre el explorador (si estaba cerrado) y navega a la ruta.</summary>
+    public void OpenInPanel(string path)
+    {
+        SetPanelOpen(true);
+        Explorer.Navigate(path);
+    }
+
+    // ===================== Panel =====================
+
+    private void SetPanelOpen(bool open)
+    {
+        if (open == _panelOpen) return;
+
+        if (open)
+        {
+            PanelCol.MinWidth = PanelMinWidth;
+            PanelCol.Width = new GridLength(_panelWidth);
+            Explorer.Visibility = Visibility.Visible;
+            PanelSplitter.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            if (_expanded)
+            {
+                Explorer.ResetExpand();
+                SetExpanded(false);
+            }
+
+            if (PanelCol.ActualWidth > 0) _panelWidth = PanelCol.ActualWidth;
+            PanelCol.MinWidth = 0;
+            PanelCol.Width = new GridLength(0);
+            Explorer.Visibility = Visibility.Collapsed;
+            PanelSplitter.Visibility = Visibility.Collapsed;
+        }
+
+        _panelOpen = open;
+    }
+
+    /// <summary>Ampliado: el explorador ocupa todo el modulo y se ocultan los accesos.</summary>
+    private void SetExpanded(bool expanded)
+    {
+        _expanded = expanded;
+
+        if (expanded)
+        {
+            if (PanelCol.ActualWidth > 0) _panelWidth = PanelCol.ActualWidth;
+
+            ShortcutsHost.Visibility = Visibility.Collapsed;
+            ShortcutsCol.MinWidth = 0;
+            ShortcutsCol.Width = new GridLength(0);
+            PanelCol.Width = new GridLength(1, GridUnitType.Star);
+            PanelSplitter.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            ShortcutsHost.Visibility = Visibility.Visible;
+            ShortcutsCol.MinWidth = 200;
+            ShortcutsCol.Width = new GridLength(1, GridUnitType.Star);
+            PanelCol.Width = new GridLength(_panelWidth);
+            PanelSplitter.Visibility = _panelOpen ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    // ===================== Accesos directos =====================
+
     private void Refresh()
     {
         FoldersItems.ItemsSource = _service.Folders.Where(f => !f.Hidden).ToList();
@@ -48,158 +114,6 @@ public partial class FoldersView : UserControl
     {
         EmptyState.Visibility = _service.Folders.Any(f => !f.Hidden) ? Visibility.Collapsed : Visibility.Visible;
     }
-
-    // ===================== Panel lateral (explorador) =====================
-
-    /// <summary>Abre una carpeta nueva en el panel (apila la anterior para "Atras").</summary>
-    public void OpenInPanel(string path)
-    {
-        string? fileToSelect = null;
-
-        if (File.Exists(path))
-        {
-            fileToSelect = path;
-            path = Path.GetDirectoryName(path) ?? path;
-        }
-
-        if (!Directory.Exists(path)) return;
-
-        if (_currentPath != null &&
-            !string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase))
-        {
-            _back.Push(_currentPath);
-        }
-
-        ShowDirectory(path);
-
-        if (fileToSelect != null)
-        {
-            var entry = (EntriesList.ItemsSource as List<FileSystemEntry>)?
-                .FirstOrDefault(e => string.Equals(e.FullPath, fileToSelect, StringComparison.OrdinalIgnoreCase));
-            if (entry != null)
-            {
-                EntriesList.SelectedItem = entry;
-                EntriesList.ScrollIntoView(entry);
-            }
-        }
-    }
-
-    private void ShowDirectory(string path)
-    {
-        _currentPath = path;
-        SidePanel.Visibility = Visibility.Visible;
-
-        var name = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar));
-        PanelTitle.Text = string.IsNullOrEmpty(name) ? path : name;
-        PanelPath.Text = path;
-
-        BackButton.IsEnabled = _back.Count > 0;
-        UpButton.IsEnabled = Directory.GetParent(path) != null;
-
-        var entries = new List<FileSystemEntry>();
-        try
-        {
-            var info = new DirectoryInfo(path);
-
-            foreach (var dir in info.EnumerateDirectories()
-                         .Where(d => !d.Attributes.HasFlag(FileAttributes.Hidden) &&
-                                     !d.Attributes.HasFlag(FileAttributes.System))
-                         .OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase))
-            {
-                entries.Add(new FileSystemEntry { Name = dir.Name, FullPath = dir.FullName, IsDirectory = true });
-            }
-
-            foreach (var file in info.EnumerateFiles()
-                         .Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden) &&
-                                     !f.Attributes.HasFlag(FileAttributes.System))
-                         .OrderBy(f => f.Name, StringComparer.CurrentCultureIgnoreCase))
-            {
-                entries.Add(new FileSystemEntry
-                {
-                    Name = file.Name,
-                    FullPath = file.FullName,
-                    IsDirectory = false,
-                    Detail = FileSystemEntry.FormatSize(file.Length)
-                });
-            }
-
-            PanelMessage.Visibility = entries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            PanelMessage.Text = "> carpeta vacia_";
-        }
-        catch (UnauthorizedAccessException)
-        {
-            PanelMessage.Text = "> sin permiso para leer esta carpeta_";
-            PanelMessage.Visibility = Visibility.Visible;
-        }
-        catch (Exception ex)
-        {
-            LogService.Error($"No se pudo leer la carpeta {path}", ex);
-            PanelMessage.Text = "> no se pudo leer la carpeta_";
-            PanelMessage.Visibility = Visibility.Visible;
-        }
-
-        EntriesList.ItemsSource = entries;
-    }
-
-    private void Entries_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (EntriesList.SelectedItem is FileSystemEntry entry) ActivateEntry(entry);
-    }
-
-    private void Entries_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && EntriesList.SelectedItem is FileSystemEntry entry)
-        {
-            ActivateEntry(entry);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Back)
-        {
-            Up_Click(sender, e);
-            e.Handled = true;
-        }
-    }
-
-    private void ActivateEntry(FileSystemEntry entry)
-    {
-        if (entry.IsDirectory)
-        {
-            OpenInPanel(entry.FullPath);
-            return;
-        }
-
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = entry.FullPath, UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            LogService.Error($"No se pudo abrir {entry.FullPath}", ex);
-        }
-    }
-
-    private void Back_Click(object sender, RoutedEventArgs e)
-    {
-        if (_back.Count == 0) return;
-        ShowDirectory(_back.Pop());
-    }
-
-    private void Up_Click(object sender, RoutedEventArgs e)
-    {
-        if (_currentPath == null) return;
-        var parent = Directory.GetParent(_currentPath);
-        if (parent != null) OpenInPanel(parent.FullName);
-    }
-
-    private void ClosePanel_Click(object sender, RoutedEventArgs e)
-    {
-        SidePanel.Visibility = Visibility.Collapsed;
-        _currentPath = null;
-        _back.Clear();
-        EntriesList.ItemsSource = null;
-    }
-
-    // ===================== Acciones =====================
 
     private void AddFolder_Click(object sender, RoutedEventArgs e)
     {
@@ -229,7 +143,7 @@ public partial class FoldersView : UserControl
         return (FolderShortcut)owner.DataContext;
     }
 
-    private void OpenShortcutInPanel(FolderShortcut folder)
+    private void OpenShortcut(FolderShortcut folder)
     {
         if (!folder.Exists)
         {
@@ -239,23 +153,15 @@ public partial class FoldersView : UserControl
             return;
         }
 
-        // Al abrir desde un acceso directo empezamos un recorrido nuevo.
-        _back.Clear();
-        _currentPath = null;
         OpenInPanel(folder.Path);
     }
 
     private void Card_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Un solo clic abre en el panel (es lo que se espera de un acceso directo).
-        if (((FrameworkElement)sender).DataContext is FolderShortcut folder)
-        {
-            OpenShortcutInPanel(folder);
-        }
+        if (((FrameworkElement)sender).DataContext is FolderShortcut folder) OpenShortcut(folder);
     }
 
-    private void OpenMenuItem_Click(object sender, RoutedEventArgs e) =>
-        OpenShortcutInPanel(GetFolderFromMenuItem(sender));
+    private void OpenMenuItem_Click(object sender, RoutedEventArgs e) => OpenShortcut(GetFolderFromMenuItem(sender));
 
     private void EditMenuItem_Click(object sender, RoutedEventArgs e)
     {

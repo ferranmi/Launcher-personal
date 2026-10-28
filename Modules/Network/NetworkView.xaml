@@ -1,0 +1,276 @@
+<UserControl x:Class="Launcher.Modules.Network.NetworkView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Launcher.Core.Converters">
+
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Background}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GhostToolButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+        </Style>
+
+        <!-- Boton pequeno de quitar un fichero de la lista -->
+        <Style x:Key="RemoveButton" TargetType="Button">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="13">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Danger}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusBadge" TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOnline}" Value="False">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StatusBadgeText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOnline}" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ===================== TOOLBAR ===================== -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&gt; red_" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
+                           Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" />
+                <TextBlock x:Name="CountText" Margin="14,0,0,0" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                           Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button x:Name="CancelButton" Grid.Column="1" Content="Cancelar envio" Style="{StaticResource ToolButton}"
+                    Margin="0,0,10,0" Visibility="Collapsed" Click="Cancel_Click" />
+            <Button Grid.Column="2" Content="&#xE72C;  Actualizar" Style="{StaticResource ToolButton}" Click="Refresh_Click" />
+        </Grid>
+
+        <!-- ===================== DISPOSITIVOS ===================== -->
+        <Grid Grid.Row="1" Grid.Column="0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="DevicesItems">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardStyle}" Width="240" Margin="0,0,14,14" Padding="14"
+                                    AllowDrop="True" DragOver="Card_DragOver" Drop="Card_Drop">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13.5"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Style="{StaticResource StatusBadge}" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding OnlineLabel}" Style="{StaticResource StatusBadgeText}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding Ip}" Margin="0,8,0,0"
+                                               FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                               Foreground="{DynamicResource Brush.TextSecondary}" />
+                                    <TextBlock Text="{Binding Detail}" Margin="0,3,0,0"
+                                               FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                               Foreground="{DynamicResource Brush.TextDim}" TextTrimming="CharacterEllipsis" />
+
+                                    <StackPanel Visibility="{Binding CanSend, Converter={StaticResource BoolToVis}}">
+                                        <Button Content="Preparar envio..." Margin="0,12,0,0"
+                                                Style="{StaticResource ToolButton}" Click="Prepare_Click" />
+                                        <TextBlock Text="o arrastra ficheros aqui" Margin="0,6,0,0" HorizontalAlignment="Center"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                                                   Foreground="{DynamicResource Brush.TextDim}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <TextBlock x:Name="EmptyText" Text="&gt; sin dispositivos_" FontFamily="{DynamicResource Font.Mono}" FontSize="13"
+                           Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Center" MaxWidth="460" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ===================== PANEL: FICHEROS PREPARADOS ===================== -->
+        <Border x:Name="StagingPanel" Grid.Row="1" Grid.Column="1" Width="370" Margin="14,0,0,0" Padding="14"
+                Style="{StaticResource CardStyle}" Visibility="Collapsed"
+                AllowDrop="True" DragOver="Staging_DragOver" Drop="Staging_Drop">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="&gt; preparado para enviar" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                   Foreground="{DynamicResource Brush.Accent}" />
+                        <TextBlock x:Name="TargetText" Margin="0,4,0,0" FontSize="14"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="&#xE711;" Style="{StaticResource RemoveButton}"
+                            ToolTip="Cerrar" VerticalAlignment="Top" Click="CloseStaging_Click" />
+                </Grid>
+
+                <TextBlock x:Name="SummaryText" Grid.Row="1" Margin="0,10,0,10"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                           Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap" />
+
+                <Grid Grid.Row="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="StagedItems">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" Width="56" Height="56" CornerRadius="5" ClipToBounds="True"
+                                                Background="{DynamicResource Brush.SurfaceActive}">
+                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}" ToolTip="{Binding Path}" />
+                                            <TextBlock Text="{Binding SizeText}" Margin="0,3,0,0"
+                                                       FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                       Foreground="{DynamicResource Brush.TextDim}" />
+                                        </StackPanel>
+
+                                        <Button Grid.Column="2" Content="&#xE711;" Style="{StaticResource RemoveButton}"
+                                                ToolTip="Quitar de la lista" Click="RemoveStaged_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <TextBlock x:Name="StagedEmptyHint" Text="&gt; arrastra ficheros aqui&#10;o pulsa Anadir_"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="11" TextAlignment="Center"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.TextDim}" />
+                </Grid>
+
+                <StackPanel Grid.Row="3" Margin="0,12,0,0">
+                    <TextBlock x:Name="TargetHint" Margin="0,0,0,8" FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                               Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="+ Anadir" Style="{StaticResource ToolButton}"
+                                Margin="0,0,8,0" Click="AddFiles_Click" />
+                        <Button x:Name="ClearButton" Grid.Column="1" Content="Vaciar" Style="{StaticResource GhostToolButton}"
+                                Margin="0,0,8,0" Click="Clear_Click" />
+                        <Button x:Name="SendButton" Grid.Column="2" Content="Enviar" Style="{StaticResource ToolButton}"
+                                Click="SendStaged_Click" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===================== ESTADO DEL ENVIO ===================== -->
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,6,0,0">
+            <ProgressBar x:Name="SendProgress" Height="3" IsIndeterminate="True" Visibility="Collapsed"
+                         Foreground="{DynamicResource Brush.Accent}" Background="{DynamicResource Brush.Border}"
+                         BorderThickness="0" Margin="0,0,0,8" />
+            <TextBlock x:Name="StatusText" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                       Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
+</UserControl>

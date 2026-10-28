@@ -1,0 +1,376 @@
+<UserControl x:Class="Launcher.Modules.Folders.FolderExplorerPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             PreviewKeyDown="Panel_PreviewKeyDown"
+             PreviewMouseDown="Panel_PreviewMouseDown">
+
+    <UserControl.Resources>
+
+        <Style x:Key="PanelIconButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.3" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Cabecera de columna (modo Detalles) -->
+        <Style x:Key="ColHeader" TargetType="GridViewColumnHeader">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridViewColumnHeader">
+                        <Grid Background="Transparent">
+                            <Border Padding="8,6" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                            </Border>
+                            <Thumb x:Name="PART_HeaderGripper" HorizontalAlignment="Right" Width="6"
+                                   Margin="0,0,-3,0" Cursor="SizeWE"
+                                   Background="Transparent" BorderBrush="Transparent" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fila en modo Detalles -->
+        <Style x:Key="DetailsItem" TargetType="ListViewItem">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="4,5">
+                            <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                                  Columns="{TemplateBinding GridView.ColumnCollection}"
+                                                  VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceActive}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Celda en modo Iconos -->
+        <Style x:Key="IconItem" TargetType="ListViewItem">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="6">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ItemsPanelTemplate x:Key="DetailsPanel">
+            <VirtualizingStackPanel />
+        </ItemsPanelTemplate>
+
+        <ItemsPanelTemplate x:Key="IconsPanel">
+            <WrapPanel />
+        </ItemsPanelTemplate>
+
+        <!-- Vista Detalles: nombre, fecha, tipo, tamano -->
+        <GridView x:Key="DetailsView" ColumnHeaderContainerStyle="{StaticResource ColHeader}">
+            <GridViewColumn Header="Nombre" Width="260">
+                <GridViewColumn.CellTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="26" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Icon}" FontFamily="{DynamicResource Font.Icons}" FontSize="14"
+                                       Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12.5" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.TextPrimary}" />
+                        </Grid>
+                    </DataTemplate>
+                </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+            <GridViewColumn Header="Fecha" Width="130" DisplayMemberBinding="{Binding ModifiedText}" />
+            <GridViewColumn Header="Tipo" Width="80" DisplayMemberBinding="{Binding TypeName}" />
+            <GridViewColumn Header="Tamano" Width="80" DisplayMemberBinding="{Binding SizeText}" />
+        </GridView>
+
+        <!-- Vista Iconos: miniatura grande + nombre -->
+        <DataTemplate x:Key="IconTemplate">
+            <StackPanel Width="100" Loaded="IconItem_Loaded" ToolTip="{Binding Name}">
+                <Grid Width="92" Height="76" HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding Icon}" FontFamily="{DynamicResource Font.Icons}" FontSize="34"
+                               Foreground="{DynamicResource Brush.Accent}" Opacity="0.8"
+                               HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasThumbnail}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Grid>
+                <TextBlock Text="{Binding Name}" Margin="0,4,0,0" FontSize="11" TextAlignment="Center"
+                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="30"
+                           Foreground="{DynamicResource Brush.TextPrimary}" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource Brush.Surface}"
+            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- ===================== BARRA 1: navegacion + direccion ===================== -->
+            <Grid Grid.Row="0" Margin="8,8,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BackButton" Grid.Column="0" Content="&#xE72B;" ToolTip="Atras (Alt+Izq)"
+                        Style="{StaticResource PanelIconButton}" Click="Back_Click" />
+                <Button x:Name="ForwardButton" Grid.Column="1" Content="&#xE72A;" ToolTip="Adelante (Alt+Der)"
+                        Style="{StaticResource PanelIconButton}" Click="Forward_Click" />
+                <Button x:Name="UpButton" Grid.Column="2" Content="&#xE74A;" ToolTip="Carpeta superior (Alt+Arriba)"
+                        Style="{StaticResource PanelIconButton}" Click="Up_Click" />
+                <Button Grid.Column="3" Content="&#xE72C;" ToolTip="Actualizar (F5)"
+                        Style="{StaticResource PanelIconButton}" Click="Refresh_Click" />
+                <Button Grid.Column="4" Content="&#xEDA2;" ToolTip="Unidades"
+                        Style="{StaticResource PanelIconButton}" Click="Drives_Click" />
+
+                <TextBox x:Name="AddressBox" Grid.Column="5" Margin="6,0"
+                         Style="{StaticResource TextBoxStyle}" Padding="8,5"
+                         FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                         KeyDown="Address_KeyDown" />
+
+                <Button x:Name="ExpandButton" Grid.Column="6" Content="&#xE740;" ToolTip="Ampliar / reducir panel"
+                        Style="{StaticResource PanelIconButton}" Click="Expand_Click" />
+                <Button Grid.Column="7" Content="&#xE8BB;" ToolTip="Cerrar panel"
+                        Style="{StaticResource PanelIconButton}" Click="Close_Click" />
+            </Grid>
+
+            <!-- ===================== BARRA 2: filtro, orden, vista ===================== -->
+            <Grid Grid.Row="1" Margin="8,0,8,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="FilterBox" Grid.Column="0" Tag="filtrar..." Style="{StaticResource TextBoxStyle}"
+                         Padding="8,5" FontSize="12" TextChanged="Filter_TextChanged" KeyDown="Filter_KeyDown" />
+
+                <ComboBox x:Name="SortCombo" Grid.Column="1" Width="88" Margin="6,0,0,0" SelectedIndex="0"
+                          SelectionChanged="SortCombo_SelectionChanged" ToolTip="Ordenar por">
+                    <ComboBoxItem Content="Nombre" />
+                    <ComboBoxItem Content="Fecha" />
+                    <ComboBoxItem Content="Tipo" />
+                    <ComboBoxItem Content="Tamano" />
+                </ComboBox>
+                <Button x:Name="SortDirButton" Grid.Column="2" Content="&#xE74A;" ToolTip="Ascendente / descendente"
+                        Style="{StaticResource PanelIconButton}" Click="SortDir_Click" />
+                <ComboBox x:Name="ViewCombo" Grid.Column="3" Width="88" SelectedIndex="0"
+                          SelectionChanged="ViewCombo_SelectionChanged" ToolTip="Vista">
+                    <ComboBoxItem Content="Detalles" />
+                    <ComboBoxItem Content="Iconos" />
+                </ComboBox>
+                <Button Grid.Column="4" Content="&#xE8F4;" ToolTip="Nueva carpeta (Ctrl+Mayus+N)"
+                        Style="{StaticResource PanelIconButton}" Margin="4,0,0,0" Click="NewFolder_Click" />
+                <Button x:Name="PreviewToggleButton" Grid.Column="5" Content="&#xE890;" ToolTip="Vista previa"
+                        Foreground="{DynamicResource Brush.Accent}"
+                        Style="{StaticResource PanelIconButton}" Click="PreviewToggle_Click" />
+            </Grid>
+
+            <!-- ===================== CONTENIDO ===================== -->
+            <Grid Grid.Row="2">
+                <ListView x:Name="EntriesList"
+                          Background="Transparent" BorderThickness="0" Margin="4,0"
+                          Foreground="{DynamicResource Brush.TextSecondary}" FontSize="12"
+                          SelectionMode="Extended"
+                          MouseDoubleClick="Entries_MouseDoubleClick"
+                          SelectionChanged="Entries_SelectionChanged"
+                          ContextMenuOpening="Entries_ContextMenuOpening"
+                          PreviewMouseRightButtonDown="Entries_PreviewMouseRightButtonDown"
+                          PreviewMouseLeftButtonDown="Entries_PreviewMouseLeftButtonDown">
+                    <ListView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Abrir" Tag="open" Click="Menu_Click" InputGestureText="Enter" />
+                            <Separator />
+                            <MenuItem Header="Cortar" Tag="cut" Click="Menu_Click" InputGestureText="Ctrl+X" />
+                            <MenuItem Header="Copiar" Tag="copy" Click="Menu_Click" InputGestureText="Ctrl+C" />
+                            <MenuItem Header="Pegar" Tag="paste" Click="Menu_Click" InputGestureText="Ctrl+V" />
+                            <Separator />
+                            <MenuItem Header="Cambiar nombre" Tag="rename" Click="Menu_Click" InputGestureText="F2" />
+                            <MenuItem Header="Eliminar" Tag="delete" Click="Menu_Click" InputGestureText="Supr" />
+                            <Separator />
+                            <MenuItem Header="Nueva carpeta" Tag="newfolder" Click="Menu_Click" />
+                            <MenuItem Header="Copiar ruta" Tag="copypath" Click="Menu_Click" />
+                        </ContextMenu>
+                    </ListView.ContextMenu>
+                </ListView>
+
+                <TextBlock x:Name="MessageText" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                           Foreground="{DynamicResource Brush.TextDim}" Visibility="Collapsed" IsHitTestVisible="False" />
+
+                <!-- ===================== VISOR (imagenes y videos) ===================== -->
+                <Grid x:Name="ViewerOverlay" Background="#F20B0F0D" Visibility="Collapsed" Focusable="True"
+                      MouseWheel="Viewer_MouseWheel">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="14,10,8,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ViewerTitle" FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="ViewerCounter" Grid.Column="1" Margin="10,0"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                   Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Content="&#xE8BB;" ToolTip="Cerrar (Esc)"
+                                Style="{StaticResource PanelIconButton}" Click="ViewerClose_Click" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="40,0">
+                        <Image x:Name="ViewerImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <MediaElement x:Name="ViewerVideo" LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                                      Stretch="Uniform" Volume="0.8" Visibility="Collapsed"
+                                      MediaOpened="Video_MediaOpened" MediaEnded="Video_MediaEnded"
+                                      MediaFailed="Video_MediaFailed" />
+                        <StackPanel x:Name="ViewerMessage" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="Collapsed">
+                            <TextBlock x:Name="ViewerMessageText" FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                       Foreground="{DynamicResource Brush.TextSecondary}" TextAlignment="Center"
+                                       TextWrapping="Wrap" MaxWidth="320" />
+                            <Button x:Name="ViewerOpenExternal" Content="Abrir con el programa predeterminado"
+                                    Margin="0,12,0,0" Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="OpenExternal_Click" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Button Grid.Row="1" Content="&#xE76B;" Width="34" Height="56" FontSize="16"
+                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0,0,0"
+                            ToolTip="Anterior (Izq)" Style="{StaticResource PanelIconButton}" Click="ViewerPrev_Click" />
+                    <Button Grid.Row="1" Content="&#xE76C;" Width="34" Height="56" FontSize="16"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0"
+                            ToolTip="Siguiente (Der)" Style="{StaticResource PanelIconButton}" Click="ViewerNext_Click" />
+
+                    <Grid x:Name="VideoBar" Grid.Row="2" Margin="12,6,12,10" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="PlayPauseButton" Content="&#xE769;" ToolTip="Reproducir / pausa (Espacio)"
+                                Style="{StaticResource PanelIconButton}" Click="PlayPause_Click" />
+                        <Slider x:Name="SeekSlider" Grid.Column="1" Margin="10,0" VerticalAlignment="Center"
+                                Minimum="0" Maximum="1" IsMoveToPointEnabled="True"
+                                PreviewMouseLeftButtonDown="Seek_Down" PreviewMouseLeftButtonUp="Seek_Up" />
+                        <TextBlock x:Name="TimeText" Grid.Column="2" FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                   Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- ===================== ESTADO ===================== -->
+            <TextBlock x:Name="StatusText" Grid.Row="3" Margin="12,6,12,6"
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                       Foreground="{DynamicResource Brush.TextDim}" />
+
+            <!-- ===================== VISTA PREVIA ===================== -->
+            <Border x:Name="PreviewPane" Grid.Row="4" Height="130" Padding="10"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Image x:Name="PreviewImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                        <TextBlock x:Name="PreviewTitle" FontSize="13" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" />
+                        <TextBlock x:Name="PreviewDetails" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                   Foreground="{DynamicResource Brush.TextDim}" />
+                        <TextBlock x:Name="PreviewSnippet" Margin="0,6,0,0" TextWrapping="Wrap" MaxHeight="44"
+                                   TextTrimming="CharacterEllipsis" Visibility="Collapsed"
+                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>
