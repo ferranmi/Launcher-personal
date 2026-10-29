@@ -65,77 +65,6 @@
             <Setter Property="FontSize" Value="10.5" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
         </Style>
-        <!-- Etiqueta [ X ] clicable: mismo aspecto que SectionTitle, navega al menu (svc:Navigator.To) -->
-        <Style x:Key="SectionLink" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
-            <Setter Property="FontSize" Value="10.5" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="ToolTip" Value="Abrir este menu" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <ContentPresenter />
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Divisor vertical (accesos | info). Esta aqui y no solo en Shared.Styles para que el
-             dashboard cargue aunque Shared.Styles.xaml sea una version antigua. -->
-        <Style x:Key="VPanelSplitterStyle" TargetType="GridSplitter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="ShowsPreview" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="GridSplitter">
-                        <Border Background="Transparent">
-                            <Border x:Name="Line" Background="{DynamicResource Brush.Border}"
-                                    CornerRadius="1" Width="2" Height="30"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Divisor horizontal (entre bloques apilados): igual de autonomo -->
-        <Style x:Key="PanelSplitterStyle" TargetType="GridSplitter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Setter Property="ShowsPreview" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="GridSplitter">
-                        <Border Background="Transparent">
-                            <Border x:Name="Line" Background="{DynamicResource Brush.Border}"
-                                    CornerRadius="1" Width="30" Height="2"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
         <Style x:Key="TileLabel" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
             <Setter Property="FontSize" Value="10" />
@@ -405,301 +334,291 @@
     </UserControl.Resources>
 
     <Grid x:Name="RootGrid">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="480" />
-            <ColumnDefinition Width="8" />
-            <ColumnDefinition Width="250" MinWidth="200" MaxWidth="440" />
-        </Grid.ColumnDefinitions>
-        <!-- Cabecera y metricas ocupan todo el ancho (tambien sobre la columna del reproductor);
-             el reproductor solo ocupa la fila central; los procesos, otra vez todo el ancho. -->
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />                          <!-- 0 cabecera -->
-            <RowDefinition Height="84" MinHeight="64" MaxHeight="220" /> <!-- 1 monitor (ajustable) -->
-            <RowDefinition Height="8" />                             <!-- 2 divisor monitor | centro -->
-            <RowDefinition Height="*" MinHeight="170" />             <!-- 3 centro + reproductor -->
-            <RowDefinition Height="Auto" />                          <!-- 4 procesos -->
+            <RowDefinition Height="Auto" />   <!-- 0 cabecera -->
+            <RowDefinition Height="*" />      <!-- 1 tablero con todas las cajas -->
         </Grid.RowDefinitions>
 
         <!-- Fondo: rejilla + brillo superior + vineta (detras de todo, sin capturar el raton) -->
-        <Rectangle Grid.ColumnSpan="3" Grid.RowSpan="5" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
-        <Rectangle Grid.ColumnSpan="3" Grid.RowSpan="5" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
-        <Rectangle Grid.ColumnSpan="3" Grid.RowSpan="5" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
+        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
+        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
+        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
 
-        <!-- ===================== CONTENIDO (cabecera, metricas, centro, procesos) ===================== -->
-
-            <!-- Cabecera: titulo + estado global + reloj -->
-            <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="&gt; dashboard_" FontFamily="{DynamicResource Font.Mono}"
-                           FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" />
-                <!-- Buscador global: ocupa el espacio libre entre el titulo y los controles de la derecha -->
-                <search:SearchWidget Grid.Column="1" MinWidth="200" MaxWidth="480"
-                                     Margin="24,0,24,0" VerticalAlignment="Center" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button x:Name="AddWidgetButton" Content="+ widget" Style="{StaticResource LinkButton}"
-                            VerticalAlignment="Center" Margin="0,0,16,0"
-                            ToolTip="Anadir un widget al tablero (tambien: clic derecho en el tablero)"
-                            Click="AddWidget_Click" />
-                    <Border x:Name="GlobalStatusBorder" CornerRadius="4" Padding="10,3" BorderThickness="1"
-                            VerticalAlignment="Center" Margin="0,0,14,0">
-                        <TextBlock x:Name="GlobalStatusText" Text="ONLINE" FontFamily="{DynamicResource Font.Mono}"
-                                   FontSize="11" FontWeight="SemiBold" />
-                    </Border>
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock x:Name="ClockText" Text="--:--:--" FontFamily="{DynamicResource Font.Mono}"
-                                   FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}"
-                                   HorizontalAlignment="Right" />
-                        <TextBlock x:Name="DateText" Text="" FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
-                                   Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Right" />
-                    </StackPanel>
+        <!-- Cabecera: titulo + buscador + editar/widgets + estado global + reloj -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="&gt; dashboard_" FontFamily="{DynamicResource Font.Mono}"
+                       FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center" />
+            <!-- Buscador global: ocupa el espacio libre entre el titulo y los controles de la derecha -->
+            <search:SearchWidget Grid.Column="1" MinWidth="200" MaxWidth="480"
+                                 Margin="24,0,24,0" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button x:Name="EditButton" Content="editar" Style="{StaticResource LinkButton}"
+                        VerticalAlignment="Center" Margin="0,0,16,0"
+                        ToolTip="Mover y redimensionar los widgets (Esc para salir)"
+                        Click="EditToggle_Click" />
+                <Button x:Name="AddWidgetButton" Content="+ widget" Style="{StaticResource LinkButton}"
+                        VerticalAlignment="Center" Margin="0,0,16,0"
+                        ToolTip="Anadir un widget al tablero (tambien: clic derecho en el tablero)"
+                        Click="AddWidget_Click" />
+                <Border x:Name="GlobalStatusBorder" CornerRadius="4" Padding="10,3" BorderThickness="1"
+                        VerticalAlignment="Center" Margin="0,0,14,0">
+                    <TextBlock x:Name="GlobalStatusText" Text="ONLINE" FontFamily="{DynamicResource Font.Mono}"
+                               FontSize="11" FontWeight="SemiBold" />
+                </Border>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock x:Name="ClockText" Text="--:--:--" FontFamily="{DynamicResource Font.Mono}"
+                               FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}"
+                               HorizontalAlignment="Right" />
+                    <TextBlock x:Name="DateText" Text="" FontFamily="{DynamicResource Font.Mono}" FontSize="9.5"
+                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Right" />
                 </StackPanel>
-            </Grid>
+            </StackPanel>
+        </Grid>
 
-            <!-- Metricas -->
-            <Grid Grid.Row="1" Grid.ColumnSpan="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+        <!-- ===================== TABLERO =====================
+             Rejilla de 20 x 18 celdas. Pulsa "editar" en la cabecera: se ve la rejilla y cada caja muestra
+             sus tiradores (bordes derecho e inferior y esquina), su tamano y un boton para quitarla.
+             Se mueve agarrando cualquier punto de la caja. Sin scroll: lo que no cabe se recorta, agranda
+             la caja para verlo. Clic derecho en el fondo: "Restablecer disposicion".
+             BoardId nuevo ("dashboard2"): la rejilla ha cambiado y las posiciones antiguas no valen. -->
+        <ctl:DashboardBoard x:Name="CenterBoard" BoardId="dashboard2" Columns="20" Rows="18"
+                            Grid.Row="1" Margin="0,0,0,14">
 
-                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
-                    <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel MinWidth="96">
-                            <TextBlock Text="CPU" Style="{StaticResource TileLabel}" />
-                            <TextBlock x:Name="CpuText" Text="0%" Style="{StaticResource TileNumber}" />
-                            <TextBlock x:Name="CpuDetail" Text="" Style="{StaticResource TileDetail}" />
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
+            <!-- ===== Metricas (sin cabecera) ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="cpu" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
+                          Title="[ CPU ]" ShowHeader="False" ContentPadding="10,8">
+                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel MinWidth="96">
+                        <TextBlock Text="CPU" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="CpuText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="CpuDetail" Text="" Style="{StaticResource TileDetail}" />
+                    </StackPanel>
+                </Viewbox>
+            </ctl:BoardBox>
 
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
-                    <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel MinWidth="96">
-                            <TextBlock Text="RAM" Style="{StaticResource TileLabel}" />
-                            <TextBlock x:Name="RamText" Text="0%" Style="{StaticResource TileNumber}" />
-                            <TextBlock x:Name="RamDetail" Text="" Style="{StaticResource TileDetail}" />
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
+            <ctl:BoardBox ctl:DashboardBoard.Key="ram" ctl:DashboardBoard.Col="4" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
+                          Title="[ RAM ]" ShowHeader="False" ContentPadding="10,8">
+                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel MinWidth="96">
+                        <TextBlock Text="RAM" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="RamText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="RamDetail" Text="" Style="{StaticResource TileDetail}" />
+                    </StackPanel>
+                </Viewbox>
+            </ctl:BoardBox>
 
-                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
-                    <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel MinWidth="96">
-                            <TextBlock Text="GPU" Style="{StaticResource TileLabel}" />
-                            <TextBlock x:Name="GpuText" Text="0%" Style="{StaticResource TileNumber}" />
-                            <TextBlock x:Name="GpuDetail" Text="" Style="{StaticResource TileDetail}" />
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
+            <ctl:BoardBox ctl:DashboardBoard.Key="gpu" ctl:DashboardBoard.Col="8" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
+                          Title="[ GPU ]" ShowHeader="False" ContentPadding="10,8">
+                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel MinWidth="96">
+                        <TextBlock Text="GPU" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="GpuText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="GpuDetail" Text="" Style="{StaticResource TileDetail}" />
+                    </StackPanel>
+                </Viewbox>
+            </ctl:BoardBox>
 
-                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Padding="10,8" Margin="0,0,8,0">
-                    <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel MinWidth="96">
-                            <TextBlock Text="VRAM" Style="{StaticResource TileLabel}" />
-                            <TextBlock x:Name="VramText" Text="0%" Style="{StaticResource TileNumber}" />
-                            <TextBlock x:Name="VramDetail" Text="" Style="{StaticResource TileDetail}" />
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
+            <ctl:BoardBox ctl:DashboardBoard.Key="vram" ctl:DashboardBoard.Col="12" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
+                          Title="[ VRAM ]" ShowHeader="False" ContentPadding="10,8">
+                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel MinWidth="96">
+                        <TextBlock Text="VRAM" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="VramText" Text="0%" Style="{StaticResource TileNumber}" />
+                        <TextBlock x:Name="VramDetail" Text="" Style="{StaticResource TileDetail}" />
+                    </StackPanel>
+                </Viewbox>
+            </ctl:BoardBox>
 
-                <Border Grid.Column="4" Style="{StaticResource CardStyle}" Padding="10,8">
-                    <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <StackPanel MinWidth="96">
-                            <TextBlock Text="RED" Style="{StaticResource TileLabel}" />
-                            <TextBlock x:Name="NetDownText" Text="0 KB/s" Style="{StaticResource TileNumber}" FontSize="15" Margin="0,5,0,0" />
-                            <TextBlock x:Name="NetUpText" Text="0 KB/s" Style="{StaticResource TileDetail}" />
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
-            </Grid>
+            <ctl:BoardBox ctl:DashboardBoard.Key="net" ctl:DashboardBoard.Col="16" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
+                          Title="[ RED ]" ShowHeader="False" ContentPadding="10,8">
+                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel MinWidth="96">
+                        <TextBlock Text="RED" Style="{StaticResource TileLabel}" />
+                        <TextBlock x:Name="NetDownText" Text="0 KB/s" Style="{StaticResource TileNumber}" FontSize="15" Margin="0,5,0,0" />
+                        <TextBlock x:Name="NetUpText" Text="0 KB/s" Style="{StaticResource TileDetail}" />
+                    </StackPanel>
+                </Viewbox>
+            </ctl:BoardBox>
 
-            <GridSplitter Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource PanelSplitterStyle}"
-                          ResizeDirection="Rows" ToolTip="Arrastra para cambiar la altura del monitor" />
-
-            <GridSplitter Grid.Row="3" Grid.Column="1" Style="{StaticResource VPanelSplitterStyle}"
-                          ResizeDirection="Columns" ToolTip="Arrastra para cambiar el ancho del reproductor" />
-
-            <!-- Centro: accesos | info -->
-            <!-- Centro: cajas libres. Arrastra la cabecera para mover una caja y la esquina inferior derecha
-                 para cambiar su tamano; clic derecho en el fondo: "Restablecer disposicion". Sin scroll:
-                 lo que no cabe se recorta, agranda la caja para verlo. -->
-            <ctl:DashboardBoard x:Name="CenterBoard" BoardId="dashboard" Columns="12" Rows="12"
-                                Grid.Row="3" Grid.Column="0" Margin="0,0,0,14">
-
-                <ctl:BoardBox ctl:DashboardBoard.Key="games" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
-                              ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="6"
-                              Title="[ JUEGOS ]" TitleTarget="games">
-                    <Grid>
-                        <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <ctl:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
-                                   Visibility="Collapsed" />
-                    </Grid>
-                </ctl:BoardBox>
-
-                <ctl:BoardBox ctl:DashboardBoard.Key="commands" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="6"
-                              ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="3"
-                              Title="[ COMANDOS ]" TitleTarget="commands">
-                    <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
+            <!-- ===== Centro izquierda: juegos, comandos, carpetas ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="games" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="3"
+                          ctl:DashboardBoard.ColSpan="9" ctl:DashboardBoard.RowSpan="6"
+                          Title="[ JUEGOS ]" TitleTarget="games">
+                <Grid>
+                    <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                                <ctl:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
-                </ctl:BoardBox>
+                    <TextBlock x:Name="GamesEmpty" Text="&gt; sin juegos_" Style="{StaticResource SectionTitle}"
+                               Visibility="Collapsed" />
+                </Grid>
+            </ctl:BoardBox>
 
-                <ctl:BoardBox ctl:DashboardBoard.Key="folders" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="9"
-                              ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="3"
-                              Title="[ CARPETAS ]" TitleTarget="folders">
-                    <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
+            <ctl:BoardBox ctl:DashboardBoard.Key="commands" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="9"
+                          ctl:DashboardBoard.ColSpan="9" ctl:DashboardBoard.RowSpan="3"
+                          Title="[ COMANDOS ]" TitleTarget="commands">
+                <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="folders" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="12"
+                          ctl:DashboardBoard.ColSpan="9" ctl:DashboardBoard.RowSpan="3"
+                          Title="[ CARPETAS ]" TitleTarget="folders">
+                <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ctl:BoardBox>
+
+            <!-- ===== Centro derecha: registro y uplink ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="log" ctl:DashboardBoard.Col="9" ctl:DashboardBoard.Row="3"
+                          ctl:DashboardBoard.ColSpan="6" ctl:DashboardBoard.RowSpan="6"
+                          Title="[ REGISTRO ]">
+                <ctl:BoardBox.HeaderExtra>
+                    <Button x:Name="LogToggleButton" Content="ver todo" Style="{StaticResource LinkButton}"
+                            Click="LogToggle_Click" />
+                </ctl:BoardBox.HeaderExtra>
+                <Grid>
+                    <ItemsControl x:Name="LogItems" ItemTemplate="{StaticResource LogRowTemplate}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
-                            </ItemsPanelTemplate>
+                            <ItemsPanelTemplate><ctl:FitPanel Orientation="Vertical" /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
-                </ctl:BoardBox>
+                    <TextBlock x:Name="LogEmpty" Text="&gt; sin eventos_" Style="{StaticResource SectionTitle}"
+                               Visibility="Collapsed" />
+                </Grid>
+            </ctl:BoardBox>
 
-                <ctl:BoardBox ctl:DashboardBoard.Key="log" ctl:DashboardBoard.Col="7" ctl:DashboardBoard.Row="0"
-                              ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="6"
-                              Title="[ REGISTRO ]">
-                    <ctl:BoardBox.HeaderExtra>
-                        <Button x:Name="LogToggleButton" Content="ver todo" Style="{StaticResource LinkButton}"
-                                Click="LogToggle_Click" />
-                    </ctl:BoardBox.HeaderExtra>
-                    <Grid>
-                        <ItemsControl x:Name="LogItems" ItemTemplate="{StaticResource LogRowTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><ctl:FitPanel Orientation="Vertical" /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        <TextBlock x:Name="LogEmpty" Text="&gt; sin eventos_" Style="{StaticResource SectionTitle}"
-                                   Visibility="Collapsed" />
-                    </Grid>
-                </ctl:BoardBox>
+            <ctl:BoardBox ctl:DashboardBoard.Key="uplink" ctl:DashboardBoard.Col="9" ctl:DashboardBoard.Row="9"
+                          ctl:DashboardBoard.ColSpan="6" ctl:DashboardBoard.RowSpan="6"
+                          Title="[ UPLINK ]" TitleTarget="devices">
+                <Grid>
+                    <ItemsControl x:Name="UplinkItems" ItemTemplate="{StaticResource UplinkRowTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><ctl:FitPanel Orientation="Vertical" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <TextBlock x:Name="UplinkEmpty" Text="&gt; sin dispositivos externos_"
+                               Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
+                </Grid>
+            </ctl:BoardBox>
 
-                <ctl:BoardBox ctl:DashboardBoard.Key="uplink" ctl:DashboardBoard.Col="7" ctl:DashboardBoard.Row="6"
-                              ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="6"
-                              Title="[ UPLINK ]" TitleTarget="devices">
-                    <Grid>
-                        <ItemsControl x:Name="UplinkItems" ItemTemplate="{StaticResource UplinkRowTemplate}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><ctl:FitPanel Orientation="Vertical" /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        <TextBlock x:Name="UplinkEmpty" Text="&gt; sin dispositivos externos_"
-                                   Style="{StaticResource SectionTitle}" Visibility="Collapsed" />
-                    </Grid>
-                </ctl:BoardBox>
+            <!-- ===== Reproductor ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="player" ctl:DashboardBoard.Col="15" ctl:DashboardBoard.Row="3"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="12"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="6"
+                          Title="[ MULTIMEDIA ]" TitleTarget="media">
+                <Grid x:Name="PlayerPanel">
+                    <Viewbox Stretch="Uniform" StretchDirection="Both" VerticalAlignment="Center">
+                        <StackPanel Width="190"
+                                    Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}}">
+                            <Border Width="190" Height="190" CornerRadius="10" ClipToBounds="True" HorizontalAlignment="Center">
+                                <Border.Background>
+                                    <RadialGradientBrush>
+                                        <GradientStop Color="{DynamicResource Color.AccentDim}" Offset="0" />
+                                        <GradientStop Color="{DynamicResource Color.Surface}" Offset="1" />
+                                    </RadialGradientBrush>
+                                </Border.Background>
+                                <Grid>
+                                    <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="48"
+                                               Foreground="{DynamicResource Brush.Accent}" Opacity="0.5"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                    <Image Source="{Binding AlbumArt}" Stretch="UniformToFill"
+                                           Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </Border>
 
-            </ctl:DashboardBoard>
+                            <TextBlock Text="{Binding Title}" Margin="0,16,0,0" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.TextPrimary}" TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Artist}" Margin="0,3,0,0" FontSize="12"
+                                       Foreground="{DynamicResource Brush.TextSecondary}" TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
 
-            <!-- Barra inferior: procesos -->
-            <StackPanel Grid.Row="4" Grid.ColumnSpan="3">
-                <Button Content="[ PROCESOS ]" svc:Navigator.To="processes" Style="{StaticResource SectionLink}" Margin="0,0,0,8" />
+                            <Border Style="{StaticResource BadgeStyle}" Margin="0,8,0,0" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding SourceApp}" FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                           Foreground="{DynamicResource Brush.Accent}" />
+                            </Border>
+
+                            <Grid Margin="0,18,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding PositionText}" FontFamily="{DynamicResource Font.Mono}"
+                                           FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                                <Slider x:Name="ProgressSlider" Grid.Column="1" Margin="8,0" Minimum="0"
+                                        Style="{StaticResource MinimalSliderStyle}"
+                                        PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseLeftButtonDown"
+                                        PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseLeftButtonUp" />
+                                <TextBlock Grid.Column="2" Text="{Binding DurationText}" FontFamily="{DynamicResource Font.Mono}"
+                                           FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                                <Button Content="&#xE892;" Style="{StaticResource TransportButtonStyle}" Margin="0,0,12,0"
+                                        ToolTip="Anterior" Click="Previous_Click" />
+                                <Button Content="{Binding IsPlaying, Converter={StaticResource PlayPauseGlyph}}"
+                                        Style="{StaticResource PlayButtonStyle}" Click="PlayPause_Click" />
+                                <Button Content="&#xE893;" Style="{StaticResource TransportButtonStyle}" Margin="12,0,0,0"
+                                        ToolTip="Siguiente" Click="Next_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                        <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="34"
+                                   Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                        <TextBlock Text="&gt; nada reproduciendose_" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                   Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </ctl:BoardBox>
+
+            <!-- ===== Procesos ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="processes" ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="15"
+                          ctl:DashboardBoard.ColSpan="20" ctl:DashboardBoard.RowSpan="3"
+                          ctl:DashboardBoard.MinCols="8" ctl:DashboardBoard.MinRows="3"
+                          Title="[ PROCESOS ]" TitleTarget="processes">
                 <ItemsControl x:Name="ProcItems" ItemTemplate="{StaticResource ProcCellTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><UniformGrid Rows="1" Columns="5" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
-            </StackPanel>
+            </ctl:BoardBox>
 
-        <!-- ===================== REPRODUCTOR ===================== -->
-        <Border x:Name="PlayerPanel" Grid.Row="3" Grid.Column="2" Background="{DynamicResource Brush.Surface}"
-                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0"
-                Padding="14,12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <Button Content="[ MULTIMEDIA ]" svc:Navigator.To="media" Style="{StaticResource SectionLink}"
-                        Margin="0,0,0,10" />
-
-                <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both" VerticalAlignment="Center">
-                <StackPanel Width="190"
-                            Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}}">
-                    <Border Width="190" Height="190" CornerRadius="10" ClipToBounds="True" HorizontalAlignment="Center">
-                        <Border.Background>
-                            <RadialGradientBrush>
-                                <GradientStop Color="{DynamicResource Color.AccentDim}" Offset="0" />
-                                <GradientStop Color="{DynamicResource Color.Surface}" Offset="1" />
-                            </RadialGradientBrush>
-                        </Border.Background>
-                        <Grid>
-                            <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="48"
-                                       Foreground="{DynamicResource Brush.Accent}" Opacity="0.5"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
-                            <Image Source="{Binding AlbumArt}" Stretch="UniformToFill"
-                                   Visibility="{Binding HasAlbumArt, Converter={StaticResource BoolToVis}}" />
-                        </Grid>
-                    </Border>
-
-                    <TextBlock Text="{Binding Title}" Margin="0,16,0,0" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Brush.TextPrimary}" TextAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Artist}" Margin="0,3,0,0" FontSize="12"
-                               Foreground="{DynamicResource Brush.TextSecondary}" TextAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-
-                    <Border Style="{StaticResource BadgeStyle}" Margin="0,8,0,0" HorizontalAlignment="Center">
-                        <TextBlock Text="{Binding SourceApp}" FontFamily="{DynamicResource Font.Mono}" FontSize="10"
-                                   Foreground="{DynamicResource Brush.Accent}" />
-                    </Border>
-
-                    <Grid Margin="0,18,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding PositionText}" FontFamily="{DynamicResource Font.Mono}"
-                                   FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
-                        <Slider x:Name="ProgressSlider" Grid.Column="1" Margin="8,0" Minimum="0"
-                                Style="{StaticResource MinimalSliderStyle}"
-                                PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseLeftButtonUp" />
-                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" FontFamily="{DynamicResource Font.Mono}"
-                                   FontSize="10" Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
-                    </Grid>
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                        <Button Content="&#xE892;" Style="{StaticResource TransportButtonStyle}" Margin="0,0,12,0"
-                                ToolTip="Anterior" Click="Previous_Click" />
-                        <Button Content="{Binding IsPlaying, Converter={StaticResource PlayPauseGlyph}}"
-                                Style="{StaticResource PlayButtonStyle}" Click="PlayPause_Click" />
-                        <Button Content="&#xE893;" Style="{StaticResource TransportButtonStyle}" Margin="12,0,0,0"
-                                ToolTip="Siguiente" Click="Next_Click" />
-                    </StackPanel>
-                </StackPanel>
-                </Viewbox>
-
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Visibility="{Binding HasSession, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
-                    <TextBlock Text="&#xE8D6;" FontFamily="{DynamicResource Font.Icons}" FontSize="34"
-                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                    <TextBlock Text="&gt; nada reproduciendose_" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
-                               Foreground="{DynamicResource Brush.TextDim}" HorizontalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
+        </ctl:DashboardBoard>
 
         <!-- Scanlines por encima de todo (efecto CRT sutil) -->
-        <Rectangle Grid.ColumnSpan="3" Grid.RowSpan="5" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
+        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
     </Grid>
 </UserControl>

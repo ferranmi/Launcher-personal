@@ -3,7 +3,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using Launcher.Core.Services;
 using Brush = System.Windows.Media.Brush;
 using FontFamily = System.Windows.Media.FontFamily;
@@ -13,10 +12,10 @@ using WpfBrushes = System.Windows.Media.Brushes;
 namespace Launcher.UI.Controls;
 
 /// <summary>
-/// Caja de un <see cref="DashboardBoard"/>: tarjeta con titulo "[ X ]" en la cabecera y contenido SIN scroll
-/// (lo que no cabe se recorta; haz la caja mas grande para ver mas). Arrastrar la cabecera mueve la caja,
-/// arrastrar la esquina inferior derecha la redimensiona, y un clic en el titulo abre el menu TitleTarget.
-/// El visual se construye en codigo: no depende de ningun estilo definido en otro XAML.
+/// Caja de un <see cref="DashboardBoard"/>: tarjeta con titulo "[ X ]" opcional y contenido SIN scroll
+/// (lo que no cabe se recorta; haz la caja mas grande para ver mas). Mover, redimensionar y quitar se
+/// hacen desde el modo edicion del tablero (boton "editar"). Fuera de edicion, un clic en el titulo abre
+/// el menu TitleTarget. El visual se construye en codigo: no depende de ningun estilo de otro XAML.
 /// </summary>
 [ContentProperty(nameof(Body))]
 public class BoardBox : UserControl
@@ -27,7 +26,8 @@ public class BoardBox : UserControl
 
     /// <summary>Id del modulo que abre un clic en el titulo (games, commands, folders, devices...).</summary>
     public static readonly DependencyProperty TitleTargetProperty = DependencyProperty.Register(
-        nameof(TitleTarget), typeof(string), typeof(BoardBox), new PropertyMetadata(null));
+        nameof(TitleTarget), typeof(string), typeof(BoardBox),
+        new PropertyMetadata(null, (d, e) => ((BoardBox)d).UpdateTitleCursor()));
 
     public static readonly DependencyProperty BodyProperty = DependencyProperty.Register(
         nameof(Body), typeof(object), typeof(BoardBox),
@@ -38,14 +38,29 @@ public class BoardBox : UserControl
         nameof(HeaderExtra), typeof(object), typeof(BoardBox),
         new PropertyMetadata(null, (d, e) => ((BoardBox)d)._extra.Content = e.NewValue));
 
+    /// <summary>False = caja sin cabecera (p.ej. las tarjetas de metricas). El Title se sigue usando
+    /// en el menu "Anadir widget".</summary>
+    public static readonly DependencyProperty ShowHeaderProperty = DependencyProperty.Register(
+        nameof(ShowHeader), typeof(bool), typeof(BoardBox),
+        new PropertyMetadata(true, (d, e) =>
+            ((BoardBox)d)._header.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed));
+
+    public static readonly DependencyProperty ContentPaddingProperty = DependencyProperty.Register(
+        nameof(ContentPadding), typeof(Thickness), typeof(BoardBox),
+        new PropertyMetadata(new Thickness(12), (d, e) => ((BoardBox)d)._card.Padding = (Thickness)e.NewValue));
+
     public string Title { get => (string)GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
     public string? TitleTarget { get => (string?)GetValue(TitleTargetProperty); set => SetValue(TitleTargetProperty, value); }
     public object? Body { get => GetValue(BodyProperty); set => SetValue(BodyProperty, value); }
     public object? HeaderExtra { get => GetValue(HeaderExtraProperty); set => SetValue(HeaderExtraProperty, value); }
+    public bool ShowHeader { get => (bool)GetValue(ShowHeaderProperty); set => SetValue(ShowHeaderProperty, value); }
+    public Thickness ContentPadding { get => (Thickness)GetValue(ContentPaddingProperty); set => SetValue(ContentPaddingProperty, value); }
 
     private readonly TextBlock _title = new();
     private readonly ContentPresenter _extra = new() { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
     private readonly ContentPresenter _body = new();
+    private readonly Grid _header = new();
+    private readonly Border _card = new();
 
     private DashboardBoard? Board => Parent as DashboardBoard;
 
@@ -60,103 +75,46 @@ public class BoardBox : UserControl
         _title.MouseEnter += (_, _) => { if (!string.IsNullOrEmpty(TitleTarget)) _title.Foreground = (Brush)app.FindResource("Brush.Accent"); };
         _title.MouseLeave += (_, _) => _title.Foreground = (Brush)app.FindResource("Brush.TextDim");
 
-        var header = new Grid
+        // Fuera de edicion el clic va directo al menu. En edicion el tablero se queda el clic
+        // (PreviewMouseLeftButtonDown con captura) y esto no llega a dispararse.
+        _title.MouseLeftButtonUp += (_, e) =>
         {
-            Background = WpfBrushes.Transparent, // para que toda la cabecera reciba el raton
-            Cursor = Cursors.SizeAll,
-            ToolTip = "Arrastra la cabecera para mover la caja",
-            Margin = new Thickness(0, 0, 0, 10)
+            if (string.IsNullOrEmpty(TitleTarget)) return;
+            Navigator.GoTo(TitleTarget);
+            e.Handled = true;
         };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        // Asa visible: indica que la cabecera se puede arrastrar para mover la caja.
-        var handle = new TextBlock
-        {
-            Text = "::",
-            FontFamily = (FontFamily)app.FindResource("Font.Mono"),
-            FontSize = 12,
-            FontWeight = FontWeights.Bold,
-            Foreground = (Brush)app.FindResource("Brush.BorderStrong"),
-            Margin = new Thickness(0, 0, 8, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        header.MouseEnter += (_, _) => handle.Foreground = (Brush)app.FindResource("Brush.Accent");
-        header.MouseLeave += (_, _) => handle.Foreground = (Brush)app.FindResource("Brush.BorderStrong");
+        _header.Background = WpfBrushes.Transparent;
+        _header.Margin = new Thickness(0, 0, 0, 10);
+        _header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        _header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        header.Children.Add(handle);
-        Grid.SetColumn(_title, 1);
-        header.Children.Add(_title);
-
-        // Boton para quitar la caja del tablero (se puede volver a anadir con clic derecho > Anadir widget).
-        var close = new TextBlock
-        {
-            Text = "\u00D7",
-            FontSize = 16,
-            Foreground = (Brush)app.FindResource("Brush.BorderStrong"),
-            Margin = new Thickness(10, -2, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Cursor = Cursors.Hand,
-            ToolTip = "Quitar este widget"
-        };
-        close.MouseEnter += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.Danger");
-        close.MouseLeave += (_, _) => close.Foreground = (Brush)app.FindResource("Brush.BorderStrong");
-        close.MouseLeftButtonDown += (_, e) => e.Handled = true; // que no empiece a arrastrar la caja
-        close.MouseLeftButtonUp += (_, e) => { Board?.RemoveBox(this); e.Handled = true; };
-
-        var right = new StackPanel { Orientation = Orientation.Horizontal };
-        right.Children.Add(_extra);
-        right.Children.Add(close);
-        Grid.SetColumn(right, 2);
-        header.Children.Add(right);
-        header.MouseLeftButtonDown += (_, e) => Board?.BeginPress(this, e, resize: false);
+        _header.Children.Add(_title);
+        Grid.SetColumn(_extra, 1);
+        _header.Children.Add(_extra);
 
         var bodyHost = new Grid { ClipToBounds = true }; // sin scroll: lo que no cabe se recorta
         bodyHost.Children.Add(_body);
         Grid.SetRow(bodyHost, 1);
 
-        var grip = new Border
-        {
-            Width = 16,
-            Height = 16,
-            Background = WpfBrushes.Transparent,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            Margin = new Thickness(0, 0, -8, -8),
-            Cursor = Cursors.SizeNWSE,
-            ToolTip = "Arrastra para cambiar el tamano"
-        };
-        var corner = new Polygon
-        {
-            Points = new PointCollection { new Point(14, 2), new Point(14, 14), new Point(2, 14) },
-            Fill = (Brush)app.FindResource("Brush.BorderStrong"),
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom
-        };
-        grip.Child = corner;
-        grip.MouseEnter += (_, _) => corner.Fill = (Brush)app.FindResource("Brush.Accent");
-        grip.MouseLeave += (_, _) => corner.Fill = (Brush)app.FindResource("Brush.BorderStrong");
-        grip.MouseLeftButtonDown += (_, e) => Board?.BeginPress(this, e, resize: true);
-
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(header);
+        grid.Children.Add(_header);
         grid.Children.Add(bodyHost);
-        grid.Children.Add(grip);
-        Grid.SetRowSpan(grip, 2);
 
-        Content = new Border
-        {
-            Style = (Style)app.FindResource("CardStyle"),
-            Padding = new Thickness(12),
-            ClipToBounds = true,
-            Child = grid
-        };
+        _card.Style = (Style)app.FindResource("CardStyle");
+        _card.Padding = new Thickness(12);
+        _card.ClipToBounds = true;
+        _card.Child = grid;
+        Content = _card;
     }
 
-    /// <summary>Un clic sin arrastrar sobre el titulo abre el menu asociado (point en coordenadas del tablero).</summary>
+    private void UpdateTitleCursor() =>
+        _title.Cursor = string.IsNullOrEmpty(TitleTarget) ? null : Cursors.Hand;
+
+    /// <summary>Un clic sin arrastrar sobre el titulo (point en coordenadas del tablero). Se conserva por
+    /// compatibilidad; el tablero solo lo llama fuera del modo edicion.</summary>
     internal void OnHeaderClick(Point boardPoint)
     {
         if (string.IsNullOrEmpty(TitleTarget) || Board == null) return;

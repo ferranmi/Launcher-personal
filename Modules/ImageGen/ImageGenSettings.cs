@@ -6,8 +6,9 @@ using Launcher.Core.Services;
 
 namespace Launcher.Modules.ImageGen;
 
-/// <summary>Carpetas conocidas de una instalacion de A1111.</summary>
-public enum SdFolder { Models, Loras, Vae, Embeddings, Extensions, Outputs, ControlNet }
+/// <summary>Carpetas configurables. Gallery es la de las imagenes generadas por el Launcher;
+/// las demas son carpetas de una instalacion de A1111.</summary>
+public enum SdFolder { Models, Loras, Vae, Embeddings, Extensions, Outputs, ControlNet, Gallery }
 
 /// <summary>
 /// Ajustes propios del modulo, en %AppData%\Launcher\imagegen.json. Se guardan
@@ -16,6 +17,10 @@ public enum SdFolder { Models, Loras, Vae, Embeddings, Extensions, Outputs, Cont
 public class ImageGenSettings
 {
     private static readonly string SettingsPath = Path.Combine(AppSettingsService.AppFolder, "imagegen.json");
+
+    /// <summary>Carpeta por defecto de las imagenes generadas por el Launcher.</summary>
+    public static readonly string DefaultGalleryFolder =
+        Path.Combine(AppSettingsService.AppFolder, "imagegen", "outputs");
 
     private static ImageGenSettings? _instance;
     public static ImageGenSettings Instance => _instance ??= Load();
@@ -35,8 +40,12 @@ public class ImageGenSettings
     /// <summary>Carpeta de wildcards (null = la del Launcher). Puede apuntar a la de Dynamic Prompts.</summary>
     public string? WildcardsFolder { get; set; }
 
+    /// <summary>Carpetas elegidas a mano por el usuario (clave = nombre de SdFolder).
+    /// Tienen prioridad sobre lo que informa el servidor y sobre las rutas estandar.</summary>
+    public Dictionary<string, string> CustomFolders { get; set; } = new();
+
     // Carpetas reales que A1111 informa en /sdapi/v1/cmd-flags (si se lanzo con --ckpt-dir, etc.).
-    // Se guardan para que los botones de "abrir carpeta" funcionen tambien con el servidor apagado.
+    // Se guardan para que "abrir carpeta" funcione tambien con el servidor apagado.
     public string? CkptDir { get; set; }
     public string? LoraDir { get; set; }
     public string? VaeDir { get; set; }
@@ -62,11 +71,21 @@ public class ImageGenSettings
         }
     }
 
-    /// <summary>Ruta de una carpeta de A1111. Prioriza la que informo el servidor
-    /// (--ckpt-dir...) y si no, la estandar bajo la carpeta de instalacion. installOverride
-    /// permite consultar una instalacion que aun no se ha guardado (ventana de ajustes).</summary>
-    public string? FolderFor(SdFolder kind, string? installOverride = null)
+    /// <summary>Ruta de una carpeta. Prioridad: la elegida a mano, la que informo el servidor
+    /// (--ckpt-dir...) y la estandar bajo la carpeta de instalacion. installOverride permite
+    /// consultar una instalacion aun sin guardar (ventana de ajustes); ignoreCustom devuelve
+    /// lo que se usaria SIN la ruta manual (para mostrarlo como sugerencia).</summary>
+    public string? FolderFor(SdFolder kind, string? installOverride = null, bool ignoreCustom = false)
     {
+        if (!ignoreCustom &&
+            CustomFolders.TryGetValue(kind.ToString(), out var custom) &&
+            !string.IsNullOrWhiteSpace(custom))
+        {
+            return custom;
+        }
+
+        if (kind == SdFolder.Gallery) return DefaultGalleryFolder;
+
         var install = string.IsNullOrWhiteSpace(installOverride) ? InstallPath : installOverride;
         var useServerDirs = installOverride == null ||
                             string.Equals(installOverride.TrimEnd('\\'), InstallPath?.TrimEnd('\\'),

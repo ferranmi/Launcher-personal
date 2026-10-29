@@ -57,11 +57,15 @@ public sealed class ProcCell
 /// <summary>
 /// Pantalla de inicio. Un unico DispatcherTimer (1 s) alimenta todo: metricas, estado
 /// (StatusEvaluator), uplink, procesos y reproductor; se para cuando la vista no esta visible.
+/// Todo el contenido vive en un unico DashboardBoard (CenterBoard): metricas, juegos, comandos,
+/// carpetas, registro, uplink, reproductor y procesos son cajas que se mueven y redimensionan
+/// con el boton "editar".
 /// </summary>
 public partial class DashboardView : UserControl
 {
-    private const int MaxGames = 8;
-    private const int MaxShortcuts = 12;
+    // Tope alto a proposito: FluidTilePanel recorta lo que no cabe, asi al agrandar la caja aparecen mas tarjetas.
+    private const int MaxGames = 40;
+    private const int MaxShortcuts = 40;
     private const int LogCollapsed = 6;
     private const int LogExpanded = 25;
 
@@ -89,21 +93,6 @@ public partial class DashboardView : UserControl
     {
         InitializeComponent();
 
-        // Tamano de las partes fijas (alto del monitor, ancho del reproductor): se recuerda al arrastrar sus divisores.
-        var defaultColumns = RootGrid.ColumnDefinitions.Select(col => col.Width).ToArray();
-        var defaultRows = RootGrid.RowDefinitions.Select(row => row.Height).ToArray();
-        LayoutPersistence.Attach(RootGrid, "dash.cols", columns: true);
-        LayoutPersistence.Attach(RootGrid, "dash.rows");
-
-        // "Restablecer disposicion" (clic derecho en el tablero) tambien devuelve esas partes a su tamano original.
-        CenterBoard.LayoutReset += (_, _) =>
-        {
-            for (var i = 0; i < defaultColumns.Length; i++) RootGrid.ColumnDefinitions[i].Width = defaultColumns[i];
-            for (var i = 0; i < defaultRows.Length; i++) RootGrid.RowDefinitions[i].Height = defaultRows[i];
-            LayoutPersistence.Reset("dash.cols");
-            LayoutPersistence.Reset("dash.rows");
-        };
-
         _info = _nowPlaying.Info;
         PlayerPanel.DataContext = _info;
 
@@ -115,8 +104,22 @@ public partial class DashboardView : UserControl
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += async (_, _) => await TickAsync();
 
+        // Esc sale del modo edicion.
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape && CenterBoard.IsEditing)
+            {
+                SetEditing(false);
+                e.Handled = true;
+            }
+        };
+
         Loaded += DashboardView_Loaded;
-        Unloaded += (_, _) => _timer.Stop();
+        Unloaded += (_, _) =>
+        {
+            _timer.Stop();
+            if (CenterBoard.IsEditing) SetEditing(false); // al cambiar de modulo no se queda a medias
+        };
     }
 
     private async void DashboardView_Loaded(object sender, RoutedEventArgs e)
@@ -130,6 +133,16 @@ public partial class DashboardView : UserControl
         LoadAccess();
         _timer.Start();
         await TickAsync();
+    }
+
+    // ===================== Modo edicion =====================
+
+    private void EditToggle_Click(object sender, RoutedEventArgs e) => SetEditing(!CenterBoard.IsEditing);
+
+    private void SetEditing(bool on)
+    {
+        CenterBoard.IsEditing = on;
+        EditButton.Content = on ? "listo" : "editar";
     }
 
     // ===================== Tick =====================

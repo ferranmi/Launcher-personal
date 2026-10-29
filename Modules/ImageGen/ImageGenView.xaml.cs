@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using Launcher.Core.Converters;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
+using Launcher.Modules.ImageGen.Autocomplete;
 using Launcher.Modules.ImageGen.Extensions;
 using Microsoft.Win32;
 
@@ -38,6 +39,26 @@ public partial class ImageGenView : UserControl
         GalleryList.ItemsSource = _gallery.Images;
 
         BuildExtensionPanels();
+
+        // Autocompletado en prompt y negativo: LoRAs siempre; wildcards y tags de Danbooru
+        // solo cuando su extension esta activada.
+        var loraProvider = new LoraAutocompleteProvider(() => _allLoras, LoraWeight);
+        IEnumerable<IAutocompleteProvider> Providers() =>
+            new IAutocompleteProvider[] { loraProvider }.Concat(
+                _extensions.Where(x => x.IsEnabled && x.IsAvailable)
+                    .Select(x => x.AutocompleteProvider)
+                    .OfType<IAutocompleteProvider>());
+
+        _ = new PromptAutocomplete(PromptBox, SuggestPopup, SuggestList, Providers);
+        _ = new PromptAutocomplete(NegativeBox, SuggestPopup, SuggestList, Providers);
+
+        // Al salir del modulo se guardan los ajustes de las extensiones (aunque no se haya generado).
+        Unloaded += (_, _) =>
+        {
+            if (!_connected || !_firstConnectDone) return;
+            _settings.LastParams = ReadParams();
+            _settings.Save();
+        };
         Library.CloseRequested += () => Library.Visibility = Visibility.Collapsed;
         Library.ReuseRequested += p =>
         {
@@ -257,7 +278,7 @@ public partial class ImageGenView : UserControl
         foreach (var extension in _extensions)
         {
             if (p.ExtensionStates.TryGetValue(extension.Id, out var state)) extension.LoadState(state);
-            else extension.IsEnabled = false;
+            else if (extension.AffectsRequest) extension.IsEnabled = false;
         }
 
         if (!string.IsNullOrEmpty(p.ModelTitle) &&
@@ -378,7 +399,7 @@ public partial class ImageGenView : UserControl
             await poll;
 
             GeneratedImage? last = null;
-            var enabledIds = _extensions.Where(x => x.IsEnabled && x.IsAvailable).Select(x => x.Id).ToHashSet();
+            var enabledIds = _extensions.Where(x => x.IsEnabled && x.IsAvailable && x.AffectsRequest).Select(x => x.Id).ToHashSet();
             foreach (var result in results)
             {
                 // Guardamos el prompt ya resuelto (wildcards...) y solo las extensiones realmente usadas.
@@ -499,6 +520,12 @@ public partial class ImageGenView : UserControl
         {
             extension.Apply(request);
         }
+    }
+
+    private double LoraWeight()
+    {
+        var text = LoraWeightBox.Text.Trim().Replace(',', '.');
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var w) ? w : 0.8;
     }
 
     private string? SelectedVae() =>

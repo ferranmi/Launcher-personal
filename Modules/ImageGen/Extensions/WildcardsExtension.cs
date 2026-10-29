@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using Launcher.Core.Services;
+using Launcher.Modules.ImageGen.Autocomplete;
 
 namespace Launcher.Modules.ImageGen.Extensions;
 
@@ -27,6 +28,10 @@ public class WildcardsExtension : SdExtension
         ImageGenSettings.Instance.WildcardsFolder is { Length: > 0 } custom ? custom : DefaultFolder;
 
     private static readonly Regex Token = new(@"__([A-Za-z0-9_\-/]+)__", RegexOptions.Compiled);
+
+    private readonly WildcardAutocompleteProvider _autocomplete = new();
+
+    public override IAutocompleteProvider? AutocompleteProvider => _autocomplete;
 
     private readonly TextBlock _info;
 
@@ -170,5 +175,104 @@ public class WildcardsExtension : SdExtension
     protected override void LoadCore(JsonObject state)
     {
         // Sin ajustes propios: solo importa si esta activada.
+    }
+}
+
+
+/// <summary>
+/// Sugiere wildcards al escribir "__x" en el prompt: lista los .txt de la carpeta de wildcards
+/// (con subcarpetas) cuyo nombre contiene lo escrito, con el numero de valores y una muestra
+/// en el tooltip. Al elegir uno inserta __nombre__ completo.
+/// </summary>
+public sealed class WildcardAutocompleteProvider : IAutocompleteProvider
+{
+    // "__" que no va pegado a una palabra, seguido de lo escrito hasta ahora.
+    private static readonly Regex Open = new(@"(?<![A-Za-z0-9])__([A-Za-z0-9_\-/]*)$", RegexOptions.Compiled);
+
+    private readonly Dictionary<string, (DateTime Stamp, int Count, string Preview)> _info = new();
+    private List<string> _names = new();
+    private string _cachedFolder = "";
+    private DateTime _cachedAt = DateTime.MinValue;
+
+    public AutocompleteResult? GetSuggestions(string textBeforeCaret)
+    {
+        var match = Open.Match(textBeforeCaret);
+        if (!match.Success) return null;
+
+        var query = match.Groups[1].Value;
+        if (query.EndsWith("__", StringComparison.Ordinal)) return null; // wildcard ya cerrado
+
+        var items = GetNames()
+            .Where(n => n.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => !n.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(n => n, StringComparer.CurrentCultureIgnoreCase)
+            .Take(40)
+            .Select(name =>
+            {
+                var (count, preview) = Info(name);
+                return new Suggestion
+                {
+                    Label = name,
+                    Insert = $"__{name}__",
+                    Detail = count == 1 ? "1 valor" : $"{count} valores",
+                    Note = preview,
+                    Tint = SuggestionBrushes.Get("#FF7FD6A8")
+                };
+            })
+            .ToList();
+
+        return items.Count == 0 ? null : new AutocompleteResult(match.Length, items);
+    }
+
+    private List<string> GetNames()
+    {
+        var folder = WildcardsExtension.Folder;
+
+        // La lista se relee como mucho cada 3 s: tecleando no se recorre el disco en cada tecla.
+        if (folder == _cachedFolder && DateTime.UtcNow - _cachedAt < TimeSpan.FromSeconds(3)) return _names;
+
+        _cachedFolder = folder;
+        _cachedAt = DateTime.UtcNow;
+
+        try
+        {
+            _names = Directory.Exists(folder)
+                ? Directory.EnumerateFiles(folder, "*.txt", SearchOption.AllDirectories)
+                    .Select(f => Path.ChangeExtension(Path.GetRelativePath(folder, f), null)!.Replace('\\', '/'))
+                    .ToList()
+                : new List<string>();
+        }
+        catch
+        {
+            _names = new List<string>();
+        }
+
+        return _names;
+    }
+
+    private (int Count, string Preview) Info(string name)
+    {
+        try
+        {
+            var path = Path.Combine(WildcardsExtension.Folder, name.Replace('/', Path.DirectorySeparatorChar) + ".txt");
+            var stamp = File.GetLastWriteTimeUtc(path);
+
+            if (_info.TryGetValue(path, out var cached) && cached.Stamp == stamp) return (cached.Count, cached.Preview);
+
+            // Se lee un maximo de 5000 valores: basta para contar y mostrar una muestra.
+            var values = File.ReadLines(path)
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0 && !l.StartsWith('#'))
+                .Take(5000)
+                .ToList();
+
+            var preview = string.Join("\n", values.Take(8)) + (values.Count > 8 ? "\n..." : "");
+            _info[path] = (stamp, values.Count, preview);
+            return (values.Count, preview);
+        }
+        catch
+        {
+            return (0, "");
+        }
     }
 }

@@ -13,6 +13,7 @@ public static class SdExtensionCatalog
         new AdetailerExtension(),
         new ControlNetExtension(),
         new WildcardsExtension(),
+        new DanbooruTagsExtension(),
         new RawScriptExtension()
     };
 }

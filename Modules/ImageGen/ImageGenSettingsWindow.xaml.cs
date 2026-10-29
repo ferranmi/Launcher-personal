@@ -14,11 +14,24 @@ public partial class ImageGenSettingsWindow : Window
 {
     private static readonly string[] ModelExtensions = { ".safetensors", ".ckpt", ".pt", ".pth", ".bin" };
 
+    private static readonly (SdFolder Kind, string Label)[] FolderDefs =
+    {
+        (SdFolder.Models, "Modelos (checkpoints)"),
+        (SdFolder.Loras, "LoRAs / LyCORIS"),
+        (SdFolder.Vae, "VAE"),
+        (SdFolder.Embeddings, "Embeddings"),
+        (SdFolder.ControlNet, "Modelos de ControlNet"),
+        (SdFolder.Extensions, "Extensiones de A1111"),
+        (SdFolder.Outputs, "Salida de A1111 (outputs)"),
+        (SdFolder.Gallery, "Imagenes del Launcher (galeria)")
+    };
+
     // Linea "set COMMANDLINE_ARGS=..." de webui-user.bat (la ultima asignacion es la que vale).
     private static readonly Regex ArgsLine =
         new(@"^\s*set\s+COMMANDLINE_ARGS\s*=(.*)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly ImageGenSettings _settings = ImageGenSettings.Instance;
+    private readonly Dictionary<SdFolder, TextBox> _folderBoxes = new();
 
     /// <summary>True si el usuario guardo (para que quien abrio la ventana vuelva a conectar).</summary>
     public bool Saved { get; private set; }
@@ -34,7 +47,126 @@ public partial class ImageGenSettingsWindow : Window
         WildcardsHint.Text = $"Vacio = la del Launcher ({Extensions.WildcardsExtension.DefaultFolder}). " +
                              "Con la de Dynamic Prompts se reutilizan tus wildcards .txt existentes.";
 
+        BuildFolderRows();
         RunCheck();
+    }
+
+    // ===================== Filas de carpetas =====================
+
+    private void BuildFolderRows()
+    {
+        var textBoxStyle = (Style)System.Windows.Application.Current.FindResource("TextBoxStyle");
+        var mono = (System.Windows.Media.FontFamily)FindResource("Font.Mono");
+
+        foreach (var (kind, label) in FolderDefs)
+        {
+            var box = new TextBox
+            {
+                Style = textBoxStyle,
+                FontFamily = mono,
+                FontSize = 11,
+                Padding = new Thickness(8, 6, 8, 6),
+                Text = _settings.CustomFolders.GetValueOrDefault(kind.ToString()) ?? ""
+            };
+            box.LostFocus += (_, _) => RunCheck();
+            _folderBoxes[kind] = box;
+
+            var browse = new Button
+            {
+                Content = "...",
+                Style = (Style)FindResource("GhostButton"),
+                Width = 34,
+                Margin = new Thickness(8, 0, 0, 0)
+            };
+            browse.Click += (_, _) => BrowseFolder(kind);
+
+            var open = new Button
+            {
+                Content = "Abrir",
+                Style = (Style)FindResource("GhostButton"),
+                Margin = new Thickness(8, 0, 0, 0)
+            };
+            open.Click += (_, _) => OpenFolder(kind);
+
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(browse, 1);
+            Grid.SetColumn(open, 2);
+            row.Children.Add(box);
+            row.Children.Add(browse);
+            row.Children.Add(open);
+
+            FolderRows.Children.Add(new TextBlock { Text = label, Style = (Style)FindResource("FieldLabel") });
+            FolderRows.Children.Add(row);
+        }
+    }
+
+    /// <summary>La ruta que se usaria ahora: la escrita en la caja o, si esta vacia, la de la instalacion.</summary>
+    private string? ResolveFolder(SdFolder kind)
+    {
+        var typed = _folderBoxes.TryGetValue(kind, out var box) ? box.Text.Trim() : "";
+        if (typed.Length > 0) return typed;
+
+        var install = InstallBox.Text.Trim();
+        return _settings.FolderFor(kind, install.Length == 0 ? null : install, ignoreCustom: true);
+    }
+
+    /// <summary>Muestra como sugerencia (texto tenue) la ruta que se usara si la caja queda vacia.</summary>
+    private void RefreshHints()
+    {
+        var install = InstallBox.Text.Trim();
+
+        foreach (var (kind, box) in _folderBoxes)
+        {
+            box.Tag = _settings.FolderFor(kind, install.Length == 0 ? null : install, ignoreCustom: true)
+                      ?? "(indica antes la carpeta de instalacion)";
+        }
+    }
+
+    private void BrowseFolder(SdFolder kind)
+    {
+        var dialog = new OpenFolderDialog { Title = "Selecciona la carpeta" };
+
+        var current = ResolveFolder(kind);
+        if (!string.IsNullOrWhiteSpace(current) && Directory.Exists(current)) dialog.InitialDirectory = current;
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        _folderBoxes[kind].Text = dialog.FolderName;
+        RunCheck();
+    }
+
+    private void OpenFolder(SdFolder kind)
+    {
+        var folder = ResolveFolder(kind);
+
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            MessageBox.Show(this, "Indica primero la carpeta de instalacion o escribe una ruta.",
+                "Abrir carpeta", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            // La carpeta de imagenes del Launcher se crea si todavia no existe.
+            if (kind == SdFolder.Gallery) Directory.CreateDirectory(folder);
+
+            if (!Directory.Exists(folder))
+            {
+                MessageBox.Show(this, $"La carpeta no existe todavia:\n{folder}",
+                    "Abrir carpeta", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo { FileName = folder, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo abrir la carpeta", ex);
+        }
     }
 
     // ===================== Carpeta de instalacion =====================
@@ -111,6 +243,8 @@ public partial class ImageGenSettingsWindow : Window
 
     private void RunCheck()
     {
+        RefreshHints();
+
         var install = InstallBox.Text.Trim();
 
         if (install.Length == 0)
@@ -140,22 +274,22 @@ public partial class ImageGenSettingsWindow : Window
             sb.AppendLine("[!] no hay webui-user.bat en esa carpeta");
         }
 
-        sb.AppendLine(CountLine("Modelos", SdFolder.Models, install, ModelExtensions));
-        sb.AppendLine(CountLine("LoRAs / LyCORIS", SdFolder.Loras, install, ModelExtensions));
-        sb.Append(CountLine("VAE", SdFolder.Vae, install, ModelExtensions));
+        sb.AppendLine(CountLine("Modelos", SdFolder.Models));
+        sb.AppendLine(CountLine("LoRAs / LyCORIS", SdFolder.Loras));
+        sb.Append(CountLine("VAE", SdFolder.Vae));
 
         StatusText.Text = sb.ToString();
     }
 
-    private string CountLine(string label, SdFolder kind, string install, string[] extensions)
+    private string CountLine(string label, SdFolder kind)
     {
-        var folder = _settings.FolderFor(kind, install);
+        var folder = ResolveFolder(kind);
         if (folder == null || !Directory.Exists(folder)) return $"[!] {label}: carpeta no encontrada";
 
         try
         {
             var count = Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
-                .Count(f => extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+                .Count(f => ModelExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
             return $"[ok] {label}: {count} archivo(s)";
         }
         catch
@@ -255,38 +389,6 @@ public partial class ImageGenSettingsWindow : Window
         }
     }
 
-    // ===================== Carpetas rapidas =====================
-
-    private void OpenFolder_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { Tag: string tag } || !Enum.TryParse<SdFolder>(tag, out var kind)) return;
-
-        var folder = _settings.FolderFor(kind, InstallBox.Text.Trim());
-        if (folder == null || !Directory.Exists(folder))
-        {
-            MessageBox.Show(this,
-                folder == null
-                    ? "Indica primero la carpeta de instalacion."
-                    : $"La carpeta no existe todavia:\n{folder}",
-                "Abrir carpeta", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        OpenInExplorer(folder);
-    }
-
-    private static void OpenInExplorer(string path)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            LogService.Error("No se pudo abrir la carpeta", ex);
-        }
-    }
-
     // ===================== Wildcards =====================
 
     private void BrowseWildcards_Click(object sender, RoutedEventArgs e)
@@ -299,7 +401,7 @@ public partial class ImageGenSettingsWindow : Window
 
     private void UseDynamicPrompts_Click(object sender, RoutedEventArgs e)
     {
-        var extensions = _settings.FolderFor(SdFolder.Extensions, InstallBox.Text.Trim());
+        var extensions = ResolveFolder(SdFolder.Extensions);
         var path = extensions == null ? null : Path.Combine(extensions, "sd-dynamic-prompts", "wildcards");
 
         if (path == null || !Directory.Exists(path))
@@ -343,6 +445,41 @@ public partial class ImageGenSettingsWindow : Window
             return;
         }
 
+        // Carpetas manuales: vacias se descartan; todas deben existir salvo la de imagenes del Launcher (se crea).
+        var custom = new Dictionary<string, string>();
+        foreach (var (kind, box) in _folderBoxes)
+        {
+            var path = box.Text.Trim();
+            if (path.Length == 0) continue;
+
+            if (!Directory.Exists(path))
+            {
+                if (kind == SdFolder.Gallery)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(this, $"No se ha podido crear la carpeta de imagenes:\n{ex.Message}",
+                            "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+                else
+                {
+                    var label = FolderDefs.First(d => d.Kind == kind).Label;
+                    MessageBox.Show(this, $"La carpeta \"{label}\" no existe:\n{path}",
+                        "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+
+            custom[kind.ToString()] = path;
+        }
+
+        // Se calcula ANTES de asignar la nueva instalacion.
         var installChanged = !string.Equals(
             install.TrimEnd('\\'), (_settings.InstallPath ?? "").TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
 
@@ -350,6 +487,7 @@ public partial class ImageGenSettingsWindow : Window
         _settings.InstallPath = install.Length == 0 ? null : install;
         _settings.AutoStartServer = AutoStartCheck.IsChecked == true;
         _settings.WildcardsFolder = wildcards.Length == 0 ? null : wildcards;
+        _settings.CustomFolders = custom;
 
         // Si cambio la instalacion, las carpetas aprendidas de la anterior ya no valen:
         // se volveran a aprender al conectar.

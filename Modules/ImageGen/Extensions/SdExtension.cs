@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using Launcher.Core.Services;
+using Launcher.Modules.ImageGen.Autocomplete;
 
 namespace Launcher.Modules.ImageGen.Extensions;
 
@@ -23,6 +24,14 @@ public abstract class SdExtension
     /// <summary>Fragmento del nombre del script en A1111 (script-info). Null = extension
     /// local que no necesita nada instalado en el servidor.</summary>
     public virtual string? ServerScriptName => null;
+
+    /// <summary>False para extensiones que no cambian la peticion (autocompletado): no se
+    /// guardan con cada imagen ni se tocan al reutilizar parametros de la biblioteca.</summary>
+    public virtual bool AffectsRequest => true;
+
+    /// <summary>Proveedor de sugerencias al escribir en los prompts. Solo se consulta
+    /// mientras la extension esta activada y disponible.</summary>
+    public virtual IAutocompleteProvider? AutocompleteProvider => null;
 
     /// <summary>True si, con este prompt, cada imagen necesita su propia peticion (p.ej.
     /// wildcards distintos por imagen). A1111 solo acepta un prompt por peticion, asi que
@@ -165,6 +174,14 @@ public abstract class SdExtension
         grid.Children.Add(right);
         return grid;
     }
+
+    protected static CheckBox MakeCheck(string text, bool isChecked) => new()
+    {
+        Content = text,
+        IsChecked = isChecked,
+        Foreground = Res<System.Windows.Media.Brush>("Brush.TextSecondary"),
+        Margin = new Thickness(0, 2, 0, 4)
+    };
 
     protected static double ParseDouble(string? text, double fallback) =>
         double.TryParse(text?.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)

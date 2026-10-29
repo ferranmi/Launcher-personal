@@ -114,19 +114,13 @@
                               Foreground="{DynamicResource Brush.TextSecondary}"
                               FontFamily="{DynamicResource Font.Mono}" FontSize="11" Margin="0,0,0,18" />
 
-                    <!-- Carpetas rapidas -->
-                    <TextBlock Text="Abrir carpetas de la instalacion" Style="{StaticResource FieldLabel}" />
-                    <WrapPanel Margin="0,0,0,6">
-                        <Button Content="Modelos" Tag="Models" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="LoRAs" Tag="Loras" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="VAE" Tag="Vae" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="Embeddings" Tag="Embeddings" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="ControlNet" Tag="ControlNet" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="Extensiones" Tag="Extensions" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                        <Button Content="Salida de A1111" Tag="Outputs" Style="{StaticResource GhostButton}" Margin="0,0,8,8" Click="OpenFolder_Click" />
-                    </WrapPanel>
+                    <!-- Carpetas (filas generadas desde codigo) -->
+                    <TextBlock Text="Carpetas" Style="{StaticResource FieldLabel}" FontSize="12" Margin="0,0,0,2" />
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,0,0,10"
+                               Text="Vacio = la de la instalacion (o la que informa A1111 si lo lanzaste con --lora-dir, --ckpt-dir...). Escribe o elige una ruta para usar otra." />
+                    <StackPanel x:Name="FolderRows" Margin="0,0,0,8" />
                     <TextBlock Style="{StaticResource HintText}" Margin="0,0,0,18"
-                               Text="Si lanzaste A1111 con --ckpt-dir, --lora-dir, etc., se usan esas carpetas (se aprenden al conectar)." />
+                               Text="Imagenes del Launcher: donde se guardan las nuevas. Las ya generadas se quedan donde estaban." />
 
                     <!-- Wildcards -->
                     <TextBlock Text="Carpeta de wildcards" Style="{StaticResource FieldLabel}" />

@@ -119,6 +119,45 @@
             </Setter>
         </Style>
 
+        <!-- Lista de sugerencias del autocompletado -->
+        <Style x:Key="SuggestItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceActive}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="SuggestionTemplate">
+            <Grid ToolTip="{Binding Note}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Label}" Foreground="{Binding Tint}"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="11.5"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding Detail}" Margin="14,0,0,0"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                           Foreground="{DynamicResource Brush.TextDim}" VerticalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
             <Setter Property="FontSize" Value="10.5" />
@@ -135,6 +174,23 @@
 
         <!-- Biblioteca: se superpone a todo el modulo -->
         <local:LibraryView x:Name="Library" Grid.ColumnSpan="2" Panel.ZIndex="10" Visibility="Collapsed" />
+
+        <!-- Sugerencias del autocompletado (compartido por prompt y negativo) -->
+        <Popup x:Name="SuggestPopup" AllowsTransparency="True" StaysOpen="True" Focusable="False"
+               Placement="Relative">
+            <Border Width="380" Margin="8" Padding="2" CornerRadius="6" BorderThickness="1"
+                    Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.BorderStrong}">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="0" Opacity="0.6" />
+                </Border.Effect>
+                <ListBox x:Name="SuggestList" Focusable="False" MaxHeight="240"
+                         Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SuggestItemStyle}"
+                         ItemTemplate="{StaticResource SuggestionTemplate}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+            </Border>
+        </Popup>
 
         <!-- ===================== PANEL DE PARAMETROS ===================== -->
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,16,0">

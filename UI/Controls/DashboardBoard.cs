@@ -1,9 +1,12 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using Launcher.Core.Services;
 using Brush = System.Windows.Media.Brush;
+using FontFamily = System.Windows.Media.FontFamily;
 using Pen = System.Windows.Media.Pen;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
@@ -14,9 +17,12 @@ namespace Launcher.UI.Controls;
 /// <summary>
 /// Tablero de cajas libres: una rejilla de Columns x Rows celdas que se reparte todo el espacio
 /// disponible. Cada <see cref="BoardBox"/> hijo ocupa un rectangulo de celdas (Col, Row, ColSpan, RowSpan).
-/// El usuario arrastra la cabecera de una caja para moverla y la esquina inferior derecha para cambiar su
-/// tamano; al soltar encaja en la rejilla, y las cajas que estorben se empujan hacia abajo. Si no hay
-/// sitio, la caja vuelve a donde estaba. La disposicion se guarda en config.json (AppSettingsService.Layouts).
+///
+/// Modo edicion (IsEditing, boton "editar" del dashboard): se ve la rejilla, cada caja muestra su marco,
+/// tiradores en los bordes derecho e inferior y en la esquina, su tamano en celdas y un boton para quitarla.
+/// Se mueve agarrando cualquier punto de la caja. Al soltar encaja en la rejilla y las cajas que estorben
+/// se empujan hacia abajo; si no hay sitio, la caja vuelve a donde estaba. Fuera del modo edicion nada se
+/// mueve (no hay arrastres accidentales). La disposicion se guarda en config.json (AppSettingsService.Layouts).
 /// Clic derecho en el tablero: "Restablecer disposicion".
 /// </summary>
 public class DashboardBoard : Panel
@@ -35,14 +41,21 @@ public class DashboardBoard : Panel
         nameof(Gap), typeof(double), typeof(DashboardBoard),
         new FrameworkPropertyMetadata(8.0, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsArrange));
 
+    /// <summary>True mientras el usuario edita la disposicion (rejilla visible, tiradores, mover/redimensionar).</summary>
+    public static readonly DependencyProperty IsEditingProperty = DependencyProperty.Register(
+        nameof(IsEditing), typeof(bool), typeof(DashboardBoard),
+        new FrameworkPropertyMetadata(false, (d, e) => ((DashboardBoard)d).OnEditingChanged((bool)e.NewValue)));
+
     public int Columns { get => (int)GetValue(ColumnsProperty); set => SetValue(ColumnsProperty, value); }
     public int Rows { get => (int)GetValue(RowsProperty); set => SetValue(RowsProperty, value); }
     public double Gap { get => (double)GetValue(GapProperty); set => SetValue(GapProperty, value); }
+    public bool IsEditing { get => (bool)GetValue(IsEditingProperty); set => SetValue(IsEditingProperty, value); }
 
     /// <summary>Identificador del tablero: prefijo con el que se guarda su disposicion.</summary>
     public string BoardId { get; set; } = "board";
 
-    /// <summary>Tamano minimo (en celdas) al redimensionar una caja.</summary>
+    /// <summary>Tamano minimo (en celdas) por defecto al redimensionar una caja. Cada caja puede
+    /// sobrescribirlo con DashboardBoard.MinCols / DashboardBoard.MinRows.</summary>
     public int MinColSpan { get; set; } = 2;
     public int MinRowSpan { get; set; } = 3;
 
@@ -57,6 +70,12 @@ public class DashboardBoard : Panel
     public static readonly DependencyProperty RowSpanProperty = AttachInt("RowSpan", 1);
     public static readonly DependencyProperty KeyProperty =
         DependencyProperty.RegisterAttached("Key", typeof(string), typeof(DashboardBoard), new PropertyMetadata(null));
+
+    /// <summary>Tamano minimo propio de una caja (0 = usar el del tablero).</summary>
+    public static readonly DependencyProperty MinColsProperty =
+        DependencyProperty.RegisterAttached("MinCols", typeof(int), typeof(DashboardBoard), new PropertyMetadata(0));
+    public static readonly DependencyProperty MinRowsProperty =
+        DependencyProperty.RegisterAttached("MinRows", typeof(int), typeof(DashboardBoard), new PropertyMetadata(0));
 
     /// <summary>Caja que empieza oculta (no aparece hasta que el usuario la anade con clic derecho > Anadir widget).</summary>
     public static readonly DependencyProperty StartHiddenProperty =
@@ -75,10 +94,21 @@ public class DashboardBoard : Panel
     public static void SetRowSpan(DependencyObject d, int v) => d.SetValue(RowSpanProperty, v);
     public static string? GetKey(DependencyObject d) => (string?)d.GetValue(KeyProperty);
     public static void SetKey(DependencyObject d, string? v) => d.SetValue(KeyProperty, v);
+    public static int GetMinCols(DependencyObject d) => (int)d.GetValue(MinColsProperty);
+    public static void SetMinCols(DependencyObject d, int v) => d.SetValue(MinColsProperty, v);
+    public static int GetMinRows(DependencyObject d) => (int)d.GetValue(MinRowsProperty);
+    public static void SetMinRows(DependencyObject d, int v) => d.SetValue(MinRowsProperty, v);
+
+    private int MinColsOf(DependencyObject d) => GetMinCols(d) is > 0 and var v ? v : MinColSpan;
+    private int MinRowsOf(DependencyObject d) => GetMinRows(d) is > 0 and var v ? v : MinRowSpan;
 
     // ===================== Estado =====================
 
     private readonly record struct Cell(int C, int R, int CS, int RS);
+
+    private enum Zone { Move, Right, Bottom, Corner, Close }
+
+    private const double EdgeGrip = 10; // ancho (px) de la zona de agarre en los bordes derecho e inferior
 
     private readonly Dictionary<BoardBox, Cell> _defaults = new();
     private readonly Dictionary<string, BoardBox> _removed = new(); // widgets quitados (siguen vivos para poder volver a anadirlos)
@@ -86,12 +116,15 @@ public class DashboardBoard : Panel
 
     private BoardBox? _pressBox;
     private bool _resize;
+    private bool _growX = true;
+    private bool _growY = true;
     private bool _dragging;
     private Point _pressPoint;
     private Rect _startRect;
     private Rect? _dragRect;
     private Cell? _target;
     private List<Slot>? _plan; // disposicion resultante si se soltara ahora (null = no cabe)
+    private EditAdorner? _adorner;
 
     /// <summary>Se dispara tras "Restablecer disposicion" (para que el dashboard restablezca tambien el resto).</summary>
     public event EventHandler? LayoutReset;
@@ -104,6 +137,7 @@ public class DashboardBoard : Panel
         ContextMenuOpening += (_, _) => BuildMenu();
 
         Loaded += (_, _) => Initialize();
+        SizeChanged += (_, _) => RefreshOverlay();
     }
 
     private IEnumerable<BoardBox> Boxes() => InternalChildren.OfType<BoardBox>();
@@ -153,29 +187,139 @@ public class DashboardBoard : Panel
         return finalSize;
     }
 
-    /// <summary>Dibuja la celda destino mientras se arrastra (el "hueco" donde va a encajar la caja).</summary>
+    /// <summary>En edicion dibuja la rejilla de celdas (se ve en los huecos libres) y, mientras se arrastra,
+    /// la celda destino: el "hueco" donde va a encajar la caja.</summary>
     protected override void OnRender(DrawingContext dc)
     {
         base.OnRender(dc);
 
+        var size = new Size(ActualWidth, ActualHeight);
+
+        if (IsEditing)
+        {
+            var gridPen = new Pen((Brush)Application.Current.FindResource("Brush.BorderStrong"), 0.5)
+            {
+                DashStyle = DashStyles.Dot
+            };
+
+            for (var r = 0; r < Rows; r++)
+                for (var c = 0; c < Columns; c++)
+                    dc.DrawRoundedRectangle(null, gridPen, CellRect(new Cell(c, r, 1, 1), size), 4, 4);
+        }
+
         if (_target is not Cell t || _pressBox == null) return;
 
-        var rect = CellRect(t, new Size(ActualWidth, ActualHeight));
+        var rect = CellRect(t, size);
         var ok = _plan != null;
         var fill = (Brush)Application.Current.FindResource(ok ? "Brush.AccentDim" : "Brush.Surface");
         var line = (Brush)Application.Current.FindResource(ok ? "Brush.Accent" : "Brush.Danger");
         dc.DrawRoundedRectangle(fill, new Pen(line, 1.5), rect, 8, 8);
     }
 
+    // ===================== Modo edicion =====================
+
+    private void OnEditingChanged(bool on)
+    {
+        ForceCursor = on; // que el cursor de edicion gane al "Hand" de las tarjetas
+
+        if (on)
+        {
+            _adorner ??= new EditAdorner(this);
+            var layer = AdornerLayer.GetAdornerLayer(this);
+            if (layer != null && !ReferenceEquals(_adorner.Parent, layer)) layer.Add(_adorner);
+        }
+        else
+        {
+            Cursor = null;
+            if (_pressBox != null) EndPress();
+            if (_adorner != null) AdornerLayer.GetAdornerLayer(this)?.Remove(_adorner);
+        }
+
+        InvalidateVisual();
+    }
+
+    private void RefreshOverlay() => _adorner?.InvalidateVisual();
+
+    private BoardBox? HitBox(Point p)
+    {
+        var size = new Size(ActualWidth, ActualHeight);
+        return Boxes().FirstOrDefault(b => CellRect(ReadCell(b), size).Contains(p));
+    }
+
+    private static Rect CloseRect(Rect r) => new(r.Right - 22, r.Top + 4, 18, 18);
+
+    private static Zone ZoneAt(Rect r, Point p)
+    {
+        if (CloseRect(r).Contains(p)) return Zone.Close;
+
+        var right = p.X >= r.Right - EdgeGrip;
+        var bottom = p.Y >= r.Bottom - EdgeGrip;
+        return right && bottom ? Zone.Corner : right ? Zone.Right : bottom ? Zone.Bottom : Zone.Move;
+    }
+
+    protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        if (!IsEditing || _pressBox != null)
+        {
+            base.OnPreviewMouseLeftButtonDown(e);
+            return;
+        }
+
+        var p = e.GetPosition(this);
+        var box = HitBox(p);
+        if (box == null)
+        {
+            base.OnPreviewMouseLeftButtonDown(e);
+            return;
+        }
+
+        var rect = CellRect(ReadCell(box), new Size(ActualWidth, ActualHeight));
+        switch (ZoneAt(rect, p))
+        {
+            case Zone.Close: RemoveBox(box); break;
+            case Zone.Right: BeginPress(box, e, resize: true, growX: true, growY: false); break;
+            case Zone.Bottom: BeginPress(box, e, resize: true, growX: false, growY: true); break;
+            case Zone.Corner: BeginPress(box, e, resize: true); break;
+            default: BeginPress(box, e, resize: false); break; // en edicion se mueve agarrando cualquier punto
+        }
+
+        e.Handled = true; // el contenido (juegos, comandos...) no recibe el clic mientras se edita
+    }
+
+    protected override void OnPreviewMouseMove(MouseEventArgs e)
+    {
+        base.OnPreviewMouseMove(e);
+        if (!IsEditing || _pressBox != null) return;
+
+        var p = e.GetPosition(this);
+        var box = HitBox(p);
+        if (box == null)
+        {
+            Cursor = null;
+            return;
+        }
+
+        Cursor = ZoneAt(CellRect(ReadCell(box), new Size(ActualWidth, ActualHeight)), p) switch
+        {
+            Zone.Close => Cursors.Hand,
+            Zone.Right => Cursors.SizeWE,
+            Zone.Bottom => Cursors.SizeNS,
+            Zone.Corner => Cursors.SizeNWSE,
+            _ => Cursors.SizeAll
+        };
+    }
+
     // ===================== Arrastrar y redimensionar =====================
 
-    internal void BeginPress(BoardBox box, MouseButtonEventArgs e, bool resize)
+    internal void BeginPress(BoardBox box, MouseButtonEventArgs e, bool resize, bool growX = true, bool growY = true)
     {
         if (_pressBox != null) return;
         if (!CaptureMouse()) return;
 
         _pressBox = box;
         _resize = resize;
+        _growX = growX;
+        _growY = growY;
         _dragging = false;
         _pressPoint = e.GetPosition(this);
         _startRect = CellRect(ReadCell(box), new Size(ActualWidth, ActualHeight));
@@ -198,8 +342,10 @@ public class DashboardBoard : Panel
                 Math.Abs(dy) < SystemParameters.MinimumVerticalDragDistance) return;
 
             _dragging = true;
-            SetZIndex(_pressBox, 100); // la caja arrastrada va por encima de las demas
+            if (IsEditing) SetZIndex(_pressBox, 100); // la caja arrastrada va por encima de las demas
         }
+
+        if (!IsEditing) return; // fuera del modo edicion no se mueve ni redimensiona nada
 
         var size = new Size(ActualWidth, ActualHeight);
         var (px, py) = Pitch(size);
@@ -217,10 +363,13 @@ public class DashboardBoard : Panel
         }
         else
         {
-            var w = Clamp(_startRect.Width + dx, MinColSpan * px - Gap, size.Width - _startRect.X);
-            var h = Clamp(_startRect.Height + dy, MinRowSpan * py - Gap, size.Height - _startRect.Y);
-            var cs = (int)Clamp(Math.Round((w + Gap) / px), MinColSpan, Columns - current.C);
-            var rs = (int)Clamp(Math.Round((h + Gap) / py), MinRowSpan, Rows - current.R);
+            var minC = MinColsOf(_pressBox);
+            var minR = MinRowsOf(_pressBox);
+
+            var w = _growX ? Clamp(_startRect.Width + dx, minC * px - Gap, size.Width - _startRect.X) : _startRect.Width;
+            var h = _growY ? Clamp(_startRect.Height + dy, minR * py - Gap, size.Height - _startRect.Y) : _startRect.Height;
+            var cs = _growX ? (int)Clamp(Math.Round((w + Gap) / px), minC, Columns - current.C) : current.CS;
+            var rs = _growY ? (int)Clamp(Math.Round((h + Gap) / py), minR, Rows - current.R) : current.RS;
             _target = new Cell(current.C, current.R, cs, rs);
 
             // La caja salta de celda en celda mientras arrastras (no queda a medias): lo que ves es lo que queda.
@@ -232,6 +381,7 @@ public class DashboardBoard : Panel
         InvalidateMeasure();
         InvalidateArrange();
         InvalidateVisual();
+        RefreshOverlay();
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -250,11 +400,11 @@ public class DashboardBoard : Panel
 
         if (!wasDragging)
         {
-            if (!resize) box.OnHeaderClick(point); // un clic sin arrastrar en el titulo abre su menu
+            if (!resize && !IsEditing) box.OnHeaderClick(point); // un clic sin arrastrar en el titulo abre su menu
             return;
         }
 
-        if (plan != null)
+        if (plan != null && IsEditing)
         {
             foreach (var slot in plan) WriteCell(slot.Box, slot.Cell);
             Save();
@@ -262,6 +412,7 @@ public class DashboardBoard : Panel
 
         InvalidateMeasure();
         InvalidateArrange();
+        RefreshOverlay();
         e.Handled = true;
     }
 
@@ -286,6 +437,7 @@ public class DashboardBoard : Panel
         InvalidateMeasure();
         InvalidateArrange();
         InvalidateVisual();
+        RefreshOverlay();
     }
 
     private static double Clamp(double value, double min, double max) =>
@@ -460,6 +612,7 @@ public class DashboardBoard : Panel
 
         InvalidateMeasure();
         InvalidateArrange();
+        RefreshOverlay();
     }
 
     /// <summary>Vuelve a poner una caja quitada: en su ultima posicion si sigue libre, si no en la de fabrica,
@@ -485,7 +638,7 @@ public class DashboardBoard : Panel
 
         var size = ReadCell(box);
         spot ??= FindFreeSpot(size.CS, size.RS, Free);
-        spot ??= FindFreeSpot(MinColSpan, MinRowSpan, Free);
+        spot ??= FindFreeSpot(MinColsOf(box), MinRowsOf(box), Free);
 
         if (spot is not Cell found) return false;
 
@@ -498,6 +651,7 @@ public class DashboardBoard : Panel
 
         InvalidateMeasure();
         InvalidateArrange();
+        RefreshOverlay();
         return true;
     }
 
@@ -571,7 +725,7 @@ public class DashboardBoard : Panel
 
             Cell? spot = Free(size) ? size : null;
             spot ??= FindFreeSpot(size.CS, size.RS, Free);
-            spot ??= FindFreeSpot(MinColSpan, MinRowSpan, Free);
+            spot ??= FindFreeSpot(MinColsOf(box), MinRowsOf(box), Free);
 
             if (spot is Cell found)
             {
@@ -642,6 +796,68 @@ public class DashboardBoard : Panel
         settings.Save();
         InvalidateMeasure();
         InvalidateArrange();
+        RefreshOverlay();
         LayoutReset?.Invoke(this, EventArgs.Empty);
+    }
+
+    // ===================== Capa de edicion (marco, tiradores, tamano, quitar) =====================
+
+    /// <summary>Se dibuja por encima del contenido de las cajas (en la capa de adorners); no recibe el raton:
+    /// los clics los gestiona el propio tablero con ZoneAt.</summary>
+    private sealed class EditAdorner : Adorner
+    {
+        private readonly DashboardBoard _b;
+
+        public EditAdorner(DashboardBoard board) : base(board)
+        {
+            _b = board;
+            IsHitTestVisible = false;
+        }
+
+        protected override void OnRender(DrawingContext dc)
+        {
+            Brush Res(string key) => (Brush)Application.Current.FindResource(key);
+
+            var accent = Res("Brush.Accent");
+            var surface = Res("Brush.Surface");
+            var danger = Res("Brush.Danger");
+            var text = Res("Brush.TextPrimary");
+            var typeface = new Typeface((FontFamily)Application.Current.FindResource("Font.Mono"),
+                FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+            var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+            var size = new Size(_b.ActualWidth, _b.ActualHeight);
+            var dashed = new Pen(accent, 1) { DashStyle = DashStyles.Dash };
+            var closePen = new Pen(danger, 1.5);
+            var pillPen = new Pen(accent, 1);
+
+            foreach (var box in _b.Boxes())
+            {
+                var pressed = ReferenceEquals(box, _b._pressBox);
+                var cell = pressed && _b._target is Cell t ? t : ReadCell(box);
+                var r = _b.RectFor(box, size);
+
+                dc.DrawRoundedRectangle(null, dashed, r, 8, 8);
+
+                // tiradores: borde derecho, borde inferior y esquina
+                dc.DrawRoundedRectangle(accent, null, new Rect(r.Right - 5, r.Top + r.Height / 2 - 14, 6, 28), 3, 3);
+                dc.DrawRoundedRectangle(accent, null, new Rect(r.Left + r.Width / 2 - 14, r.Bottom - 5, 28, 6), 3, 3);
+                dc.DrawRoundedRectangle(accent, null, new Rect(r.Right - 9, r.Bottom - 9, 12, 12), 3, 3);
+
+                // boton quitar (misma zona que CloseRect)
+                var cr = CloseRect(r);
+                var centre = new Point(cr.X + cr.Width / 2, cr.Y + cr.Height / 2);
+                dc.DrawEllipse(surface, closePen, centre, 9, 9);
+                dc.DrawLine(closePen, new Point(centre.X - 3.5, centre.Y - 3.5), new Point(centre.X + 3.5, centre.Y + 3.5));
+                dc.DrawLine(closePen, new Point(centre.X - 3.5, centre.Y + 3.5), new Point(centre.X + 3.5, centre.Y - 3.5));
+
+                // etiqueta con el tamano en celdas
+                var label = new FormattedText($"{cell.CS}\u00D7{cell.RS}", CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight, typeface, 10, text, dpi);
+                var pill = new Rect(r.Left + 8, r.Bottom - 24, label.Width + 12, 16);
+                dc.DrawRoundedRectangle(surface, pillPen, pill, 4, 4);
+                dc.DrawText(label, new Point(pill.X + 6, pill.Y + 2));
+            }
+        }
     }
 }

@@ -15,7 +15,10 @@ namespace Launcher.Modules.ImageGen;
 public class GalleryService
 {
     private static readonly string BaseFolder = Path.Combine(AppSettingsService.AppFolder, "imagegen");
-    public static readonly string ImagesFolder = Path.Combine(BaseFolder, "outputs");
+    /// <summary>Donde se guardan las imagenes NUEVAS (editable en los ajustes de instalacion).
+    /// Las ya generadas conservan su ruta absoluta, asi que cambiarla no rompe la galeria.</summary>
+    public static string ImagesFolder =>
+        ImageGenSettings.Instance.FolderFor(SdFolder.Gallery) ?? ImageGenSettings.DefaultGalleryFolder;
     private static readonly string IndexPath = Path.Combine(BaseFolder, "gallery.json");
 
     public static GalleryService Instance { get; } = new();
