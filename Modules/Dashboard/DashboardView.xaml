@@ -4,7 +4,8 @@
              xmlns:conv="clr-namespace:Launcher.Core.Converters"
              xmlns:svc="clr-namespace:Launcher.Core.Services"
              xmlns:ctl="clr-namespace:Launcher.UI.Controls"
-             xmlns:search="clr-namespace:Launcher.Modules.Search">
+             xmlns:search="clr-namespace:Launcher.Modules.Search"
+             xmlns:wd="clr-namespace:Launcher.Modules.Dashboard.Widgets">
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
@@ -463,7 +464,7 @@
                     <ItemsControl x:Name="GamesItems" ItemTemplate="{StaticResource GameTileTemplate}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <ctl:FluidTilePanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
+                                <ctl:FitGridPanel MinItemWidth="86" Spacing="10" HeightRatio="1.3" ExtraHeight="22" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
@@ -478,7 +479,7 @@
                 <ItemsControl x:Name="CommandsItems" ItemTemplate="{StaticResource IconTileTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                            <ctl:FitGridPanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
@@ -490,7 +491,7 @@
                 <ItemsControl x:Name="FoldersItems" ItemTemplate="{StaticResource IconTileTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ctl:FluidTilePanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
+                            <ctl:FitGridPanel MinItemWidth="84" Spacing="8" HeightRatio="0.8" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
@@ -614,6 +615,71 @@
                         <ItemsPanelTemplate><UniformGrid Rows="1" Columns="5" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
+            </ctl:BoardBox>
+
+            <!-- ===== Widgets nuevos: empiezan ocultos, se anaden desde "+ widget" ===== -->
+            <ctl:BoardBox ctl:DashboardBoard.Key="services" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="4"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
+                          Title="[ SERVICIOS ]">
+                <wd:ServicesWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="storage" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="4"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
+                          Title="[ ALMACENAMIENTO ]" TitleTarget="monitor">
+                <wd:StorageWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="calendar" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="5"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ CALENDARIO ]">
+                <wd:CalendarWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="notes" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="5"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
+                          Title="[ NOTAS ]">
+                <wd:NotesWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="todo" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ TAREAS ]">
+                <wd:TodoWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="timer" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="4"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
+                          Title="[ TEMPORIZADOR ]">
+                <wd:TimerWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="clipboard" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ PORTAPAPELES ]">
+                <wd:ClipboardWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="actions" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="4"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
+                          Title="[ ACCIONES ]">
+                <wd:QuickActionsWidget />
             </ctl:BoardBox>
 
         </ctl:DashboardBoard>

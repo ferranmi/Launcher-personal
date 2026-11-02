@@ -640,6 +640,11 @@ public class DashboardBoard : Panel
         spot ??= FindFreeSpot(size.CS, size.RS, Free);
         spot ??= FindFreeSpot(MinColsOf(box), MinRowsOf(box), Free);
 
+        // Tablero lleno: se hace sitio encogiendo cajas (sin bajar de su minimo). Primero para el tamano
+        // normal del widget y, si no hay manera, para su tamano minimo.
+        spot ??= MakeRoomFor(Math.Max(size.CS, MinColsOf(box)), Math.Max(size.RS, MinRowsOf(box)));
+        spot ??= MakeRoomFor(MinColsOf(box), MinRowsOf(box));
+
         if (spot is not Cell found) return false;
 
         WriteCell(box, found);
@@ -666,6 +671,46 @@ public class DashboardBoard : Panel
             }
         }
 
+        return null;
+    }
+
+    private bool CanShrink(BoardBox box) =>
+        GetColSpan(box) > MinColsOf(box) || GetRowSpan(box) > MinRowsOf(box);
+
+    /// <summary>Busca un hueco de cs x rs celdas encogiendo, de uno en uno, las cajas existentes (nunca por
+    /// debajo de su minimo). Sigue con la misma caja hasta agotarla y entonces pasa a la mayor siguiente, para
+    /// que el hueco que se libera sea contiguo. Si no se consigue, deja todas las cajas como estaban.</summary>
+    private Cell? MakeRoomFor(int cs, int rs)
+    {
+        var snapshot = Snapshot();
+        BoardBox? target = null;
+
+        for (var i = 0; i < 80; i++)
+        {
+            var occupied = Boxes().Select(ReadCell).ToList();
+            bool Free(Cell c) => Fits(c) && !occupied.Any(o => Overlaps(o, c));
+
+            if (FindFreeSpot(cs, rs, Free) is Cell spot) return spot;
+
+            if (target == null || !CanShrink(target))
+            {
+                target = Boxes()
+                    .Where(CanShrink)
+                    .OrderByDescending(b => GetColSpan(b) * GetRowSpan(b))
+                    .FirstOrDefault();
+            }
+
+            if (target == null) break;
+
+            var extraCols = GetColSpan(target) - MinColsOf(target);
+            var extraRows = GetRowSpan(target) - MinRowsOf(target);
+
+            if (extraRows >= extraCols) SetRowSpan(target, GetRowSpan(target) - 1);
+            else SetColSpan(target, GetColSpan(target) - 1);
+        }
+
+        // No ha sido posible: se restaura todo tal y como estaba.
+        foreach (var slot in snapshot) WriteCell(slot.Box, slot.Cell);
         return null;
     }
 
