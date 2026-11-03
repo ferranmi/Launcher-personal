@@ -49,6 +49,7 @@ public partial class MainWindow : Window
             new Launcher.Modules.Music.MusicModule(),
             new Launcher.Modules.Network.NetworkModule(),
             new Launcher.Modules.ImageGen.ImageGenModule(),
+            new Launcher.Modules.Models.ModelsModule(),
             new Launcher.Modules.Commands.CommandsModule(),
             new Launcher.Modules.Devices.DevicesModule(),
             new Launcher.Modules.Monitor.MonitorModule(),
@@ -85,7 +86,7 @@ public partial class MainWindow : Window
     {
         ["dashboard"] = "INI", ["games"] = "JUE", ["folders"] = "CAR", ["media"] = "MUL", ["music"] = "MUS",
         ["Network"] = "RED", ["commands"] = "CMD", ["monitor"] = "MON", ["processes"] = "PRO",
-        ["devices"] = "DIS", ["image generation"] = "IMG", ["settings"] = "CFG"
+        ["devices"] = "DIS", ["image generation"] = "IMG", ["models"] = "MOD", ["settings"] = "CFG"
     };
 
     private static string Abbreviate(IModule module) =>

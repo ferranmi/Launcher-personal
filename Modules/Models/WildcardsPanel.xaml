@@ -1,0 +1,391 @@
+<UserControl x:Class="Launcher.Modules.Models.WildcardsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <Style x:Key="RowText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="EditLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+
+        <Style x:Key="PlainList" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        </Style>
+
+        <Style x:Key="RowItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Cursor="Hand">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceActive}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Flechas del campo de peso -->
+        <Style x:Key="ArrowButton" TargetType="RepeatButton">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="17" />
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Icons}" />
+            <Setter Property="FontSize" Value="8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" MinHeight="110" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="4*" MinHeight="260" />
+        </Grid.RowDefinitions>
+
+        <!-- ===================== EXPLORADOR: barra ===================== -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="SearchBox" Grid.Column="0" Style="{StaticResource TextBoxStyle}"
+                         Tag="buscar wildcard..." Margin="0,0,10,0" TextChanged="SearchBox_TextChanged" />
+                <Button x:Name="RefreshButton" Grid.Column="1" Content="Actualizar" Margin="0,0,8,0"
+                        Style="{StaticResource SecondaryButtonStyle}" Click="Refresh_Click" />
+                <Button x:Name="CheckAllButton" Grid.Column="2" Content="Comprobar todos"
+                        Style="{StaticResource SecondaryButtonStyle}" Click="CheckAll_Click" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Content="Todos" Tag="all" GroupName="WcFiles" IsChecked="True"
+                             Style="{StaticResource ChipStyle}" Checked="FileFilter_Checked" />
+                <RadioButton Content="Con modelos" Tag="models" GroupName="WcFiles"
+                             Style="{StaticResource ChipStyle}" Checked="FileFilter_Checked" />
+                <RadioButton Content="Con problemas" Tag="problems" GroupName="WcFiles"
+                             Style="{StaticResource ChipStyle}" Checked="FileFilter_Checked" />
+                <TextBlock x:Name="ExplorerInfo" Style="{StaticResource RowText}" Margin="10,0,0,0"
+                           Foreground="{DynamicResource Brush.TextDim}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ===================== EXPLORADOR: lista ===================== -->
+        <Border Grid.Row="1" Background="{DynamicResource Brush.Surface}"
+                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+            <ListBox x:Name="FilesList" Style="{StaticResource PlainList}"
+                     ItemContainerStyle="{StaticResource RowItem}"
+                     SelectionChanged="FilesList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="10,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="230" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding LineCount, StringFormat={}{0} lineas}"
+                                           Style="{StaticResource RowText}" HorizontalAlignment="Right" />
+                                <TextBlock Grid.Column="2" Text="{Binding ModelRefCount, StringFormat={}{0} modelos}"
+                                           Style="{StaticResource RowText}" HorizontalAlignment="Right"
+                                           Foreground="{DynamicResource Brush.Accent}" />
+                                <TextBlock Grid.Column="3" Text="{Binding CheckSummaryText}" HorizontalAlignment="Right"
+                                           FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasProblems}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <GridSplitter Grid.Row="2" Height="8" HorizontalAlignment="Stretch" Background="Transparent"
+                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
+
+        <!-- ===================== EDITOR ===================== -->
+        <Grid Grid.Row="3">
+            <TextBlock x:Name="EditorEmpty" Text="&gt; selecciona un wildcard para editarlo_"
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="13"
+                       Foreground="{DynamicResource Brush.TextDim}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+            <Grid x:Name="EditorBody" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Cabecera -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="EditorTitle" FontFamily="{DynamicResource Font.Mono}" FontSize="14"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="EditorInfo" Style="{StaticResource RowText}" FontSize="10.5"
+                                   Foreground="{DynamicResource Brush.TextDim}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="CheckButton" Content="Comprobar referencias" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="CheckRefs_Click" />
+                        <Button x:Name="AddModelButton" Content="Anadir modelo" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="AddModel_Click" />
+                        <Button x:Name="BackupsButton" Content="Copias" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="Backups_Click" />
+                        <Button x:Name="DiscardButton" Content="Descartar" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="Discard_Click" />
+                        <Button x:Name="SaveButton" Content="Guardar" Margin="8,0,0,0"
+                                Style="{StaticResource PrimaryButtonStyle}" Click="Save_Click" />
+                    </WrapPanel>
+                </Grid>
+
+                <!-- Filtro de lineas -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                    <RadioButton Content="Todas las lineas" Tag="all" GroupName="WcLines" IsChecked="True"
+                                 Style="{StaticResource ChipStyle}" Checked="LineFilter_Checked" />
+                    <RadioButton Content="Con problemas o cambios" Tag="attention" GroupName="WcLines"
+                                 Style="{StaticResource ChipStyle}" Checked="LineFilter_Checked" />
+                </StackPanel>
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="300" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Lineas -->
+                    <Border Grid.Column="0" Margin="0,0,12,0" Background="{DynamicResource Brush.Surface}"
+                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+                        <ListBox x:Name="LinesList" Style="{StaticResource PlainList}"
+                                 ItemContainerStyle="{StaticResource RowItem}"
+                                 SelectionChanged="LinesList_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3" />
+                                                <ColumnDefinition Width="48" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="104" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Margin="0,1">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsModified}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+
+                                            <TextBlock Grid.Column="1" Text="{Binding Number}" Style="{StaticResource RowText}"
+                                                       FontSize="10" HorizontalAlignment="Right" Margin="0,0,10,0"
+                                                       Foreground="{DynamicResource Brush.TextDim}" />
+
+                                            <TextBlock Grid.Column="2" Text="{Binding Text}" FontFamily="{DynamicResource Font.Mono}"
+                                                       FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsComment}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <TextBlock Grid.Column="3" Text="{Binding StatusLabel}" ToolTip="{Binding StatusDetail}"
+                                                       FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding StatusLevel}" Value="1">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding StatusLevel}" Value="2">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding StatusLevel}" Value="3">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+
+                    <!-- Editor de la linea seleccionada -->
+                    <Border Grid.Column="1" Background="{DynamicResource Brush.Surface}"
+                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <TextBlock x:Name="LineEditorEmpty" Text="&gt; selecciona una linea_"
+                                       FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                       Foreground="{DynamicResource Brush.TextDim}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                            <ScrollViewer x:Name="LineEditorBody" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="14">
+                                    <TextBlock x:Name="LineTitle" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                               Foreground="{DynamicResource Brush.Accent}" />
+
+                                    <TextBlock Text="LINEA COMPLETA" Style="{StaticResource EditLabel}" />
+                                    <TextBox x:Name="RawBox" Style="{StaticResource TextBoxStyle}" TextWrapping="Wrap"
+                                             MinHeight="62" FontFamily="{DynamicResource Font.Mono}" FontSize="11.5"
+                                             VerticalContentAlignment="Top" TextChanged="RawBox_TextChanged" />
+
+                                    <StackPanel x:Name="StructuredPanel">
+                                        <TextBlock Text="MODELO" Style="{StaticResource EditLabel}" />
+                                        <TextBox x:Name="ModelBox" Style="{StaticResource TextBoxStyle}"
+                                                 FontFamily="{DynamicResource Font.Mono}" FontSize="11.5"
+                                                 TextChanged="Structured_TextChanged" />
+
+                                        <TextBlock Text="PESO" Style="{StaticResource EditLabel}" />
+                                        <Grid HorizontalAlignment="Left" Width="110">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="WeightBox" Style="{StaticResource TextBoxStyle}"
+                                                     FontFamily="{DynamicResource Font.Mono}" FontSize="11.5"
+                                                     TextChanged="Structured_TextChanged" />
+                                            <StackPanel Grid.Column="1" Margin="4,0,0,0" VerticalAlignment="Center">
+                                                <RepeatButton Style="{StaticResource ArrowButton}" Content="&#xE70E;"
+                                                              Margin="0,0,0,2" Click="WeightUp_Click" />
+                                                <RepeatButton Style="{StaticResource ArrowButton}" Content="&#xE70D;"
+                                                              Click="WeightDown_Click" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Text="TRIGGER WORDS / TEXTO" Style="{StaticResource EditLabel}" />
+                                        <TextBox x:Name="RestBox" Style="{StaticResource TextBoxStyle}" TextWrapping="Wrap"
+                                                 MinHeight="46" VerticalContentAlignment="Top"
+                                                 FontFamily="{DynamicResource Font.Mono}" FontSize="11.5"
+                                                 TextChanged="Structured_TextChanged" />
+
+                                        <TextBlock x:Name="ModelStateText" Style="{StaticResource RowText}" FontSize="10.5"
+                                                   TextWrapping="Wrap" Margin="0,8,0,0" />
+                                    </StackPanel>
+
+                                    <WrapPanel Margin="0,18,0,0">
+                                        <Button Content="Anadir linea" Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="0,0,8,8" Click="AddLine_Click" />
+                                        <Button Content="Eliminar linea" Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="0,0,8,8" Click="DeleteLine_Click" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Selector de modelo de la biblioteca -->
+                <Popup x:Name="PickPopup" PlacementTarget="{Binding ElementName=AddModelButton}" Placement="Bottom"
+                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                    <Border Width="380" Background="{DynamicResource Brush.Surface}"
+                            BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1" CornerRadius="8"
+                            Padding="10" Margin="0,6,0,0">
+                        <StackPanel>
+                            <TextBox x:Name="ModelPickBox" Style="{StaticResource TextBoxStyle}"
+                                     Tag="buscar en la biblioteca..." Margin="0,0,0,8"
+                                     TextChanged="ModelPickBox_TextChanged" PreviewKeyDown="ModelPickBox_PreviewKeyDown" />
+                            <ListBox x:Name="ModelPickList" Height="280" Style="{StaticResource PlainList}"
+                                     ItemContainerStyle="{StaticResource RowItem}"
+                                     MouseDoubleClick="ModelPickList_MouseDoubleClick"
+                                     PreviewKeyDown="ModelPickList_PreviewKeyDown">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="8,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding TypeLabel}" Style="{StaticResource RowText}"
+                                                       FontSize="10" Foreground="{DynamicResource Brush.Accent}" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <TextBlock Text="Doble clic o Enter para anadir &lt;lora:nombre:0.8&gt; tras la linea seleccionada."
+                                       Style="{StaticResource RowText}" FontSize="9.5" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource Brush.TextDim}" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
