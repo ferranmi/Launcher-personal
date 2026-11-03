@@ -636,8 +636,8 @@
 
             <ctl:BoardBox ctl:DashboardBoard.Key="calendar" ctl:DashboardBoard.StartHidden="True"
                           ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
-                          ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="5"
-                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="9"
+                          ctl:DashboardBoard.MinCols="4" ctl:DashboardBoard.MinRows="7"
                           Title="[ CALENDARIO ]">
                 <wd:CalendarWidget />
             </ctl:BoardBox>

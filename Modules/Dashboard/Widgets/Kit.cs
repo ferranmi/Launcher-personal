@@ -16,6 +16,16 @@ internal static class Kit
     public static FontFamily Mono => (FontFamily)Res("Font.Mono");
     public static FontFamily Icons => (FontFamily)Res("Font.Icons");
 
+    /// <summary>Azul de UPLINK, el mismo del dashboard. Ese pincel vive en el XAML de la vista y desde aqui
+    /// no se puede pedir por nombre, asi que se define aparte.</summary>
+    public static readonly Brush Uplink = Freeze(new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x4C, 0x9A, 0xFF)));
+
+    private static Brush Freeze(SolidColorBrush brush)
+    {
+        brush.Freeze();
+        return brush;
+    }
+
     public static TextBlock Label(string text, double size = 11.5, string brush = "Brush.TextPrimary", bool mono = false)
     {
         var block = new TextBlock
