@@ -11,13 +11,14 @@ public partial class ConfirmChangesWindow : Window
 {
     private const int MaxShown = 600;
 
-    public ConfirmChangesWindow(string wildcardName, IReadOnlyList<ChangeLine> changes)
+    public ConfirmChangesWindow(string wildcardName, IReadOnlyList<ChangeLine> changes, string? headline = null)
     {
         InitializeComponent();
 
         var added = changes.Count(c => c.Kind == "+");
         var removed = changes.Count(c => c.Kind == "-");
-        SummaryText.Text = $"__{wildcardName}__   \u00b7   {added} lineas con \"+\"   \u00b7   {removed} lineas con \"-\"";
+        var title = headline ?? $"__{wildcardName}__";
+        SummaryText.Text = $"{title}   \u00b7   {added} lineas con \"+\"   \u00b7   {removed} lineas con \"-\"";
 
         var shown = changes.Take(MaxShown).ToList();
         if (changes.Count > MaxShown)

@@ -24,6 +24,26 @@ public class ModelsSettings
     public List<string> LyCorisFolders { get; set; } = new();
     public List<string> WildcardFolders { get; set; } = new();
 
+    // ----- Descargas -----
+    public int MaxConcurrentDownloads { get; set; } = 2;
+
+    /// <summary>Sube o baja el numero de descargas simultaneas segun la velocidad total conseguida (hasta el maximo).</summary>
+    public bool AutoConcurrency { get; set; } = true;
+
+    /// <summary>Limite global de velocidad en KB/s (0 = sin limite).</summary>
+    public int SpeedLimitKBps { get; set; }
+
+    public int DownloadRetries { get; set; } = 3;
+
+    /// <summary>Categorias (subcarpetas) para organizar las descargas. Editables.</summary>
+    public List<string> Categories { get; set; } = new() { "Personajes", "Poses", "Acciones", "Ropa", "Estilos", "Otros" };
+
+    /// <summary>Nombres de referencia que el usuario ha decidido ignorar (no se avisa de que faltan).</summary>
+    public List<string> IgnoredReferences { get; set; } = new();
+
+    /// <summary>Correcciones de referencias preparadas y pendientes de revisar/aplicar.</summary>
+    public List<PendingCorrection> PendingCorrections { get; set; } = new();
+
     /// <summary>Ultima vista de la Biblioteca: "cards" o "list".</summary>
     public string LibraryView { get; set; } = "cards";
 
@@ -62,6 +82,22 @@ public class ModelsSettings
         if (string.IsNullOrWhiteSpace(InstallPath)) return Array.Empty<string>();
 
         return new[] { Path.Combine(InstallPath, @"extensions\sd-dynamic-prompts\wildcards") };
+    }
+
+    public void AddPending(string oldName, string newName, string source)
+    {
+        PendingCorrections.RemoveAll(p => string.Equals(p.OldName, oldName, StringComparison.OrdinalIgnoreCase));
+        PendingCorrections.Add(new PendingCorrection { OldName = oldName, NewName = newName, Source = source });
+        Save();
+        ModelsEvents.RaisePendingChanged();
+    }
+
+    public void RemovePending(IEnumerable<PendingCorrection> corrections)
+    {
+        var keys = corrections.Select(c => (c.OldName.ToLowerInvariant(), c.NewName)).ToHashSet();
+        PendingCorrections.RemoveAll(p => keys.Contains((p.OldName.ToLowerInvariant(), p.NewName)));
+        Save();
+        ModelsEvents.RaisePendingChanged();
     }
 
     private static ModelsSettings Load()

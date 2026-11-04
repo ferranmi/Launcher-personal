@@ -1,0 +1,126 @@
+<Window x:Class="Launcher.Modules.Models.RenameModelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Renombrar modelo"
+        Height="600" Width="680"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource Brush.Background}"
+            BorderBrush="{DynamicResource Brush.BorderStrong}"
+            BorderThickness="1" CornerRadius="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.6" />
+        </Border.Effect>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="&gt; Renombrar modelo" Margin="0,0,0,14"
+                       FontFamily="{DynamicResource Font.Mono}" FontSize="16"
+                       Foreground="{DynamicResource Brush.TextPrimary}"
+                       MouseLeftButtonDown="Header_MouseLeftButtonDown" />
+
+            <StackPanel Grid.Row="1">
+                <TextBlock Text="NOMBRE ACTUAL" Style="{StaticResource FieldLabelStyle}" />
+                <TextBlock x:Name="CurrentNameText" FontFamily="{DynamicResource Font.Mono}" FontSize="12.5"
+                           Foreground="{DynamicResource Brush.TextSecondary}" Margin="2,0,0,12" TextWrapping="Wrap" />
+
+                <TextBlock Text="NUEVO NOMBRE (sin extension)" Style="{StaticResource FieldLabelStyle}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="NewNameBox" Style="{StaticResource TextBoxStyle}"
+                             FontFamily="{DynamicResource Font.Mono}" FontSize="12.5"
+                             TextChanged="NewNameBox_TextChanged" />
+                    <TextBlock x:Name="ExtText" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                               Foreground="{DynamicResource Brush.TextDim}" />
+                </Grid>
+
+                <TextBlock x:Name="ErrorText" Margin="2,8,0,0" TextWrapping="Wrap"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                           Foreground="{DynamicResource Brush.Danger}" />
+
+                <TextBlock Text="SIMULACION (todavia no se ha cambiado nada)" Style="{StaticResource FieldLabelStyle}"
+                           Margin="2,14,0,4" />
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
+                <ListBox x:Name="PlanList" Background="Transparent" BorderThickness="0" Focusable="False"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="10,3"
+                                       FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                       Foreground="{DynamicResource Brush.TextSecondary}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <StackPanel Grid.Row="3" Margin="0,14,0,0">
+                <CheckBox x:Name="PrepareCheck" IsChecked="True"
+                          Content="Preparar la correccion de las referencias en los wildcards"
+                          Foreground="{DynamicResource Brush.TextSecondary}"
+                          FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
+                <TextBlock x:Name="NoteText" Margin="22,4,0,0" TextWrapping="Wrap"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="10"
+                           Foreground="{DynamicResource Brush.TextDim}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Content="Cancelar" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="Cancel_Click" />
+                <Button x:Name="RenameButton" Content="Renombrar" Style="{StaticResource AccentButton}" Click="Rename_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

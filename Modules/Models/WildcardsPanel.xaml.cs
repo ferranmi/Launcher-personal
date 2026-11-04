@@ -549,12 +549,14 @@ public partial class WildcardsPanel : UserControl
     private void ModelPickList_MouseDoubleClick(object sender, MouseButtonEventArgs e) =>
         PickModel(ModelPickList.SelectedItem as ModelEntry);
 
-    private void PickModel(ModelEntry? model)
+    private async void PickModel(ModelEntry? model)
     {
         if (model == null) return;
 
         PickPopup.IsOpen = false;
-        InsertLine($"<lora:{model.Name}:{DefaultWeight}>");
+
+        // Prioridad: linea ya existente en los wildcards > datos de Civitai guardados al descargar > solo la etiqueta.
+        InsertLine(await LineInfoService.BuildLineAsync(model.Name, DefaultWeight));
     }
 
     // ===================== Comprobar referencias (manual, solo lectura) =====================

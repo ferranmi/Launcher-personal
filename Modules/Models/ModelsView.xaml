@@ -57,9 +57,11 @@
         <!-- ===================== PESTANAS ===================== -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
             <RadioButton Content="Dashboard" Tag="dashboard" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
-            <RadioButton Content="Civitai" Tag="civitai" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
+            <RadioButton x:Name="TabCivitai" Content="Civitai" Tag="civitai" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
+            <RadioButton x:Name="TabDownloads" Content="Descargas" Tag="downloads" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton x:Name="TabLibrary" Content="Biblioteca" Tag="library" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Wildcards" Tag="wildcards" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
+            <RadioButton x:Name="TabReferences" Content="Referencias" Tag="references" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Parejas y trios" Tag="combos" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Configuracion" Tag="settings" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
         </StackPanel>
@@ -71,13 +73,15 @@
                 <TextBlock Style="{StaticResource Placeholder}" Text="&gt; dashboard: en construccion_" />
             </Grid>
 
-            <Grid Tag="civitai" Visibility="Collapsed">
-                <TextBlock Style="{StaticResource Placeholder}" Text="&gt; civitai y descargas: en construccion_" />
-            </Grid>
+            <local:CivitaiPanel x:Name="CivitaiTab" Tag="civitai" Visibility="Collapsed" />
+
+            <local:DownloadsPanel x:Name="DownloadsTab" Tag="downloads" Visibility="Collapsed" />
 
             <local:LibraryPanel x:Name="LibraryTab" Tag="library" Visibility="Collapsed" />
 
             <local:WildcardsPanel x:Name="WildcardsTab" Tag="wildcards" Visibility="Collapsed" />
+
+            <local:ReferencesPanel x:Name="ReferencesTab" Tag="references" Visibility="Collapsed" />
 
             <Grid Tag="combos" Visibility="Collapsed">
                 <TextBlock Style="{StaticResource Placeholder}" Text="&gt; parejas y trios: en construccion_" />
@@ -101,6 +105,17 @@
                                FontFamily="{DynamicResource Font.Mono}" FontSize="10" TextWrapping="Wrap"
                                Foreground="{DynamicResource Brush.TextDim}" Margin="0,0,0,14" />
 
+                    <TextBlock Text="CARPETAS PERSONALIZADAS (opcional)" Margin="0,4,0,10"
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                               Foreground="{DynamicResource Brush.Accent}" />
+                    <TextBlock Text="Si anades carpetas a una lista, se usan ellas en lugar de la ruta estandar. La primera es la principal; las demas (otras instalaciones, SDXL, Pony...) se marcan como otra ubicacion."
+                               FontFamily="{DynamicResource Font.Mono}" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,0,0,12" />
+                    <local:FolderListEditor x:Name="LoraEditor" />
+                    <local:FolderListEditor x:Name="CheckpointEditor" />
+                    <local:FolderListEditor x:Name="LyCorisEditor" />
+                    <local:FolderListEditor x:Name="WildcardEditor" />
+
                     <Button Content="Guardar y reescanear" Style="{StaticResource PrimaryButtonStyle}"
                             HorizontalAlignment="Left" Click="SaveSettings_Click" />
 
@@ -109,6 +124,57 @@
                                Foreground="{DynamicResource Brush.Accent}" />
                     <TextBlock x:Name="FoldersText" FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
                                TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextSecondary}" />
+                    <TextBlock Text="CIVITAI" Margin="0,26,0,8" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                               Foreground="{DynamicResource Brush.Accent}" />
+
+                    <TextBlock Text="API Key de Civitai" Style="{StaticResource FieldLabelStyle}" />
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="ApiKeyBox" Padding="10,8" FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                     Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.TextPrimary}"
+                                     BorderBrush="{DynamicResource Brush.Border}" CaretBrush="{DynamicResource Brush.Accent}" />
+                        <Button Grid.Column="1" Content="Guardar clave" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="SaveApiKey_Click" />
+                        <Button Grid.Column="2" Content="Probar conexion" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="TestApiKey_Click" />
+                    </Grid>
+                    <TextBlock x:Name="ApiKeyStatus" FontFamily="{DynamicResource Font.Mono}" FontSize="10.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4" />
+                    <TextBlock FontFamily="{DynamicResource Font.Mono}" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextDim}"
+                               Text="Se guarda en el Administrador de credenciales de Windows, no en los archivos del Launcher. Dejala vacia y pulsa Guardar para borrarla. Sin clave, la mayoria de descargas devuelven un error 401." />
+
+                    <TextBlock Text="DESCARGAS" Margin="0,26,0,8" FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                               Foreground="{DynamicResource Brush.Accent}" />
+
+                    <TextBlock Text="Descargas simultaneas maximas (1-8)" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox x:Name="MaxDownloadsBox" Style="{StaticResource TextBoxStyle}" Width="80" HorizontalAlignment="Left"
+                             Margin="0,0,0,10" />
+
+                    <CheckBox x:Name="AutoConcurrencyCheck" Margin="0,0,0,10"
+                              Content="Ajustar solas las descargas simultaneas segun la velocidad (nunca por encima del maximo)"
+                              Foreground="{DynamicResource Brush.TextSecondary}" FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
+
+                    <TextBlock Text="Limite de velocidad total en KB/s (0 = sin limite)" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox x:Name="SpeedLimitBox" Style="{StaticResource TextBoxStyle}" Width="120" HorizontalAlignment="Left"
+                             Margin="0,0,0,10" />
+
+                    <TextBlock Text="Reintentos ante errores de red (0-10)" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox x:Name="RetriesBox" Style="{StaticResource TextBoxStyle}" Width="80" HorizontalAlignment="Left"
+                             Margin="0,0,0,10" />
+
+                    <TextBlock Text="Categorias de carpetas, separadas por comas" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox x:Name="CategoriesBox" Style="{StaticResource TextBoxStyle}" Margin="0,0,0,4" />
+                    <TextBlock FontFamily="{DynamicResource Font.Mono}" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.TextDim}" Margin="0,0,0,12"
+                               Text="Cada descarga de LoRA/LyCORIS va a una subcarpeta de su categoria. En Personajes se anade ademas la carpeta del origen (serie). Los checkpoints van sin categoria. Nunca se crean carpetas por coleccion." />
+
+                    <Button Content="Guardar ajustes de descargas" Style="{StaticResource PrimaryButtonStyle}"
+                            HorizontalAlignment="Left" Click="SaveDownloadSettings_Click" />
                 </StackPanel>
             </ScrollViewer>
         </Grid>

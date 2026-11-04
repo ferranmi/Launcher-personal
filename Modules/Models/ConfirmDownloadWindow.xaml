@@ -1,0 +1,200 @@
+<Window x:Class="Launcher.Modules.Models.ConfirmDownloadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Confirmar descarga"
+        Height="640" Width="860"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style x:Key="GhostButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentDim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        </Style>
+        <Style x:Key="MiniLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource Brush.Background}"
+            BorderBrush="{DynamicResource Brush.BorderStrong}"
+            BorderThickness="1" CornerRadius="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.6" />
+        </Border.Effect>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,12" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <TextBlock Text="&gt; Confirmar descarga" FontFamily="{DynamicResource Font.Mono}" FontSize="16"
+                           Foreground="{DynamicResource Brush.TextPrimary}" />
+                <TextBlock x:Name="SourceText" Style="{StaticResource MiniLabel}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                <TextBlock x:Name="KeyWarning" Visibility="Collapsed" Margin="0,6,0,0" TextWrapping="Wrap"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                           Foreground="{DynamicResource Brush.Warning}"
+                           Text="No hay API Key de Civitai guardada: la mayoria de las descargas daran error 401. Guardala en Configuracion." />
+            </StackPanel>
+
+            <!-- Destino comun -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                    <TextBlock Text="CATEGORIA (carpeta)" Style="{StaticResource MiniLabel}" Margin="2,0,0,4" />
+                    <ComboBox x:Name="CategoryCombo" SelectionChanged="Destination_Changed" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="ORIGEN (solo en Personajes: serie, franquicia...)" Style="{StaticResource MiniLabel}" Margin="2,0,0,4" />
+                    <TextBox x:Name="OriginBox" Style="{StaticResource TextBoxStyle}" Tag="p.ej. Tonikaku Kawaii"
+                             TextChanged="OriginBox_TextChanged" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="2" Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+                <ListBox x:Name="CandidatesList" Background="Transparent" BorderThickness="0" Focusable="False"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="12,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <CheckBox Grid.Column="0" IsChecked="{Binding Include, Mode=TwoWay}" IsEnabled="{Binding CanDownload}" VerticalAlignment="Top"
+                                              Margin="0,3,12,0" />
+
+                                    <StackPanel Grid.Column="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock FontSize="13" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}">
+                                                <Run Text="{Binding ModelName, Mode=OneWay}" />
+                                                <Run Text="  " />
+                                                <Run Text="{Binding TypeLabel, Mode=OneWay}" Foreground="{DynamicResource Brush.Accent}" />
+                                            </TextBlock>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <Button Content="Civitai" Style="{StaticResource GhostButton}" Padding="8,3"
+                                                        FontSize="10.5" Margin="0,0,6,0" Click="OpenCivitai_Click" />
+                                                <Button Content="Ignorar" Style="{StaticResource GhostButton}" Padding="8,3"
+                                                        FontSize="10.5" Click="Ignore_Click" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="VERSION" Style="{StaticResource MiniLabel}" VerticalAlignment="Center" />
+                                            <ComboBox Grid.Column="1" ItemsSource="{Binding Versions}"
+                                                      SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
+                                                      DisplayMemberPath="Display" />
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding FileDisplay}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                                   Foreground="{DynamicResource Brush.TextSecondary}" />
+
+                                        <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                                   FontFamily="{DynamicResource Font.Mono}" FontSize="10.5">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusLevel}" Value="2">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StatusLevel}" Value="3">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <Grid Margin="0,6,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="DESTINO" Style="{StaticResource MiniLabel}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DestinationText}" TextWrapping="Wrap"
+                                                       FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center" />
+                                            <Button Grid.Column="2" Content="Cambiar..." Style="{StaticResource GhostButton}"
+                                                    Padding="8,3" FontSize="10.5" Margin="8,0,0,0" Click="ChangeDestination_Click" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <Grid Grid.Row="3" Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="No se descarga nada hasta que confirmes. Los archivos que ya existen nunca se sobrescriben ni se mueven."
+                           Style="{StaticResource MiniLabel}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,14,0" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Cancelar" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="Cancel_Click" />
+                    <Button x:Name="ConfirmButton" Content="Confirmar descarga" Style="{StaticResource AccentButton}" Click="Confirm_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

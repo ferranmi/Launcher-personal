@@ -353,6 +353,30 @@ public partial class LibraryPanel : UserControl
         }
     }
 
+    private async void Rename_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selected == null) return;
+
+        var renamed = await ModelRenameFlow.RunAsync(Window.GetWindow(this), _selected);
+        if (renamed == null) return;
+
+        await _catalog.ScanAsync(); // dispara Changed -> Reload
+
+        var target = _filtered.FirstOrDefault(m => string.Equals(m.FullPath, renamed, StringComparison.OrdinalIgnoreCase));
+        if (target != null) SetSelected(target);
+    }
+
+    /// <summary>Muestra un modelo concreto (lo usa Referencias): limpia los filtros y busca por su nombre.</summary>
+    public void ShowModel(string name)
+    {
+        TypeAll.IsChecked = true;
+        CategoryCombo.SelectedItem = AllCategories;
+        SearchBox.Text = name;
+
+        var match = _filtered.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (match != null) SetSelected(match);
+    }
+
     private static void CopyToClipboard(string text)
     {
         try

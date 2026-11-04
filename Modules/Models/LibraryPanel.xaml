@@ -131,7 +131,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Content="Todos" Tag="all" GroupName="LibType" IsChecked="True"
+                    <RadioButton x:Name="TypeAll" Content="Todos" Tag="all" GroupName="LibType" IsChecked="True"
                                  Style="{StaticResource ChipStyle}" Checked="Type_Checked" />
                     <RadioButton Content="LoRA" Tag="lora" GroupName="LibType"
                                  Style="{StaticResource ChipStyle}" Checked="Type_Checked" />
@@ -328,6 +328,8 @@
                                     Margin="0,0,8,8" Click="CopyName_Click" />
                             <Button x:Name="CopyTagButton" Content="Copiar etiqueta" Style="{StaticResource SecondaryButtonStyle}"
                                     Margin="0,0,8,8" Click="CopyTag_Click" />
+                            <Button Content="Renombrar..." Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,8" Click="Rename_Click" />
                         </WrapPanel>
                     </StackPanel>
                 </ScrollViewer>

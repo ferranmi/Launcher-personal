@@ -1,0 +1,272 @@
+<UserControl x:Class="Launcher.Modules.Models.ReferencesPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <Style x:Key="RowText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DetailLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="Margin" Value="0,14,0,4" />
+        </Style>
+
+        <Style x:Key="PlainList" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        </Style>
+
+        <Style x:Key="RowItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Cursor="Hand">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceActive}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="320" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===================== IZQUIERDA ===================== -->
+        <Grid Grid.Column="0" Margin="0,0,14,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="SearchBox" Style="{StaticResource TextBoxStyle}" Tag="buscar referencia..."
+                         Margin="0,0,10,0" TextChanged="SearchBox_TextChanged" />
+                <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Analizar referencias"
+                        Style="{StaticResource PrimaryButtonStyle}" Click="Analyze_Click" />
+            </Grid>
+
+            <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                <WrapPanel>
+                    <RadioButton x:Name="FilterAll" Content="Todas" Tag="all" GroupName="RefFilter" IsChecked="True"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                    <RadioButton Content="Con problemas" Tag="problems" GroupName="RefFilter"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                    <RadioButton Content="Ausentes" Tag="missing" GroupName="RefFilter"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                    <RadioButton Content="Ambiguas" Tag="ambiguous" GroupName="RefFilter"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                    <RadioButton Content="Ignoradas" Tag="ignored" GroupName="RefFilter"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                    <RadioButton x:Name="PendingChip" Content="Pendientes (0)" Tag="pending" GroupName="RefFilter"
+                                 Style="{StaticResource ChipStyle}" Checked="Filter_Checked" />
+                </WrapPanel>
+                <TextBlock x:Name="InfoText" Style="{StaticResource RowText}" FontSize="10.5" Margin="0,8,0,0"
+                           Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <!-- Referencias unicas -->
+                    <ListBox x:Name="RefsList" Style="{StaticResource PlainList}"
+                             ItemContainerStyle="{StaticResource RowItem}"
+                             SelectionChanged="RefsList_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="10,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource Brush.TextPrimary}" />
+                                            <TextBlock Text="{Binding LocationText}" Style="{StaticResource RowText}" FontSize="10"
+                                                       Foreground="{DynamicResource Brush.TextDim}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding StateLabel}" HorizontalAlignment="Right"
+                                                       FontFamily="{DynamicResource Font.Mono}" FontSize="10">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding StateLevel}" Value="1">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding StateLevel}" Value="2">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding UsageText}" Style="{StaticResource RowText}" FontSize="10"
+                                                       HorizontalAlignment="Right" Foreground="{DynamicResource Brush.TextDim}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Correcciones pendientes -->
+                    <ListBox x:Name="PendingList" Style="{StaticResource PlainList}" Visibility="Collapsed"
+                             ItemContainerStyle="{StaticResource RowItem}" SelectionMode="Extended">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="10,7">
+                                    <StackPanel>
+                                        <TextBlock FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}" TextWrapping="Wrap">
+                                            <Run Text="{Binding OldName, Mode=OneWay}" />
+                                            <Run Text="  ->  " Foreground="{DynamicResource Brush.Accent}" />
+                                            <Run Text="{Binding NewName, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Summary}" Style="{StaticResource RowText}" FontSize="10"
+                                                   Foreground="{DynamicResource Brush.TextDim}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock x:Name="EmptyText" Visibility="Collapsed" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" FontFamily="{DynamicResource Font.Mono}" FontSize="12.5"
+                               Foreground="{DynamicResource Brush.TextDim}" TextAlignment="Center" TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <!-- Acciones de pendientes -->
+            <StackPanel x:Name="PendingActions" Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0"
+                        Visibility="Collapsed">
+                <Button x:Name="ReviewApplyButton" Content="Revisar y aplicar" Style="{StaticResource PrimaryButtonStyle}"
+                        Margin="0,0,8,0" Click="ReviewApply_Click" />
+                <Button Content="Descartar seleccionadas" Style="{StaticResource SecondaryButtonStyle}"
+                        Click="DiscardPending_Click" />
+                <TextBlock Text="sin seleccion se aplican todas" Style="{StaticResource RowText}" FontSize="10"
+                           Foreground="{DynamicResource Brush.TextDim}" Margin="12,0,0,0" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ===================== DERECHA: detalle ===================== -->
+        <Border Grid.Column="1" Background="{DynamicResource Brush.Surface}"
+                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <TextBlock x:Name="DetailEmpty" Text="&gt; selecciona una referencia_"
+                           FontFamily="{DynamicResource Font.Mono}" FontSize="12"
+                           Foreground="{DynamicResource Brush.TextDim}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                <ScrollViewer x:Name="DetailScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14">
+                        <TextBlock x:Name="DetailName" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Brush.TextPrimary}" />
+                        <TextBlock x:Name="DetailState" FontFamily="{DynamicResource Font.Mono}" FontSize="10.5"
+                                   TextWrapping="Wrap" Margin="0,6,0,0" />
+
+                        <TextBlock Text="APARECE EN" Style="{StaticResource DetailLabel}" />
+                        <TextBlock x:Name="DetailUsage" Style="{StaticResource RowText}" FontSize="10.5" TextWrapping="Wrap" />
+
+                        <!-- En la biblioteca (instalado / otra ubicacion / ambiguo) -->
+                        <StackPanel x:Name="MatchesSection" Visibility="Collapsed">
+                            <TextBlock Text="EN LA BIBLIOTECA" Style="{StaticResource DetailLabel}" />
+                            <Border Background="{DynamicResource Brush.Background}" BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1" CornerRadius="6">
+                                <ListBox x:Name="MatchesList" MaxHeight="130" Style="{StaticResource PlainList}"
+                                         ItemContainerStyle="{StaticResource RowItem}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="8,5">
+                                                <TextBlock FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                                                           Foreground="{DynamicResource Brush.TextPrimary}">
+                                                    <Run Text="{Binding TypeLabel, Mode=OneWay}" Foreground="{DynamicResource Brush.Accent}" />
+                                                    <Run Text="  " />
+                                                    <Run Text="{Binding FileName, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding FullPath}" Style="{StaticResource RowText}" FontSize="9.5"
+                                                           Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button x:Name="ShowInLibraryButton" Content="Ver en biblioteca" Margin="0,0,8,8"
+                                        Style="{StaticResource SecondaryButtonStyle}" Click="ShowInLibrary_Click" />
+                                <Button x:Name="RenameMatchButton" Content="Renombrar seleccionado..." Margin="0,0,8,8"
+                                        Style="{StaticResource SecondaryButtonStyle}" Click="RenameMatch_Click" />
+                            </WrapPanel>
+                            <TextBlock x:Name="AmbiguousHint" Visibility="Collapsed" Style="{StaticResource RowText}"
+                                       FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextDim}"
+                                       Text="Hay varios archivos con este nombre: A1111 no distingue entre ellos. Renombra uno para resolverlo." />
+                        </StackPanel>
+
+                        <!-- Ausente: nombres parecidos -->
+                        <StackPanel x:Name="SimilarSection" Visibility="Collapsed">
+                            <TextBlock Text="POSIBLES COINCIDENCIAS" Style="{StaticResource DetailLabel}" />
+                            <Border Background="{DynamicResource Brush.Background}" BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1" CornerRadius="6">
+                                <ListBox x:Name="SimilarList" MaxHeight="150" MinHeight="30" Style="{StaticResource PlainList}"
+                                         ItemContainerStyle="{StaticResource RowItem}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="8,5">
+                                                <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource Brush.TextPrimary}" />
+                                                <TextBlock Text="{Binding DisplayFolder}" Style="{StaticResource RowText}" FontSize="9.5"
+                                                           Foreground="{DynamicResource Brush.TextDim}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                            <TextBlock x:Name="SimilarEmpty" Visibility="Collapsed" Style="{StaticResource RowText}" FontSize="10"
+                                       Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="No hay modelos con un nombre parecido en la biblioteca." />
+                            <Button x:Name="PrepareFixButton" Content="Preparar correccion hacia el seleccionado"
+                                    Style="{StaticResource SecondaryButtonStyle}" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                    Click="PrepareFix_Click" />
+                            <TextBlock Style="{StaticResource RowText}" FontSize="10" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Foreground="{DynamicResource Brush.TextDim}"
+                                       Text="Solo son sugerencias. La correccion queda en Pendientes y no se escribe nada hasta que la revises." />
+                        </StackPanel>
+
+                        <Button x:Name="CivitaiButton" Content="Buscar en Civitai" Visibility="Collapsed" Margin="0,16,0,0"
+                                HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" Click="Civitai_Click" />
+
+                        <Button x:Name="IgnoreButton" Margin="0,10,0,0" HorizontalAlignment="Left"
+                                Style="{StaticResource SecondaryButtonStyle}" Click="Ignore_Click" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
