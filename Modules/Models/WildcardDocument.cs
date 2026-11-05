@@ -99,6 +99,18 @@ public sealed class WildcardDocument
             info.LastWriteTimeUtc.Ticks, info.Length);
     }
 
+    /// <summary>Crea un wildcard nuevo (UTF-8 sin BOM, saltos de linea de Windows). Nunca sobrescribe: si ya existe, lanza.</summary>
+    public static void CreateNew(string path, IReadOnlyList<string> lines)
+    {
+        if (File.Exists(path)) throw new IOException("El archivo ya existe.");
+
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+
+        var temp = path + ".lstmp";
+        File.WriteAllText(temp, string.Join("\r\n", lines) + "\r\n", new UTF8Encoding(false));
+        File.Move(temp, path); // sin overwrite
+    }
+
     /// <summary>True si el archivo ha cambiado en disco desde que se cargo (A1111 u otro programa).</summary>
     public bool ChangedOnDisk()
     {

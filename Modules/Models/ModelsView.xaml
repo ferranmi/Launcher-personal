@@ -83,9 +83,7 @@
 
             <local:ReferencesPanel x:Name="ReferencesTab" Tag="references" Visibility="Collapsed" />
 
-            <Grid Tag="combos" Visibility="Collapsed">
-                <TextBlock Style="{StaticResource Placeholder}" Text="&gt; parejas y trios: en construccion_" />
-            </Grid>
+            <local:CombinationsPanel x:Name="CombosTab" Tag="combos" Visibility="Collapsed" />
 
             <!-- Configuracion -->
             <ScrollViewer Tag="settings" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">

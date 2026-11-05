@@ -31,7 +31,13 @@ public partial class ModelsView : UserControl
 
         ReferencesTab.ShowInLibraryRequested += name =>
         {
-            CivitaiTab.DownloadsQueued += () => TabDownloads.IsChecked = true;
+            CombosTab.WildcardsChanged += async () =>
+        {
+            try { await WildcardsTab.RefreshAsync(); }
+            catch (Exception ex) { LogService.Error("No se pudo refrescar Wildcards tras guardar combinaciones", ex); }
+        };
+
+        CivitaiTab.DownloadsQueued += () => TabDownloads.IsChecked = true;
         ReferencesTab.SearchInCivitaiRequested += name =>
         {
             TabCivitai.IsChecked = true;
