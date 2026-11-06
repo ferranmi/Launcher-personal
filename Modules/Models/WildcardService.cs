@@ -108,6 +108,9 @@ public sealed class WildcardService
         return Task.Run(ListFiles);
     }
 
+    /// <summary>Igual que ListFilesAsync pero sin invalidar el indice de referencias (para refrescos periodicos de widgets).</summary>
+    public Task<List<WildcardFile>> ListFilesQuietAsync() => Task.Run(ListFiles);
+
     private static IEnumerable<(string Root, string Path)> EnumerateWildcardPaths()
     {
         var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };

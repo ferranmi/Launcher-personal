@@ -751,6 +751,7 @@ public partial class WildcardsPanel : UserControl
             });
 
             LogService.Info($"Wildcard guardado: {file.Name} ({changes.Count} cambios). Copia: {backupPath}");
+            ActivityLog.Add("wildcard", $"Guardado __{file.Name}__ ({changes.Count} cambios)", 1);
         }
         catch (Exception ex)
         {

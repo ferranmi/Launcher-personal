@@ -5,7 +5,8 @@
              xmlns:svc="clr-namespace:Launcher.Core.Services"
              xmlns:ctl="clr-namespace:Launcher.UI.Controls"
              xmlns:search="clr-namespace:Launcher.Modules.Search"
-             xmlns:wd="clr-namespace:Launcher.Modules.Dashboard.Widgets">
+             xmlns:wd="clr-namespace:Launcher.Modules.Dashboard.Widgets"
+             xmlns:mw="clr-namespace:Launcher.Modules.Models.Widgets">
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
@@ -680,6 +681,70 @@
                           ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="3"
                           Title="[ ACCIONES ]">
                 <wd:QuickActionsWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_library" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ MODELOS ]" TitleTarget="models">
+                <mw:ModelsLibraryWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_downloads" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="6" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="4" ctl:DashboardBoard.MinRows="4"
+                          Title="[ DESCARGAS IA ]" TitleTarget="models">
+                <mw:ModelsDownloadsWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_missing" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ REFERENCIAS ]" TitleTarget="models">
+                <mw:ModelsMissingWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_civitai" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="5"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ CIVITAI ]" TitleTarget="models">
+                <mw:ModelsCivitaiWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_wildcards" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="6" ctl:DashboardBoard.RowSpan="7"
+                          ctl:DashboardBoard.MinCols="4" ctl:DashboardBoard.MinRows="5"
+                          Title="[ WILDCARDS ]" TitleTarget="models">
+                <mw:ModelsWildcardsWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_activity" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="7" ctl:DashboardBoard.RowSpan="6"
+                          ctl:DashboardBoard.MinCols="4" ctl:DashboardBoard.MinRows="4"
+                          Title="[ ACTIVIDAD IA ]" TitleTarget="models">
+                <mw:ModelsActivityWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_combos" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="5" ctl:DashboardBoard.RowSpan="5"
+                          ctl:DashboardBoard.MinCols="3" ctl:DashboardBoard.MinRows="4"
+                          Title="[ PAREJAS Y TRIOS ]" TitleTarget="models">
+                <mw:ModelsCombosWidget />
+            </ctl:BoardBox>
+
+            <ctl:BoardBox ctl:DashboardBoard.Key="models_env" ctl:DashboardBoard.StartHidden="True"
+                          ctl:DashboardBoard.Col="0" ctl:DashboardBoard.Row="0"
+                          ctl:DashboardBoard.ColSpan="6" ctl:DashboardBoard.RowSpan="7"
+                          ctl:DashboardBoard.MinCols="4" ctl:DashboardBoard.MinRows="5"
+                          Title="[ ENTORNO IA ]" TitleTarget="models">
+                <mw:ModelsEnvWidget />
             </ctl:BoardBox>
 
         </ctl:DashboardBoard>

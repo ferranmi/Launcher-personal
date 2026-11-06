@@ -61,10 +61,16 @@ public sealed class ModelCatalogService
             var result = await Task.Run(() => ScanDisk(settings, ct), ct);
 
             MarkDuplicates(result);
+            var before = _models.Count;
             _models = result;
             LastScan = DateTime.Now;
             SaveCache();
             Changed?.Invoke(this, EventArgs.Empty);
+
+            if (before > 0 && before != result.Count)
+            {
+                ActivityLog.Add("biblioteca", $"Biblioteca: {before} -> {result.Count} modelos");
+            }
         }
         catch (OperationCanceledException)
         {

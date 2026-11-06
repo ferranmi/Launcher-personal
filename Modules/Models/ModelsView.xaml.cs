@@ -69,12 +69,32 @@ public partial class ModelsView : UserControl
             catch (Exception ex) { LogService.Error("No se pudo refrescar Wildcards tras corregir referencias", ex); }
         };
 
-        TabLibrary.IsChecked = true;
+        ModelsNavigation.Requested += ApplyNavigationRequest;
+
+        TabDashboard.IsChecked = true;
         Loaded += ModelsView_Loaded;
+    }
+
+    /// <summary>Atiende una peticion de abrir una pestana desde fuera (widgets del dashboard).</summary>
+    private void ApplyNavigationRequest()
+    {
+        if (ModelsNavigation.TakePending() is not { } request) return;
+
+        var chip = TabsPanel.Children.OfType<RadioButton>().FirstOrDefault(c => (string?)c.Tag == request.Tab);
+        if (chip == null) return;
+
+        chip.IsChecked = true;
+
+        if (request.Tab == "civitai" && !string.IsNullOrWhiteSpace(request.Arg))
+        {
+            CivitaiTab.SearchFor(request.Arg, "busqueda desde el dashboard");
+        }
     }
 
     private async void ModelsView_Loaded(object sender, RoutedEventArgs e)
     {
+        ApplyNavigationRequest(); // peticion pendiente de cuando la vista aun no existia
+
         // Loaded se repite cada vez que la vista vuelve al arbol visual: solo cargamos la primera vez.
         if (_initialized) return;
         _initialized = true;
@@ -186,6 +206,7 @@ public partial class ModelsView : UserControl
         try
         {
             var (ok, message) = await CivitaiService.Instance.TestConnectionAsync();
+            ModelsStats.SetConnection(ok, message);
             ApiKeyStatus.Text = message;
         }
         catch (Exception ex)

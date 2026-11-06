@@ -47,6 +47,7 @@ public static class ModelRenameFlow
         }
 
         LogService.Info($"Modelo renombrado: {entry.FullPath} -> {plan.MainTarget} ({plan.Moves.Count} archivo(s))");
+        ActivityLog.Add("renombrado", $"{entry.Name} -> {dialog.NewName}", 1);
 
         if (dialog.PrepareCorrections && refs is { Count: > 0 })
         {

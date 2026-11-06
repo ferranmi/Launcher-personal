@@ -317,6 +317,7 @@ public sealed class DownloadQueueService
             LogService.Error($"Fallo la descarga de {item.FileName}", ex);
             item.Error = ex.Message;
             item.State = DownloadState.Failed;
+            ActivityLog.Add("descarga", $"Error en {item.FileName}: {ex.Message}", 3);
         }
         finally
         {
@@ -487,6 +488,7 @@ public sealed class DownloadQueueService
         });
 
         LogService.Info($"Descarga completada: {item.Destination}");
+        ActivityLog.Add("descarga", $"Descargado {item.FileName} ({ModelEntry.FormatSize(item.TotalBytes)})", 1);
         ItemCompleted?.Invoke(item);
     }
 

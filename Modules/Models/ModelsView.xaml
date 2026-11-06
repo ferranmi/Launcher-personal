@@ -55,8 +55,8 @@
                    Foreground="{DynamicResource Brush.TextSecondary}" />
 
         <!-- ===================== PESTANAS ===================== -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
-            <RadioButton Content="Dashboard" Tag="dashboard" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
+        <WrapPanel x:Name="TabsPanel" Grid.Row="1" Margin="0,0,0,10">
+            <RadioButton x:Name="TabDashboard" Content="Dashboard" Tag="dashboard" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton x:Name="TabCivitai" Content="Civitai" Tag="civitai" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton x:Name="TabDownloads" Content="Descargas" Tag="downloads" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton x:Name="TabLibrary" Content="Biblioteca" Tag="library" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
@@ -64,14 +64,12 @@
             <RadioButton x:Name="TabReferences" Content="Referencias" Tag="references" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Parejas y trios" Tag="combos" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Configuracion" Tag="settings" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
-        </StackPanel>
+        </WrapPanel>
 
         <!-- ===================== CONTENIDO ===================== -->
         <Grid x:Name="PanelHost" Grid.Row="2">
 
-            <Grid Tag="dashboard" Visibility="Collapsed">
-                <TextBlock Style="{StaticResource Placeholder}" Text="&gt; dashboard: en construccion_" />
-            </Grid>
+            <local:ModelsDashboardPanel x:Name="DashboardTab" Tag="dashboard" Visibility="Collapsed" />
 
             <local:CivitaiPanel x:Name="CivitaiTab" Tag="civitai" Visibility="Collapsed" />
 

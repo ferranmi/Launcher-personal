@@ -117,7 +117,8 @@ public partial class CombinationsPanel : UserControl
     private readonly ObservableCollection<CharacterItem> _chars = new();
     private readonly ICollectionView _charsView;
     private ObservableCollection<ComboItem> _combos = new();
-    private HashSet<string> _destSet = new();
+    private HashSet<string> _pairsSet = new();
+    private HashSet<string> _triosSet = new();
     private List<WildcardFile> _files = new();
 
     private CharacterItem? _current;
@@ -168,7 +169,8 @@ public partial class CombinationsPanel : UserControl
         _ready = true;
         UpdateCounts();
         UpdateComboInfo();
-        UpdateDestUi();
+        PairsDest.Changed += OnDestinationChanged;
+        TriosDest.Changed += OnDestinationChanged;
     }
 
     private Window? Owner => Window.GetWindow(this);
@@ -179,11 +181,9 @@ public partial class CombinationsPanel : UserControl
 
     private async Task RefreshFilesAsync()
     {
-        var selectedPath = (DestCombo.SelectedItem as WildcardFile)?.FullPath;
-
         _files = await WildcardService.Instance.ListFilesAsync();
-        DestCombo.ItemsSource = _files;
-        DestCombo.SelectedItem = _files.FirstOrDefault(f => string.Equals(f.FullPath, selectedPath, StringComparison.OrdinalIgnoreCase));
+        PairsDest.SetFiles(_files);
+        TriosDest.SetFiles(_files);
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
@@ -509,55 +509,72 @@ public partial class CombinationsPanel : UserControl
         }
     }
 
-    // ===================== Destino =====================
+    // ===================== Destinos =====================
 
-    private bool DestIsNew => DestNew.IsChecked == true;
+    private bool SameDestination => SameCheck.IsChecked == true;
 
-    private void Dest_Checked(object sender, RoutedEventArgs e)
+    /// <summary>Selector que manda para los trios: el suyo, o el de las parejas si se usa el mismo wildcard.</summary>
+    private DestinationPicker TriosPicker => SameDestination ? PairsDest : TriosDest;
+
+    private void OnDestinationChanged()
+    {
+        if (_ready) _ = RefreshDestinationAsync();
+    }
+
+    private void Same_Changed(object sender, RoutedEventArgs e)
     {
         if (!_ready) return;
 
-        UpdateDestUi();
+        TriosDest.IsEnabled = !SameDestination;
+        TriosDest.Opacity = SameDestination ? 0.45 : 1.0;
         _ = RefreshDestinationAsync();
-    }
-
-    private void UpdateDestUi()
-    {
-        DestCombo.Visibility = DestIsNew ? Visibility.Collapsed : Visibility.Visible;
-        NewNameBox.Visibility = DestIsNew ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private async void DestCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_ready) await RefreshDestinationAsync();
     }
 
     private static HashSet<string> BuildSet(IEnumerable<string> lines) =>
         lines.Where(WildcardService.IsEntryLine).Select(ComboItem.Key).ToHashSet();
 
-    /// <summary>Lee el wildcard de destino y marca las combinaciones que ya contiene (en cualquier orden).</summary>
+    private static async Task<HashSet<string>> ReadSetAsync(DestinationPicker picker)
+    {
+        if (picker.IsNew || picker.SelectedFile is not { } file) return new HashSet<string>();
+
+        try
+        {
+            return BuildSet(await Task.Run(() => WildcardService.ReadLines(file.FullPath)));
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo leer el wildcard de destino", ex);
+            return new HashSet<string>();
+        }
+    }
+
+    /// <summary>Lee los wildcards de destino y marca, por tipo, las combinaciones que ya contienen (en cualquier orden).</summary>
     private async Task RefreshDestinationAsync()
     {
-        _destSet = new HashSet<string>();
+        _pairsSet = await ReadSetAsync(PairsDest);
+        _triosSet = SameDestination ? _pairsSet : await ReadSetAsync(TriosDest);
 
-        if (!DestIsNew && DestCombo.SelectedItem is WildcardFile file)
+        foreach (var combo in _combos)
         {
-            try
-            {
-                var lines = await Task.Run(() => WildcardService.ReadLines(file.FullPath));
-                _destSet = BuildSet(lines);
-            }
-            catch (Exception ex)
-            {
-                LogService.Error("No se pudo leer el wildcard de destino", ex);
-            }
+            combo.ExistsInDestination = combo.IsIn(combo.Parts.Length == 2 ? _pairsSet : _triosSet);
         }
 
-        foreach (var combo in _combos) combo.ExistsInDestination = combo.IsIn(_destSet);
         UpdateComboInfo();
     }
 
     // ===================== Guardar =====================
+
+    private sealed class SaveTarget
+    {
+        public string Key { get; init; } = "";
+        public string DisplayName { get; init; } = "";
+        public bool IsNew { get; init; }
+        public WildcardFile? File { get; init; }
+        public string? NewPath { get; init; }
+        public List<ComboItem> Items { get; } = new();
+        public WildcardDocument? Doc { get; set; }
+        public List<string> Texts { get; set; } = new();
+    }
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
@@ -568,18 +585,21 @@ public partial class CombinationsPanel : UserControl
 
         try
         {
-            var saved = DestIsNew ? await SaveToNewAsync(chosen) : await SaveToExistingAsync(chosen);
-            if (saved != null)
+            var saved = await SaveAllAsync(chosen); // tipo de combinacion (2 o 3) -> ruta guardada
+
+            if (saved.Count > 0)
             {
-                _destSet.Clear();
                 WildcardService.Instance.InvalidateReferenceIndex();
                 WildcardsChanged?.Invoke();
 
                 await RefreshFilesAsync();
 
-                // Se queda seleccionado el wildcard guardado: las combinaciones recien escritas pasan a "YA EXISTE".
-                DestExisting.IsChecked = true;
-                DestCombo.SelectedItem = _files.FirstOrDefault(f => string.Equals(f.FullPath, saved, StringComparison.OrdinalIgnoreCase));
+                // Los destinos nuevos pasan a "existente": las lineas recien escritas aparecen como YA EXISTE.
+                foreach (var (kind, path) in saved)
+                {
+                    (kind == 2 ? PairsDest : TriosPicker).SelectExisting(path);
+                }
+
                 await RefreshDestinationAsync();
             }
         }
@@ -595,62 +615,27 @@ public partial class CombinationsPanel : UserControl
         }
     }
 
-    /// <summary>Devuelve la ruta guardada, o null si se cancelo o no habia nada que escribir.</summary>
-    private async Task<string?> SaveToExistingAsync(List<ComboItem> chosen)
+    /// <summary>Convierte la eleccion de un selector en un destino concreto, o null (tras avisar) si no es valido.</summary>
+    private SaveTarget? ResolveTarget(DestinationPicker picker, string label)
     {
-        if (DestCombo.SelectedItem is not WildcardFile file)
+        if (!picker.IsNew)
         {
-            MessageBox.Show(Owner, "Elige el wildcard de destino.", "Guardar combinaciones",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            return null;
+            if (picker.SelectedFile is not { } file)
+            {
+                MessageBox.Show(Owner, $"Elige el wildcard de destino de las {label}.", "Guardar combinaciones",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return null;
+            }
+
+            return new SaveTarget { Key = file.FullPath, DisplayName = file.Name, File = file };
         }
 
-        var doc = await Task.Run(() => WildcardDocument.Load(file.FullPath));
-
-        // Se vuelve a comprobar contra el contenido actual del archivo.
-        var existing = BuildSet(doc.Lines);
-        var texts = chosen.Where(c => !c.IsIn(existing)).Select(c => c.Text).ToList();
-
-        if (texts.Count == 0)
-        {
-            StatusText.Text = "todas las combinaciones marcadas ya existen en ese wildcard";
-            return null;
-        }
-
-        var changes = texts.Select((t, i) => new ChangeLine("+", $"L{doc.Lines.Count + i + 1}   {t}")).ToList();
-        var dialog = new ConfirmChangesWindow(file.Name, changes) { Owner = Owner };
-        if (dialog.ShowDialog() != true) return null;
-
-        if (doc.ChangedOnDisk())
-        {
-            var answer = MessageBox.Show(Owner,
-                "El archivo ha cambiado en disco mientras revisabas las combinaciones. Se anadiran al final igualmente " +
-                "(quedara una copia del estado actual). Continuar?",
-                "Wildcard modificado", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
-            if (answer != MessageBoxResult.Yes) return null;
-
-            doc = await Task.Run(() => WildcardDocument.Load(file.FullPath));
-        }
-
-        await Task.Run(() =>
-        {
-            WildcardBackup.Create(doc.Path, file.Name); // si falla, no se escribe
-            doc.Save(doc.Lines.Concat(texts).ToList());
-        });
-
-        LogService.Info($"Combinaciones guardadas en {file.Name}: {texts.Count} lineas");
-        StatusText.Text = $"{texts.Count} lineas anadidas a __{file.Name}__";
-        return file.FullPath;
-    }
-
-    private async Task<string?> SaveToNewAsync(List<ComboItem> chosen)
-    {
-        var name = NewNameBox.Text.Trim().Replace('\\', '/').Trim('/');
+        var name = picker.NewName.Replace('\\', '/').Trim('/');
         var invalid = Path.GetInvalidFileNameChars();
 
         if (name.Length == 0 || name.Split('/').Any(s => s.Length == 0 || s == "." || s == ".." || s.IndexOfAny(invalid) >= 0))
         {
-            MessageBox.Show(Owner, "Escribe un nombre valido para el wildcard nuevo (puedes usar carpetas con '/').",
+            MessageBox.Show(Owner, $"Escribe un nombre valido para el wildcard nuevo de las {label} (puedes usar carpetas con '/').",
                 "Nuevo wildcard", MessageBoxButton.OK, MessageBoxImage.Warning);
             return null;
         }
@@ -675,21 +660,150 @@ public partial class CombinationsPanel : UserControl
 
         if (File.Exists(path))
         {
-            MessageBox.Show(Owner, $"Ya existe el wildcard \"{name}\". Elige \"Wildcard existente\" para anadir lineas sin pisarlo.",
+            MessageBox.Show(Owner,
+                $"Ya existe el wildcard \"{name}\". Elige \"Existente\" para anadir lineas sin pisarlo.",
                 "Nuevo wildcard", MessageBoxButton.OK, MessageBoxImage.Warning);
             return null;
         }
 
-        var texts = chosen.Select(c => c.Text).ToList();
-        var changes = texts.Select((t, i) => new ChangeLine("+", $"L{i + 1}   {t}")).ToList();
+        return new SaveTarget { Key = path, DisplayName = name, IsNew = true, NewPath = path };
+    }
 
-        var dialog = new ConfirmChangesWindow(name, changes, $"nuevo wildcard __{name}__") { Owner = Owner };
-        if (dialog.ShowDialog() != true) return null;
+    /// <summary>Guarda parejas y trios, cada tipo en su destino, con UNA sola vista previa y confirmacion. Si ambos
+    /// tipos apuntan al mismo archivo se escriben juntos (una sola copia, una sola escritura).</summary>
+    private async Task<Dictionary<int, string>> SaveAllAsync(List<ComboItem> chosen)
+    {
+        var saved = new Dictionary<int, string>();
+        var targets = new Dictionary<string, SaveTarget>(StringComparer.OrdinalIgnoreCase);
 
-        await Task.Run(() => WildcardDocument.CreateNew(path, texts));
+        foreach (var kind in new[] { 2, 3 })
+        {
+            var items = chosen.Where(c => c.Parts.Length == kind).ToList();
+            if (items.Count == 0) continue;
 
-        LogService.Info($"Wildcard nuevo creado con combinaciones: {path} ({texts.Count} lineas)");
-        StatusText.Text = $"creado __{name}__ con {texts.Count} lineas";
-        return path;
+            var target = ResolveTarget(kind == 2 ? PairsDest : TriosPicker, kind == 2 ? "parejas" : "trios");
+            if (target == null) return saved; // ya se aviso al usuario: no se escribe nada
+
+            if (!targets.TryGetValue(target.Key, out var existing)) targets[target.Key] = existing = target;
+            existing.Items.AddRange(items);
+        }
+
+        // Preparacion (solo lectura): contenido actual de cada destino y lineas realmente nuevas.
+        var changes = new List<ChangeLine>();
+
+        foreach (var target in targets.Values)
+        {
+            if (target.IsNew)
+            {
+                target.Texts = target.Items.Select(c => c.Text).ToList();
+            }
+            else
+            {
+                var file = target.File!;
+                target.Doc = await Task.Run(() => WildcardDocument.Load(file.FullPath));
+
+                var existingSet = BuildSet(target.Doc.Lines);
+                target.Texts = target.Items.Where(c => !c.IsIn(existingSet)).Select(c => c.Text).ToList();
+            }
+
+            if (target.Texts.Count == 0) continue;
+
+            changes.Add(new ChangeLine("~", $"== {target.DisplayName}{(target.IsNew ? "  (nuevo)" : "")} =="));
+            var first = target.IsNew ? 1 : target.Doc!.Lines.Count + 1;
+            for (var i = 0; i < target.Texts.Count; i++) changes.Add(new ChangeLine("+", $"L{first + i}   {target.Texts[i]}"));
+        }
+
+        var active = targets.Values.Where(t => t.Texts.Count > 0).ToList();
+        if (active.Count == 0)
+        {
+            StatusText.Text = "todas las combinaciones marcadas ya existen en sus destinos";
+            return saved;
+        }
+
+        var names = string.Join(", ", active.Select(t => $"__{t.DisplayName}__"));
+        var dialog = new ConfirmChangesWindow(names, changes, $"{active.Count} wildcard(s): {names}") { Owner = Owner };
+        if (dialog.ShowDialog() != true) return saved;
+
+        // Escritura: copia primero (si falla, ese archivo no se toca); un fallo no impide guardar los demas.
+        var failures = new List<string>();
+        var written = 0;
+
+        foreach (var target in active)
+        {
+            try
+            {
+                if (target.IsNew)
+                {
+                    if (File.Exists(target.NewPath))
+                    {
+                        failures.Add($"{target.DisplayName}: ya existe, no se sobrescribe");
+                        continue;
+                    }
+
+                    var newPath = target.NewPath!;
+                    var newTexts = target.Texts;
+                    await Task.Run(() => WildcardDocument.CreateNew(newPath, newTexts));
+
+                    LogService.Info($"Wildcard nuevo creado con combinaciones: {newPath} ({newTexts.Count} lineas)");
+                    ActivityLog.Add("combinaciones", $"Creado __{target.DisplayName}__ con {newTexts.Count} lineas", 1);
+                }
+                else
+                {
+                    var doc = target.Doc!;
+
+                    if (doc.ChangedOnDisk())
+                    {
+                        var answer = MessageBox.Show(Owner,
+                            $"\"{target.DisplayName}\" ha cambiado en disco mientras revisabas las combinaciones. " +
+                            "Se anadiran al final igualmente (quedara una copia del estado actual). Continuar?",
+                            "Wildcard modificado", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+
+                        if (answer != MessageBoxResult.Yes)
+                        {
+                            failures.Add($"{target.DisplayName}: omitido (habia cambiado en disco)");
+                            continue;
+                        }
+
+                        var path = target.File!.FullPath;
+                        doc = await Task.Run(() => WildcardDocument.Load(path));
+
+                        var existingSet = BuildSet(doc.Lines);
+                        target.Texts = target.Items.Where(c => !c.IsIn(existingSet)).Select(c => c.Text).ToList();
+                        if (target.Texts.Count == 0) continue;
+                    }
+
+                    var current = doc;
+                    var texts = target.Texts;
+                    var name = target.DisplayName;
+
+                    await Task.Run(() =>
+                    {
+                        WildcardBackup.Create(current.Path, name);
+                        current.Save(current.Lines.Concat(texts).ToList());
+                    });
+
+                    LogService.Info($"Combinaciones guardadas en {name}: {texts.Count} lineas");
+                    ActivityLog.Add("combinaciones", $"{texts.Count} lineas anadidas a __{name}__", 1);
+                }
+
+                written += target.Texts.Count;
+                foreach (var kind in target.Items.Select(i => i.Parts.Length).Distinct()) saved[kind] = target.Key;
+            }
+            catch (Exception ex)
+            {
+                LogService.Error($"No se pudo guardar {target.DisplayName}", ex);
+                failures.Add($"{target.DisplayName}: {ex.Message}");
+            }
+        }
+
+        StatusText.Text = $"{written} lineas guardadas en {saved.Values.Distinct(StringComparer.OrdinalIgnoreCase).Count()} wildcard(s)";
+
+        if (failures.Count > 0)
+        {
+            MessageBox.Show(Owner, "No se pudo guardar en:\n  " + string.Join("\n  ", failures),
+                "Guardar combinaciones", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        return saved;
     }
 }

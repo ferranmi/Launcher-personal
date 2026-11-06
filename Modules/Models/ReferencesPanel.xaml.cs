@@ -151,6 +151,12 @@ public partial class ReferencesPanel : UserControl
         .ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)
         .ToList();
 
+        if (_analyzed)
+        {
+            ModelsStats.SetReferences(_all.Count(i => i.State == RefState.Missing),
+                _all.Count(i => i.State == RefState.Ambiguous), _all.Count);
+        }
+
         ApplyFilter();
         RefreshPendingUi();
     }
@@ -405,6 +411,8 @@ public partial class ReferencesPanel : UserControl
             var result = await ReferenceFixService.ApplyAsync(plans);
             LogService.Info($"Correcciones de referencias aplicadas: {result.FilesSaved} archivo(s), {result.LinesChanged} linea(s), " +
                             $"{result.Failed.Count} fallo(s)");
+            ActivityLog.Add("referencias", $"Correcciones aplicadas: {result.LinesChanged} linea(s) en {result.FilesSaved} archivo(s)",
+                result.Failed.Count > 0 ? 2 : 1);
 
             if (result.Failed.Count == 0) _settings.RemovePending(chosen);
 
