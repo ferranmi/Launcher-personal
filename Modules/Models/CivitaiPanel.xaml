@@ -22,6 +22,21 @@
             <Setter Property="Margin" Value="0,12,0,4" />
         </Style>
 
+        <!-- Etiquetas y casillas del panel de filtros -->
+        <Style x:Key="FilterLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}" />
+            <Setter Property="Margin" Value="0,10,0,4" />
+        </Style>
+
+        <Style x:Key="FilterCheck" TargetType="CheckBox">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Mono}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
+            <Setter Property="Margin" Value="0,0,14,6" />
+        </Style>
+
         <Style x:Key="PlainList" TargetType="ListBox">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -83,6 +98,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -104,36 +120,122 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBox x:Name="SearchBox" Grid.Column="0" Style="{StaticResource TextBoxStyle}"
                          Tag="buscar en Civitai..." Margin="0,0,10,0" KeyDown="SearchBox_KeyDown" />
 
-                <ComboBox x:Name="TypeCombo" Grid.Column="1" Width="110" Margin="0,0,10,0" SelectedIndex="0">
-                    <ComboBoxItem Content="Todos" />
-                    <ComboBoxItem Content="LoRA" />
-                    <ComboBoxItem Content="LyCORIS" />
-                    <ComboBoxItem Content="Checkpoints" />
-                </ComboBox>
+                <Button x:Name="FiltersButton" Grid.Column="1" Content="Filtros" Margin="0,0,10,0"
+                        Style="{StaticResource SecondaryButtonStyle}" Click="FiltersButton_Click" />
 
-                <ComboBox x:Name="SortCombo" Grid.Column="2" Width="130" Margin="0,0,10,0" SelectedIndex="0">
-                    <ComboBoxItem Content="Mas descargados" />
-                    <ComboBoxItem Content="Mejor valorados" />
-                    <ComboBoxItem Content="Mas nuevos" />
-                    <ComboBoxItem Content="Mas gustados" />
-                </ComboBox>
-
-                <CheckBox x:Name="NsfwCheck" Grid.Column="3" Content="NSFW" VerticalAlignment="Center" Margin="0,0,12,0"
+                <CheckBox x:Name="NsfwCheck" Grid.Column="2" Content="NSFW" VerticalAlignment="Center" Margin="0,0,12,0"
                           Foreground="{DynamicResource Brush.TextSecondary}"
                           FontFamily="{DynamicResource Font.Mono}" FontSize="11" />
 
-                <Button x:Name="SearchButton" Grid.Column="4" Content="Buscar" Style="{StaticResource PrimaryButtonStyle}"
+                <Button x:Name="SearchButton" Grid.Column="3" Content="Buscar" Style="{StaticResource PrimaryButtonStyle}"
                         Click="Search_Click" />
             </Grid>
 
+            <!-- Panel de filtros (plegable) -->
+            <Border x:Name="FiltersPanel" Grid.Row="2" Visibility="Collapsed" Margin="0,0,0,12" Padding="14,6,14,12"
+                    Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Columna 1: orden, periodo, tipo -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="ORDEN" Style="{StaticResource FilterLabel}" Margin="0,4,0,4" />
+                        <ComboBox x:Name="SortCombo" SelectedIndex="0" SelectionChanged="SortCombo_SelectionChanged">
+                            <ComboBoxItem Content="Mas descargados" Tag="Most Downloaded" />
+                            <ComboBoxItem Content="Mejor valorados" Tag="Highest Rated" />
+                            <ComboBoxItem Content="Mas gustados" Tag="Most Liked" />
+                            <ComboBoxItem Content="Mas comentados" Tag="Most Discussed" />
+                            <ComboBoxItem Content="Mas guardados en colecciones" Tag="Most Collected" />
+                            <ComboBoxItem Content="Mas imagenes" Tag="Most Images" />
+                            <ComboBoxItem Content="Mas nuevos" Tag="Newest" />
+                            <ComboBoxItem Content="Mas antiguos" Tag="Oldest" />
+                        </ComboBox>
+
+                        <TextBlock Text="PERIODO (de las metricas del orden)" Style="{StaticResource FilterLabel}" />
+                        <ComboBox x:Name="PeriodCombo" SelectedIndex="0">
+                            <ComboBoxItem Content="Siempre" Tag="AllTime" />
+                            <ComboBoxItem Content="Ultimo ano" Tag="Year" />
+                            <ComboBoxItem Content="Ultimo mes" Tag="Month" />
+                            <ComboBoxItem Content="Ultima semana" Tag="Week" />
+                            <ComboBoxItem Content="Ultimo dia" Tag="Day" />
+                        </ComboBox>
+
+                        <TextBlock Text="TIPO (ninguno = todos)" Style="{StaticResource FilterLabel}" />
+                        <WrapPanel x:Name="TypesPanel">
+                            <CheckBox Content="LoRA" Tag="LORA" Style="{StaticResource FilterCheck}"
+                                      Checked="TypeCheck_Changed" Unchecked="TypeCheck_Changed" />
+                            <CheckBox Content="LyCORIS" Tag="LoCon" Style="{StaticResource FilterCheck}"
+                                      Checked="TypeCheck_Changed" Unchecked="TypeCheck_Changed" />
+                            <CheckBox Content="DoRA" Tag="DoRA" Style="{StaticResource FilterCheck}"
+                                      Checked="TypeCheck_Changed" Unchecked="TypeCheck_Changed" />
+                            <CheckBox x:Name="CheckpointCheck" Content="Checkpoint" Tag="Checkpoint"
+                                      Style="{StaticResource FilterCheck}"
+                                      Checked="TypeCheck_Changed" Unchecked="TypeCheck_Changed" />
+                        </WrapPanel>
+
+                        <TextBlock Text="TIPO DE CHECKPOINT" Style="{StaticResource FilterLabel}" Margin="0,4,0,4" />
+                        <ComboBox x:Name="CheckpointTypeCombo" SelectedIndex="0" IsEnabled="False">
+                            <ComboBoxItem Content="Cualquiera" Tag="" />
+                            <ComboBoxItem Content="Standard" Tag="Standard" />
+                            <ComboBoxItem Content="Trained" Tag="Trained" />
+                            <ComboBoxItem Content="Merge" Tag="Merge" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Columna 2: modelo base -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="MODELO BASE (se pueden marcar varios)" Style="{StaticResource FilterLabel}" Margin="0,4,0,4" />
+                        <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
+                            <ListBox x:Name="BaseModelList" Height="196" SelectionMode="Multiple"
+                                     Style="{StaticResource PlainList}" ItemContainerStyle="{StaticResource RowItem}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Style="{StaticResource RowText}" Padding="8,4" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                        <TextBlock x:Name="BaseModelHint" Style="{StaticResource RowText}" FontSize="10" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource Brush.TextDim}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- Columna 3: etiqueta, creador, opciones y botones -->
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="ETIQUETA" Style="{StaticResource FilterLabel}" Margin="0,4,0,4" />
+                        <TextBox x:Name="TagBox" Style="{StaticResource TextBoxStyle}" Tag="ej: anime" KeyDown="FilterBox_KeyDown" />
+
+                        <TextBlock Text="CREADOR" Style="{StaticResource FilterLabel}" />
+                        <TextBox x:Name="UserBox" Style="{StaticResource TextBoxStyle}" Tag="nombre de usuario" KeyDown="FilterBox_KeyDown" />
+
+                        <TextBlock Text="OPCIONES" Style="{StaticResource FilterLabel}" />
+                        <CheckBox x:Name="GenCheck" Content="Solo generables en Civitai" Style="{StaticResource FilterCheck}" />
+                        <CheckBox x:Name="PlatformCheck" Content="Solo entrenados en Civitai" Style="{StaticResource FilterCheck}" />
+                        <CheckBox x:Name="EarlyCheck" Content="Incluir acceso anticipado" Style="{StaticResource FilterCheck}" />
+
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Content="Buscar" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0"
+                                    Click="Search_Click" />
+                            <Button Content="Limpiar filtros" Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="ClearFilters_Click" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- Contenido segun el modo -->
-            <Grid Grid.Row="2">
+            <Grid Grid.Row="3">
                 <!-- Resultados -->
                 <ListBox x:Name="CardsList" Style="{StaticResource PlainList}"
                          ItemContainerStyle="{StaticResource CardItem}" SelectionMode="Extended"
@@ -230,7 +332,7 @@
                            Foreground="{DynamicResource Brush.TextDim}" />
             </Grid>
 
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+            <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,10,0,0">
                 <Button x:Name="MoreButton" Content="Cargar mas" Style="{StaticResource SecondaryButtonStyle}"
                         Margin="0,0,14,0" Visibility="Collapsed" Click="More_Click" />
                 <TextBlock x:Name="StatusText" Style="{StaticResource RowText}" FontSize="10.5"

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,12 +11,19 @@ using Launcher.Core.Services;
 namespace Launcher.Modules.Models;
 
 /// <summary>
-/// Explorador de Civitai: busqueda, versiones, archivos y descarga. Nada se descarga sin pasar por la ventana de
-/// confirmacion. Las colecciones publicas solo exponen metadatos en la API de Civitai, asi que su contenido se
-/// descarga pegando los enlaces de sus modelos.
+/// Explorador de Civitai: busqueda con filtros, versiones, archivos y descarga. Nada se descarga sin pasar por la
+/// ventana de confirmacion. Las colecciones publicas solo exponen metadatos en la API de Civitai, asi que su
+/// contenido se descarga pegando los enlaces de sus modelos.
 /// </summary>
 public partial class CivitaiPanel : UserControl
 {
+    // Modelos base conocidos (ejemplos de la documentacion de Civitai). Solo se usan hasta que se carga la lista
+    // real desde la API, o si no se puede cargar.
+    private static readonly string[] FallbackBaseModels =
+    {
+        "SD 1.5", "SD 2.1", "SD 3.5", "SDXL 1.0", "Flux.1 D", "Illustrious", "Pony", "Hunyuan Video"
+    };
+
     private readonly CivitaiService _civitai = CivitaiService.Instance;
     private readonly ObservableCollection<CivitaiModel> _results = new();
     private readonly Dictionary<long, long> _preferredVersion = new();
@@ -24,9 +32,18 @@ public partial class CivitaiPanel : UserControl
     private string? _collectionsCursor;
     private bool _busy;
     private bool _ready;
+    private bool _filtersOpen;
+    private bool _hasSearched;
     private string _mode = "search";
     private string _sourceNote = "";
     private CivitaiModel? _detail;
+
+    // Busqueda de modelos en curso (null si no hay ninguna). Una busqueda nueva cancela la anterior.
+    private CancellationTokenSource? _searchCts;
+
+    // Filtros con los que se hizo la ultima busqueda: "Cargar mas" debe usar los mismos (el cursor
+    // solo vale para la consulta que lo genero), aunque el usuario haya tocado los filtros despues.
+    private CivitaiSearchOptions _lastOptions = new();
 
     /// <summary>Se han anadido descargas a la cola: la ventana principal puede mostrar la pestana Descargas.</summary>
     public event Action? DownloadsQueued;
@@ -36,8 +53,16 @@ public partial class CivitaiPanel : UserControl
         InitializeComponent();
 
         CardsList.ItemsSource = _results;
+        BaseModelList.ItemsSource = FallbackBaseModels;
+        BaseModelHint.Text = "lista local (cargando la de Civitai...)";
         _ready = true;
+
+        ApplySortState();
+        ApplyTypeState();
+        UpdateFiltersButton();
         UpdateEmpty();
+
+        _ = LoadBaseModelsAsync();
     }
 
     private Window? Owner => Window.GetWindow(this);
@@ -54,13 +79,16 @@ public partial class CivitaiPanel : UserControl
 
     private void ApplyMode()
     {
-        CardsList.Visibility = _mode == "search" ? Visibility.Visible : Visibility.Collapsed;
+        var searchMode = _mode == "search";
+
+        CardsList.Visibility = searchMode ? Visibility.Visible : Visibility.Collapsed;
         CollectionsGrid.Visibility = _mode == "collections" ? Visibility.Visible : Visibility.Collapsed;
         LinksGrid.Visibility = _mode == "links" ? Visibility.Visible : Visibility.Collapsed;
 
-        SearchBox.Tag = _mode == "collections" ? "buscar colecciones..." : "buscar en Civitai...";
-        TypeCombo.IsEnabled = SortCombo.IsEnabled = NsfwCheck.IsEnabled = _mode == "search";
-        MoreButton.Visibility = (_mode == "search" && _cursor != null) || (_mode == "collections" && _collectionsCursor != null)
+        SearchBox.Tag = _mode == "collections" ? "buscar colecciones..." : "buscar en Civitai (o pegar un enlace)...";
+        FiltersButton.IsEnabled = NsfwCheck.IsEnabled = searchMode;
+        FiltersPanel.Visibility = searchMode && _filtersOpen ? Visibility.Visible : Visibility.Collapsed;
+        MoreButton.Visibility = (searchMode && _cursor != null) || (_mode == "collections" && _collectionsCursor != null)
             ? Visibility.Visible
             : Visibility.Collapsed;
 
@@ -71,7 +99,7 @@ public partial class CivitaiPanel : UserControl
     {
         var empty = _mode == "search" && _results.Count == 0;
         EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
-        EmptyText.Text = "> escribe algo y pulsa Buscar_";
+        EmptyText.Text = _hasSearched ? "> sin resultados con estos filtros_" : "> escribe algo y pulsa Buscar_";
     }
 
     /// <summary>Lo usa Referencias: abre la busqueda con un nombre y recuerda de donde viene la peticion.</summary>
@@ -79,7 +107,7 @@ public partial class CivitaiPanel : UserControl
     {
         _sourceNote = sourceNote;
         SearchBox.Text = text;
-        TypeCombo.SelectedIndex = 0;
+        ClearFilters(); // una busqueda desde fuera parte siempre de filtros limpios
 
         foreach (var chip in ModesPanel.Children.OfType<RadioButton>())
         {
@@ -89,6 +117,155 @@ public partial class CivitaiPanel : UserControl
         _mode = "search";
         ApplyMode();
         await SearchAsync(reset: true);
+    }
+
+    // ===================== Filtros =====================
+
+    private void FiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        _filtersOpen = !_filtersOpen;
+        ApplyMode();
+    }
+
+    private void ClearFilters_Click(object sender, RoutedEventArgs e) => ClearFilters();
+
+    private void ClearFilters()
+    {
+        SortCombo.SelectedIndex = 0;
+        PeriodCombo.SelectedIndex = 0;
+
+        foreach (var box in TypesPanel.Children.OfType<CheckBox>()) box.IsChecked = false;
+
+        BaseModelList.SelectedItems.Clear();
+        TagBox.Text = "";
+        UserBox.Text = "";
+        GenCheck.IsChecked = false;
+        PlatformCheck.IsChecked = false;
+        EarlyCheck.IsChecked = false;
+        CheckpointTypeCombo.SelectedIndex = 0;
+
+        ApplySortState();
+        ApplyTypeState();
+        UpdateFiltersButton();
+    }
+
+    private void SortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready) return; // el evento salta al construir la ventana, antes de que exista PeriodCombo
+        ApplySortState();
+    }
+
+    private void TypeCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        ApplyTypeState();
+    }
+
+    /// <summary>Enter dentro de los cuadros de etiqueta o creador lanza la busqueda.</summary>
+    private async void FilterBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) await RunSearchAsync();
+    }
+
+    /// <summary>El periodo solo tiene sentido para ordenes basados en una metrica; en Newest/Oldest no se usa.</summary>
+    private void ApplySortState()
+    {
+        PeriodCombo.IsEnabled = SortValue() is not ("Newest" or "Oldest");
+    }
+
+    /// <summary>El tipo de checkpoint solo se aplica a checkpoints.</summary>
+    private void ApplyTypeState()
+    {
+        var checkpoint = CheckpointCheck.IsChecked == true;
+        CheckpointTypeCombo.IsEnabled = checkpoint;
+        if (!checkpoint) CheckpointTypeCombo.SelectedIndex = 0;
+    }
+
+    private static string TagOf(ComboBox box) => (box.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+
+    private string SortValue()
+    {
+        var value = TagOf(SortCombo);
+        return value.Length == 0 ? "Most Downloaded" : value;
+    }
+
+    private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+
+    private CivitaiSearchOptions BuildOptions()
+    {
+        // Periodo y tipo de checkpoint solo se envian si su control esta activo y tiene un valor elegido.
+        var period = PeriodCombo.IsEnabled ? TagOf(PeriodCombo) : "";
+        var checkpointType = CheckpointTypeCombo.IsEnabled ? TagOf(CheckpointTypeCombo) : "";
+
+        var options = new CivitaiSearchOptions
+        {
+            Query = NullIfBlank(SearchBox.Text),
+            Nsfw = NsfwCheck.IsChecked == true,
+            Sort = SortValue(),
+            Period = NullIfBlank(period),
+            CheckpointType = NullIfBlank(checkpointType),
+            Tag = NullIfBlank(TagBox.Text),
+            Username = NullIfBlank(UserBox.Text),
+            SupportsGeneration = GenCheck.IsChecked == true,
+            FromPlatform = PlatformCheck.IsChecked == true,
+            EarlyAccess = EarlyCheck.IsChecked == true
+        };
+
+        foreach (var box in TypesPanel.Children.OfType<CheckBox>())
+        {
+            if (box.IsChecked == true && box.Tag is string type) options.Types.Add(type);
+        }
+
+        foreach (var baseModel in BaseModelList.SelectedItems.OfType<string>()) options.BaseModels.Add(baseModel);
+
+        return options;
+    }
+
+    /// <summary>Cuantos filtros se apartan de los valores por defecto (se muestra en el boton Filtros).</summary>
+    private int ActiveFilterCount()
+    {
+        var count = 0;
+        if (SortCombo.SelectedIndex > 0) count++;
+        if (PeriodCombo.IsEnabled && PeriodCombo.SelectedIndex > 0) count++;
+        if (TypesPanel.Children.OfType<CheckBox>().Any(b => b.IsChecked == true)) count++;
+        if (BaseModelList.SelectedItems.Count > 0) count++;
+        if (CheckpointTypeCombo.IsEnabled && CheckpointTypeCombo.SelectedIndex > 0) count++;
+        if (!string.IsNullOrWhiteSpace(TagBox.Text)) count++;
+        if (!string.IsNullOrWhiteSpace(UserBox.Text)) count++;
+        if (GenCheck.IsChecked == true) count++;
+        if (PlatformCheck.IsChecked == true) count++;
+        if (EarlyCheck.IsChecked == true) count++;
+        return count;
+    }
+
+    private void UpdateFiltersButton()
+    {
+        var count = ActiveFilterCount();
+        FiltersButton.Content = count == 0 ? "Filtros" : $"Filtros ({count})";
+    }
+
+    /// <summary>Sustituye la lista local de modelos base por la que publica Civitai, conservando lo ya marcado.</summary>
+    private async Task LoadBaseModelsAsync()
+    {
+        try
+        {
+            var list = await _civitai.GetBaseModelsAsync();
+            if (list.Count == 0)
+            {
+                BaseModelHint.Text = "lista local (Civitai no devolvio ninguna)";
+                return;
+            }
+
+            var selected = BaseModelList.SelectedItems.OfType<string>().ToList();
+            BaseModelList.ItemsSource = list;
+            foreach (var item in selected.Where(list.Contains)) BaseModelList.SelectedItems.Add(item);
+
+            BaseModelHint.Text = $"{list.Count} modelos base (lista de Civitai)";
+        }
+        catch (CivitaiException)
+        {
+            BaseModelHint.Text = "lista local (no se pudo leer la de Civitai)";
+        }
     }
 
     // ===================== Busqueda =====================
@@ -111,18 +288,55 @@ public partial class CivitaiPanel : UserControl
 
     private async Task RunSearchAsync()
     {
-        if (_mode == "collections") await SearchCollectionsAsync(reset: true);
-        else
+        if (_mode == "collections")
         {
-            _sourceNote = ""; // una busqueda manual ya no viene de una referencia
-            await SearchAsync(reset: true);
+            await SearchCollectionsAsync(reset: true);
+            return;
         }
+
+        // Un enlace de Civitai pegado en la barra se resuelve directamente (un numero suelto NO: se busca como texto).
+        if (LooksLikeLink(SearchBox.Text))
+        {
+            if (_busy && _searchCts == null) return; // otra operacion en curso
+            CancelSearch();
+            await ResolveAsync(SearchBox.Text);
+            return;
+        }
+
+        _sourceNote = ""; // una busqueda manual ya no viene de una referencia
+        await SearchAsync(reset: true);
+    }
+
+    private static bool LooksLikeLink(string? text) =>
+        !string.IsNullOrWhiteSpace(text) &&
+        Regex.IsMatch(text, @"civitai\.com/models/\d+|modelVersionId=\d+", RegexOptions.IgnoreCase) &&
+        CivitaiService.ParseLinks(text).Count > 0;
+
+    /// <summary>Cancela la busqueda de modelos en curso. Su "finally" ya no tocara el estado de la ventana.</summary>
+    private void CancelSearch()
+    {
+        var cts = _searchCts;
+        if (cts == null) return;
+
+        _searchCts = null;
+        _busy = false;
+        cts.Cancel();
     }
 
     private async Task SearchAsync(bool reset)
     {
-        if (_busy) return;
+        if (!reset && _busy) return;                      // "Cargar mas" no se solapa con otra operacion
+        if (reset && _busy && _searchCts == null) return; // hay otra operacion (resolver / colecciones) en curso
+
+        if (reset) CancelSearch(); // una busqueda nueva sustituye a la que estuviera en curso
+
+        var cts = new CancellationTokenSource();
+        _searchCts = cts;
+        var ct = cts.Token;
+
         SetBusy(true, "buscando en Civitai...");
+        SearchButton.IsEnabled = true; // se puede lanzar otra busqueda y sustituir esta
+        UpdateFiltersButton();
 
         try
         {
@@ -132,12 +346,11 @@ public partial class CivitaiPanel : UserControl
                 _cursor = null;
                 _preferredVersion.Clear();
                 ShowDetail(null);
+                _lastOptions = BuildOptions();
             }
 
-            var type = TypeCombo.SelectedIndex switch { 1 => "LORA", 2 => "LoCon", 3 => "Checkpoint", _ => null };
-            var sort = SortCombo.SelectedIndex switch { 1 => "Highest Rated", 2 => "Newest", 3 => "Most Liked", _ => "Most Downloaded" };
-
-            var page = await _civitai.SearchModelsAsync(SearchBox.Text, type, sort, NsfwCheck.IsChecked == true, _cursor);
+            var page = await _civitai.SearchModelsAsync(_lastOptions, _cursor, ct);
+            ct.ThrowIfCancellationRequested(); // si la han sustituido mientras llegaba, no se anade nada
 
             foreach (var model in page.Items)
             {
@@ -145,23 +358,28 @@ public partial class CivitaiPanel : UserControl
             }
 
             _cursor = page.NextCursor;
+            _hasSearched = true;
             SetBusy(false, $"{_results.Count} resultados" + (_cursor != null ? " (hay mas)" : ""));
         }
         catch (CivitaiException ex)
         {
-            SetBusy(false, ex.Message);
+            if (ReferenceEquals(_searchCts, cts)) SetBusy(false, ex.Message);
         }
         catch (OperationCanceledException)
         {
-            SetBusy(false);
+            // Sustituida por otra busqueda: la nueva se encarga del estado.
         }
         finally
         {
-            _busy = false;
-            SearchButton.IsEnabled = true;
-            ResolveButton.IsEnabled = true;
-            MoreButton.IsEnabled = true;
-            ApplyMode();
+            if (ReferenceEquals(_searchCts, cts))
+            {
+                _searchCts = null;
+                _busy = false;
+                SearchButton.IsEnabled = true;
+                ResolveButton.IsEnabled = true;
+                MoreButton.IsEnabled = true;
+                ApplyMode();
+            }
         }
     }
 
@@ -211,11 +429,13 @@ public partial class CivitaiPanel : UserControl
 
     // ===================== Pegar enlaces =====================
 
-    private async void Resolve_Click(object sender, RoutedEventArgs e)
+    private async void Resolve_Click(object sender, RoutedEventArgs e) => await ResolveAsync(LinksBox.Text);
+
+    private async Task ResolveAsync(string text)
     {
         if (_busy) return;
 
-        var links = CivitaiService.ParseLinks(LinksBox.Text);
+        var links = CivitaiService.ParseLinks(text);
         if (links.Count == 0)
         {
             StatusText.Text = "no se ha reconocido ningun enlace o id de modelo";

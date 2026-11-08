@@ -14,6 +14,37 @@ public class CivitaiException : Exception
 }
 
 /// <summary>
+/// Filtros de una busqueda de modelos. Cada propiedad se corresponde con un parametro documentado de
+/// GET /api/v1/models; los vacios o en false no se envian.
+/// </summary>
+public sealed class CivitaiSearchOptions
+{
+    public string? Query { get; set; }
+
+    /// <summary>Valores de ModelType de Civitai (LORA, LoCon, DoRA, Checkpoint...). Vacio = todos.</summary>
+    public List<string> Types { get; set; } = new();
+
+    /// <summary>Valor de sort de Civitai ("Most Downloaded", "Newest"...).</summary>
+    public string Sort { get; set; } = "Most Downloaded";
+
+    /// <summary>AllTime, Year, Month, Week o Day. Null = no se envia (la API aplica su valor por defecto).</summary>
+    public string? Period { get; set; }
+
+    /// <summary>Valores de BaseModel de Civitai (SDXL 1.0, Pony, Illustrious...). Vacio = todos.</summary>
+    public List<string> BaseModels { get; set; } = new();
+
+    /// <summary>Standard, Trained o Merge. Solo tiene efecto sobre checkpoints.</summary>
+    public string? CheckpointType { get; set; }
+
+    public string? Tag { get; set; }
+    public string? Username { get; set; }
+    public bool Nsfw { get; set; }
+    public bool SupportsGeneration { get; set; }
+    public bool FromPlatform { get; set; }
+    public bool EarlyAccess { get; set; }
+}
+
+/// <summary>
 /// Cliente de la API publica de Civitai (solo lectura). Notas verificadas en la documentacion oficial:
 /// la busqueda por texto (query) exige paginacion por cursor (nunca se envia page); page*limit &gt; 1000 da 429;
 /// ante un 429 se respeta Retry-After; la API Key viaja en cabecera Authorization: Bearer (no en la URL, para
@@ -143,17 +174,57 @@ public sealed class CivitaiService
             ? element.ToString()
             : null;
 
-    /// <summary>Busca modelos. type: valor de ModelType de Civitai (LORA, LoCon, Checkpoint...) o null para todos.</summary>
-    public async Task<CivitaiPage<CivitaiModel>> SearchModelsAsync(string? query, string? type, string sort,
-        bool nsfw, string? cursor, CancellationToken ct = default)
+    /// <summary>
+    /// Busca modelos con los filtros indicados. Los parametros de lista (types, baseModels) se envian repetidos,
+    /// que es una de las dos formas que admite la documentacion (la otra es separarlos por comas).
+    /// </summary>
+    public async Task<CivitaiPage<CivitaiModel>> SearchModelsAsync(CivitaiSearchOptions options, string? cursor,
+        CancellationToken ct = default)
     {
-        var parts = new List<string> { "limit=24", $"sort={Uri.EscapeDataString(sort)}", $"nsfw={(nsfw ? "true" : "false")}" };
-        if (!string.IsNullOrWhiteSpace(query)) parts.Add($"query={Uri.EscapeDataString(query.Trim())}");
-        if (!string.IsNullOrWhiteSpace(type)) parts.Add($"types={Uri.EscapeDataString(type)}");
+        var parts = new List<string>
+        {
+            "limit=24",
+            $"sort={Uri.EscapeDataString(options.Sort)}",
+            $"nsfw={(options.Nsfw ? "true" : "false")}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(options.Query)) parts.Add($"query={Uri.EscapeDataString(options.Query.Trim())}");
+        foreach (var type in options.Types.Where(t => !string.IsNullOrWhiteSpace(t))) parts.Add($"types={Uri.EscapeDataString(type)}");
+        foreach (var baseModel in options.BaseModels.Where(b => !string.IsNullOrWhiteSpace(b))) parts.Add($"baseModels={Uri.EscapeDataString(baseModel)}");
+        if (!string.IsNullOrWhiteSpace(options.Period)) parts.Add($"period={Uri.EscapeDataString(options.Period)}");
+        if (!string.IsNullOrWhiteSpace(options.CheckpointType)) parts.Add($"checkpointType={Uri.EscapeDataString(options.CheckpointType)}");
+        if (!string.IsNullOrWhiteSpace(options.Tag)) parts.Add($"tag={Uri.EscapeDataString(options.Tag.Trim())}");
+        if (!string.IsNullOrWhiteSpace(options.Username)) parts.Add($"username={Uri.EscapeDataString(options.Username.Trim())}");
+        if (options.SupportsGeneration) parts.Add("supportsGeneration=true");
+        if (options.FromPlatform) parts.Add("fromPlatform=true");
+        if (options.EarlyAccess) parts.Add("earlyAccess=true");
         if (!string.IsNullOrWhiteSpace(cursor)) parts.Add($"cursor={Uri.EscapeDataString(cursor)}");
 
         var page = await GetAsync<RawPage<CivitaiModel>>("/api/v1/models?" + string.Join("&", parts), ct);
         return new CivitaiPage<CivitaiModel> { Items = page.Items, NextCursor = CursorOf(page.Metadata) };
+    }
+
+    /// <summary>
+    /// Lista de modelos base que admite el filtro baseModels (GET /api/v1/enums, clave BaseModel). La documentacion
+    /// avisa de que la lista cambia al salir familias nuevas, por eso se lee en ejecucion y no se escribe a mano.
+    /// Es un endpoint publico y no necesita API Key.
+    /// </summary>
+    public async Task<List<string>> GetBaseModelsAsync(CancellationToken ct = default)
+    {
+        var root = await GetAsync<JsonElement>("/api/v1/enums", ct, withKey: false);
+        var result = new List<string>();
+
+        if (root.ValueKind == JsonValueKind.Object &&
+            root.TryGetProperty("BaseModel", out var array) &&
+            array.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in array.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String && item.GetString() is { Length: > 0 } text) result.Add(text);
+            }
+        }
+
+        return result;
     }
 
     public Task<CivitaiModel> GetModelAsync(long id, CancellationToken ct = default) =>
