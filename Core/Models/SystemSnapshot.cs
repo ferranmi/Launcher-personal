@@ -4,6 +4,9 @@ namespace Launcher.Core.Models;
 public class SystemSnapshot
 {
     public double CpuPercent { get; set; }
+    public string CpuName { get; set; } = "CPU";
+    public int CpuCoreCount { get; set; }
+    public int CpuThreadCount { get; set; }
     public float? CpuTemperatureCelsius { get; set; }
 
     public double RamPercent { get; set; }
