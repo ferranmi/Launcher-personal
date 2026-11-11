@@ -84,6 +84,7 @@ public partial class DashboardView : UserControl
     private bool _initialized;
     private bool _ticking;
     private bool _draggingSlider;
+    private StatusLevel? _animatedLevel;
 
     public DashboardView()
     {
@@ -212,6 +213,30 @@ public partial class DashboardView : UserControl
         GlobalStatusText.Foreground = LevelBrush(global);
         GlobalStatusBorder.Background = LevelDimBrush(global);
         GlobalStatusBorder.BorderBrush = LevelBrush(global);
+
+        // Pulso visual tipo sirena solo cuando hay una alerta global.
+        if (_animatedLevel != global)
+        {
+            _animatedLevel = global;
+            if (global == StatusLevel.Online)
+            {
+                GlobalStatusBorder.BeginAnimation(OpacityProperty, null);
+                GlobalStatusBorder.Opacity = 1;
+            }
+            else
+            {
+                var duration = global == StatusLevel.Defcon
+                    ? TimeSpan.FromMilliseconds(320)
+                    : TimeSpan.FromMilliseconds(850);
+
+                var pulse = new DoubleAnimation(0.42, 1.0, new Duration(duration))
+                {
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                GlobalStatusBorder.BeginAnimation(OpacityProperty, pulse);
+            }
+        }
 
         var now = DateTime.Now;
         ClockText.Text = now.ToString("HH:mm:ss");
