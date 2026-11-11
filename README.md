@@ -4,9 +4,9 @@
 >
 > | Campo | Estado actual comprobado |
 > |---|---|
-> | Rama de referencia | `main` |
+> | Rama de referencia | `feature/dashboard-cpu-gpu-thermal` (trabajo en curso; basada en `main`) |
 > | Commit de código auditado | `5c621accde912fc8dda48873fb44d4d93857901a` |
-> | Versión | `0.1.53` |
+> | Versión | `0.1.54` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Módulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, versión 1.2.161 |
@@ -21,6 +21,16 @@
 > El análisis histórico que sigue es contexto, no una especificación vigente. Cuando contradiga el bloque actual o el código del commit auditado, se considera superado y debe revalidarse antes de implementar.
 
 ---
+
+
+> **CAMBIO EN CURSO — Dashboard CPU/GPU (rama feature/dashboard-cpu-gpu-thermal)**
+>
+> - Se incorpora `LibreHardwareMonitorLib` `0.9.6` para leer temperaturas de CPU y GPU.
+> - Las tarjetas existentes CPU y GPU conservan su contenedor, posición y comportamiento; muestran el uso (%) y la temperatura (°C).
+> - Si el sensor no está disponible, se muestra `--°C`; la ausencia de sensores no debe impedir el arranque.
+> - Archivos: `Core/Services/ThermalMonitorService.cs` (nuevo), `Core/Services/SystemMonitorService.cs`, `Core/Models/SystemSnapshot.cs`, `Modules/Dashboard/DashboardView.xaml.cs` y `Launcher.csproj`.
+> - **Pendiente de verificación:** compilar y probar en Windows, comprobar temperaturas con CPU Intel y GPU NVIDIA, y verificar comportamiento sin sensores/permisos.
+> - No se ha ejecutado build ni pruebas en este entorno.
 
 # Launcher — README de estado y traspaso
 
