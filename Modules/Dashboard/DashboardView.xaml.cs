@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Launcher.Core.Models;
@@ -69,10 +70,7 @@ public partial class DashboardView : UserControl
     private const int LogCollapsed = 6;
     private const int LogExpanded = 25;
 
-    private readonly SystemMonitorService _monitor = new();
-    private readonly ProcessMonitorService _procs = new();
-    private readonly StatusEvaluator _evaluator = new();
-    private readonly UplinkService _uplink;
+    private readonly SystemStatusHost _statusHost = SystemStatusHost.Instance;
     private readonly NowPlayingService _nowPlaying = new();
     private readonly NowPlayingInfo _info;
     private readonly DispatcherTimer _timer;
@@ -80,8 +78,6 @@ public partial class DashboardView : UserControl
     private CommandsService _commands = new();
     private FolderShortcutsService _folders = new();
 
-    private List<ProcessGroup> _groups = new();
-    private int _tick;
     private int _logVersion;
     private int _shownLogVersion = -1;
     private bool _logExpanded;
@@ -96,10 +92,8 @@ public partial class DashboardView : UserControl
         _info = _nowPlaying.Info;
         PlayerPanel.DataContext = _info;
 
-        _uplink = new UplinkService(_evaluator);
-        _uplink.Changed += (_, _) => UpdateUplink();
-        _evaluator.EventRaised += _ => _logVersion++;
-        _evaluator.Report(StatusLevel.Online, "Launcher", "sistema iniciado");
+        _statusHost.Uplink.Changed += (_, _) => UpdateUplink();
+        _statusHost.Evaluator.EventRaised += _ => _logVersion++;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += async (_, _) => await TickAsync();
@@ -118,6 +112,7 @@ public partial class DashboardView : UserControl
         Unloaded += (_, _) =>
         {
             _timer.Stop();
+            _statusHost.SetDashboardVisible(false);
             if (CenterBoard.IsEditing) SetEditing(false); // al cambiar de modulo no se queda a medias
         };
     }
@@ -131,7 +126,9 @@ public partial class DashboardView : UserControl
         }
 
         LoadAccess();
+        _statusHost.SetDashboardVisible(true);
         _timer.Start();
+        UpdateUplink();
         await TickAsync();
     }
 
@@ -154,24 +151,17 @@ public partial class DashboardView : UserControl
 
         try
         {
-            var snap = _monitor.Sample();
-
-            // Los procesos son lo mas pesado de leer: cada 2 s basta.
-            if (_tick % 2 == 0)
+            // La monitorizacion y el calculo de estados pertenecen al host global.
+            // El Dashboard solo presenta la ultima muestra; no crea lectores duplicados.
+            var snap = _statusHost.Snapshot;
+            var report = _statusHost.Report;
+            if (snap != null && report != null)
             {
-                _procs.Refresh();
-                _groups = _procs.BuildGroups();
+                UpdateHeader(report.Global);
+                UpdateMetrics(snap, report);
+                UpdateProcesses();
+                UpdateLog();
             }
-
-            var frozen = _procs.Processes.Where(p => p.IsFrozen).Select(p => p.Name).ToList();
-            var report = _evaluator.Evaluate(snap, frozen);
-
-            _uplink.Refresh();
-
-            UpdateHeader(report.Global);
-            UpdateMetrics(snap, report);
-            UpdateProcesses();
-            UpdateLog();
 
             if (!_draggingSlider)
             {
@@ -180,7 +170,6 @@ public partial class DashboardView : UserControl
                 ProgressSlider.Value = _info.PositionSeconds;
             }
 
-            _tick++;
         }
         catch (Exception ex)
         {
@@ -269,7 +258,7 @@ public partial class DashboardView : UserControl
 
     private void UpdateProcesses()
     {
-        var top = _groups
+        var top = _statusHost.Groups
             .Where(g => !string.Equals(g.Root.Name, "Idle", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(g => g.AnyFrozen)   // los congelados van fijos delante
             .ThenByDescending(g => g.TotalCpu)
@@ -305,7 +294,7 @@ public partial class DashboardView : UserControl
         if (_shownLogVersion == _logVersion) return;
         _shownLogVersion = _logVersion;
 
-        var rows = _evaluator.History
+        var rows = _statusHost.Evaluator.History
             .Take(_logExpanded ? LogExpanded : LogCollapsed)
             .Select(ev =>
             {
@@ -344,7 +333,7 @@ public partial class DashboardView : UserControl
 
     private void UpdateUplink()
     {
-        var rows = _uplink.Devices.Select(d =>
+        var rows = _statusHost.Uplink.Devices.Select(d =>
         {
             var problem = d.State == UplinkState.Problem;
             var live = d.State is UplinkState.Active or UplinkState.Transferring;
@@ -406,7 +395,7 @@ public partial class DashboardView : UserControl
 
         if (!GameLibraryService.Instance.Launch(tile.Game))
         {
-            _evaluator.Report(StatusLevel.Warning, tile.Name, $"no se pudo lanzar {tile.Name}");
+            _statusHost.Evaluator.Report(StatusLevel.Warning, tile.Name, $"no se pudo lanzar {tile.Name}");
         }
     }
 
@@ -421,7 +410,7 @@ public partial class DashboardView : UserControl
                 break;
             case FolderShortcut folder:
                 if (!folder.Exists)
-                    _evaluator.Report(StatusLevel.Warning, folder.Name, $"carpeta no encontrada: {folder.Path}");
+                    _statusHost.Evaluator.Report(StatusLevel.Warning, folder.Name, $"carpeta no encontrada: {folder.Path}");
                 _folders.Open(folder);
                 break;
         }
