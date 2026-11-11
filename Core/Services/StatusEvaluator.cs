@@ -62,6 +62,7 @@ public sealed class StatusEvaluator
     private readonly Dictionary<string, MetricState> _states = new();
     private readonly Dictionary<string, int> _frozenRuns = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<StatusEvent> _history = new();
+    private StatusLevel _uplinkStatus = StatusLevel.Online;
 
     public StatusEvaluator(Dictionary<string, MetricThresholds>? thresholds = null)
     {
@@ -76,6 +77,9 @@ public sealed class StatusEvaluator
     public IReadOnlyList<StatusEvent> History => _history;
 
     public StatusLevel Global { get; private set; }
+
+    /// <summary>Estado actual de UPLINK; a diferencia del historial, puede volver a ONLINE.</summary>
+    public void SetUplinkStatus(StatusLevel level) => _uplinkStatus = level;
 
     /// <summary>Se dispara por cada entrada nueva del registro.</summary>
     public event Action<StatusEvent>? EventRaised;
@@ -96,6 +100,7 @@ public sealed class StatusEvaluator
             metrics[$"Disco {drive.Name}"] = CheckMetric("Disco", $"Disco {drive.Name}", drive.UsedPercent);
 
         metrics["Procesos"] = CheckFrozen(frozenProcesses);
+        metrics["UPLINK"] = _uplinkStatus;
 
         Global = metrics.Values.Max();
         return new StatusReport(Global, metrics);
