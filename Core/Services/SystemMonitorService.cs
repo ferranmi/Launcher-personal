@@ -60,7 +60,7 @@ public class SystemMonitorService : IDisposable
     private bool _cpuInfoLoaded;
     private string _cpuName = "CPU";
     private int _cpuCoreCount;
-    private int _cpuThreadCount = Environment.ProcessorCount;
+    private int _cpuThreadCount;
 
     private bool _gpuInfoLoaded;
     private string _gpuName = "GPU";
@@ -131,8 +131,7 @@ public class SystemMonitorService : IDisposable
                     _cpuCoreCount += Convert.ToInt32(obj["NumberOfCores"]);
 
                 if (obj["NumberOfLogicalProcessors"] != null)
-                    _cpuThreadCount = Math.Max(0, _cpuThreadCount - Environment.ProcessorCount)
-                        + Convert.ToInt32(obj["NumberOfLogicalProcessors"]);
+                    _cpuThreadCount += Convert.ToInt32(obj["NumberOfLogicalProcessors"]);
             }
 
             if (_cpuThreadCount <= 0)
