@@ -1,0 +1,6 @@
+﻿## main...origin/main
+?? CORE_INVENTORY.txt
+?? GENERATE_INVENTORY.ps1
+?? Launcher/
+?? REPOSITORY_TREE.txt
+?? _AUDIT_INVENTORY/

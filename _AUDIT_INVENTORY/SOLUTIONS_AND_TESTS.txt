@@ -1,0 +1,5 @@
+﻿_AUDIT_INVENTORY\SOLUTIONS_AND_TESTS.txt
+publish\.playwright\package\lib\tools\skills\playwright-cli\references\playwright-tests.md
+publish\.playwright\package\lib\tools\skills\playwright-cli\references\test-generation.md
+publish\.playwright\package\lib\tools\skills\playwright-component-testing\references\gallery-spec.md
+publish\System.Collections.Specialized.dll
