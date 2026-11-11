@@ -284,7 +284,7 @@ Analizar:
 - [[DIRECTORY_MAP]]
 - [[../02-Modules/MODULES]]
 - [[../00-Project/CURRENT_STATE]]
-- [[../04-Audit/FINDINGS]]
+- [[../03-Audit/Findings]]
 
 ## 13. Historial
 

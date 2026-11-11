@@ -145,7 +145,7 @@ Cada módulo deberá documentar:
 - [[../00-Project/CURRENT_STATE|Current State]]
 - [[../01-Architecture/ARCHITECTURE|Architecture]]
 - [[../01-Architecture/DEPENDENCIES|Dependencies]]
-- [[../04-Audit/FINDINGS|Audit Findings]]
+- [[../03-Audit/Findings|Audit Findings]]
 - [[../../Home|Home]]
 
 ## 9. Historial

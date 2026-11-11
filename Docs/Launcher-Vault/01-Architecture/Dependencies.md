@@ -475,8 +475,8 @@ Prioridad: P3.
 - [[../00-Project/PROJECT_CONTEXT|Project Context]]
 - [[../00-Project/CURRENT_STATE|Current State]]
 - [[../02-Modules/MODULES|Module Catalog]]
-- [[../03-Decisions/DECISIONS|Technical Decisions]]
-- [[../04-Audit/FINDINGS|Audit Findings]]
+- [[../04-Decisions/Decisions|Technical Decisions]]
+- [[../03-Audit/Findings|Audit Findings]]
 
 ## 12. Historial
 

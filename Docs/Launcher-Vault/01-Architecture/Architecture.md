@@ -488,7 +488,7 @@ Se debe determinar si existe una implementación independiente, si está incompl
 - [[DIRECTORY_MAP|Directory Map]]
 - [[DEPENDENCIES|Dependencies]]
 - [[../02-Modules/MODULES|Module Catalog]]
-- [[../03-Decisions/DECISIONS|Technical Decisions]]
+- [[../04-Decisions/Decisions|Technical Decisions]]
 
 ## 15. Historial
 

@@ -37,14 +37,14 @@ tags: [launcher, documentation]
 
 ## Auditoría
 
-- [[04-Audit/FINDINGS|Findings]]
-- [[04-Audit/SECURITY|Security Audit]]
-- [[04-Audit/CODE_QUALITY|Code Quality]]
-- [[04-Audit/TESTING|Testing Audit]]
+- [[03-Audit/Findings|Findings]]
+- [[03-Audit/Security|Security Audit]]
+- [[03-Audit/Quality|Code Quality]]
+- [[03-Audit/Findings|Testing Audit]]
 
 ## Decisiones técnicas
 
-- [[03-Decisions/DECISIONS|Technical Decisions]]
+- [[04-Decisions/Decisions|Technical Decisions]]
 
 ## Trabajo con IA
 

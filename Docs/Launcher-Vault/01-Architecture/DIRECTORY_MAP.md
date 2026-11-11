@@ -363,7 +363,7 @@ Este mapa debe actualizarse cuando:
 - [[ARCHITECTURE|Architecture]]
 - [[DEPENDENCIES|Dependencies]]
 - [[../02-Modules/MODULES|Module Catalog]]
-- [[../03-Decisions/DECISIONS|Technical Decisions]]
+- [[../04-Decisions/Decisions|Technical Decisions]]
 
 ## 11. Historial
 

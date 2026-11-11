@@ -186,7 +186,7 @@ Estas limitaciones deberán actualizarse conforme avance la auditoría.
 - [[../01-Architecture/ARCHITECTURE|Arquitectura]]
 - [[../01-Architecture/DIRECTORY_MAP|Mapa de directorios]]
 - [[../02-Modules/MODULES|Catálogo de módulos]]
-- [[../03-Decisions/DECISIONS|Decisiones técnicas]]
+- [[../04-Decisions/Decisions|Decisiones técnicas]]
 
 ## 12. Historial
 

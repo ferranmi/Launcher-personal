@@ -248,7 +248,7 @@ La ausencia de pruebas en la documentación no demuestra que no existan. Hay que
 - [[../01-Architecture/ARCHITECTURE|Architecture]]
 - [[../01-Architecture/DIRECTORY_MAP|Directory Map]]
 - [[../02-Modules/MODULES|Module Catalog]]
-- [[../04-Audit/FINDINGS|Audit Findings]]
+- [[../03-Audit/Findings|Audit Findings]]
 
 ## 12. Historial
 
