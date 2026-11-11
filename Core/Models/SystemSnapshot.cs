@@ -4,12 +4,14 @@ namespace Launcher.Core.Models;
 public class SystemSnapshot
 {
     public double CpuPercent { get; set; }
+    public float? CpuTemperatureCelsius { get; set; }
 
     public double RamPercent { get; set; }
     public ulong RamUsedBytes { get; set; }
     public ulong RamTotalBytes { get; set; }
 
     public double GpuPercent { get; set; }
+    public float? GpuTemperatureCelsius { get; set; }
     public string GpuName { get; set; } = "GPU";
 
     public double VramPercent { get; set; }
