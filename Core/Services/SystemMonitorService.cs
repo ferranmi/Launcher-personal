@@ -57,6 +57,11 @@ public class SystemMonitorService : IDisposable
 
     private readonly Dictionary<int, (TimeSpan CpuTime, DateTime SampleTime)> _prevProcessTimes = new();
 
+    private bool _cpuInfoLoaded;
+    private string _cpuName = "CPU";
+    private int _cpuCoreCount;
+    private int _cpuThreadCount = Environment.ProcessorCount;
+
     private bool _gpuInfoLoaded;
     private string _gpuName = "GPU";
     private ulong _vramTotalBytes;
@@ -64,6 +69,7 @@ public class SystemMonitorService : IDisposable
 
     public SystemSnapshot Sample()
     {
+        LoadCpuInfoOnce();
         var cpu = SampleCpu();
         SampleMemory(out var ramPercent, out var ramUsed, out var ramTotal);
         LoadGpuInfoOnce();
@@ -80,6 +86,9 @@ public class SystemMonitorService : IDisposable
         return new SystemSnapshot
         {
             CpuPercent = cpu,
+            CpuName = _cpuName,
+            CpuCoreCount = _cpuCoreCount,
+            CpuThreadCount = _cpuThreadCount,
             CpuTemperatureCelsius = cpuTemperature,
             RamPercent = ramPercent,
             RamUsedBytes = ramUsed,
@@ -99,6 +108,42 @@ public class SystemMonitorService : IDisposable
 
     /// <summary>Si es false, Sample() no calcula el top de procesos (ahorra recorrer todos los procesos).</summary>
     public bool IncludeTopProcesses { get; set; } = true;
+
+    // ===================== IDENTIFICACION CPU =====================
+
+    private void LoadCpuInfoOnce()
+    {
+        if (_cpuInfoLoaded) return;
+        _cpuInfoLoaded = true;
+
+        try
+        {
+            using var searcher = new System.Management.ManagementObjectSearcher(
+                "SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor");
+
+            foreach (System.Management.ManagementObject obj in searcher.Get())
+            {
+                var name = obj["Name"] as string;
+                if (!string.IsNullOrWhiteSpace(name) && _cpuName == "CPU")
+                    _cpuName = name.Trim();
+
+                if (obj["NumberOfCores"] != null)
+                    _cpuCoreCount += Convert.ToInt32(obj["NumberOfCores"]);
+
+                if (obj["NumberOfLogicalProcessors"] != null)
+                    _cpuThreadCount = Math.Max(0, _cpuThreadCount - Environment.ProcessorCount)
+                        + Convert.ToInt32(obj["NumberOfLogicalProcessors"]);
+            }
+
+            if (_cpuThreadCount <= 0)
+                _cpuThreadCount = Environment.ProcessorCount;
+        }
+        catch
+        {
+            // Si WMI no esta disponible, conservamos el numero de hilos logicos de .NET.
+            _cpuThreadCount = Environment.ProcessorCount;
+        }
+    }
 
     // ===================== CPU =====================
 
