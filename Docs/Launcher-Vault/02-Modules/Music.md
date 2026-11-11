@@ -1,61 +1,34 @@
 ---
-
-title: Music module_id: music type: module status: pending-verification tags:
-
-- launcher/module
-- launcher/media
-
+title: Music
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Music
 
-## Responsabilidad
+## Estado de integración
+Registrado como MusicModule (Order 3), vista MusicView, DownloadWindow y EditTrackWindow. MusicLibraryService lee metadatos; MusicTrack indica que los archivos de audio son la fuente de verdad y no se persiste en JSON. ExternalToolsService gestiona yt-dlp/FFmpeg; revisar rutas, integridad, metadatos y recursos de audio.
 
-Proporcionar funcionalidades específicas para la gestión y reproducción musical.
+## Archivos y componentes
+Consultar el directorio `Modules/Music/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades que investigar
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Biblioteca musical.
-- Exploración de archivos.
-- Metadatos.
-- Álbumes y artistas.
-- Portadas.
-- Reproducción.
-- Listas de reproducción.
-- Integración con Media.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Dependencias que investigar
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- NAudio.
-- TagLibSharp.
-- NowPlayingService.
-- AudioMixerService.
-- Sistema de archivos.
-- Persistencia.
-
-## Auditoría
-
-- [ ] Localizar implementación.
-- [ ] Verificar registro.
-- [ ] Identificar reproductor.
-- [ ] Revisar formatos soportados.
-- [ ] Revisar lectura de metadatos.
-- [ ] Revisar portadas.
-- [ ] Revisar listas.
-- [ ] Revisar persistencia.
-- [ ] Revisar ciclo de vida del audio.
-- [ ] Comprobar integración con Media.
-
-## Riesgos
-
-- Conflictos entre sesiones.
-- Lectura de metadatos defectuosos.
-- Archivos grandes.
-- Recursos de reproducción sin liberar.
-- Duplicación de responsabilidades con Media.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[MEDIA]]
-- [[FOLDERS]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

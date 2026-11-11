@@ -1,61 +1,34 @@
 ---
-
-title: Network module_id: network type: module status: pending-verification tags:
-
-- launcher/module
-- launcher/system
-
+title: Network
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Network
 
-## Responsabilidad
+## Estado de integración
+Registrado como NetworkModule (Order 7), vista NetworkView. Existen LocalSendService y modelos NetworkDevice/StagedFile; la documentación de código indica integración con peers Tailscale y transferencia LocalSend. Revisar TLS, timeouts, cancelación y validación de destinos.
 
-Proporcionar información y funcionalidades relacionadas con la conectividad de red.
+## Archivos y componentes
+Consultar el directorio `Modules/Network/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades que investigar
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Adaptadores de red.
-- Estado de conexión.
-- Direcciones IP.
-- Información de interfaces.
-- Transferencias.
-- Conectividad local.
-- Integraciones con servicios de transferencia de archivos.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Contexto funcional
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-El proyecto ha contemplado funcionalidades relacionadas con LocalSend y Tailscale. Debe verificarse si forman parte del módulo actual o son propuestas.
-
-## Dependencias que investigar
-
-- Windows Networking APIs.
-- System.Management.
-- Servicios HTTP.
-- Devices.
-- Core.
-
-## Auditoría
-
-- [ ] Localizar implementación.
-- [ ] Verificar registro.
-- [ ] Identificar adaptadores.
-- [ ] Revisar actualización de estado.
-- [ ] Revisar tratamiento de direcciones.
-- [ ] Identificar integraciones externas.
-- [ ] Revisar transferencias.
-- [ ] Revisar seguridad de comunicaciones.
-- [ ] Revisar permisos.
-
-## Riesgos
-
-- Exposición de información de red.
-- Direcciones cambiantes.
-- Servicios externos no disponibles.
-- Transferencias sin validación suficiente.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[DEVICES]]
-- [[SETTINGS]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

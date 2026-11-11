@@ -1,93 +1,58 @@
 ---
-
-title: Launcher — Project Vault type: dashboard project: Launcher-personal tags:
-
-- launcher
-- project
-- obsidian
-- dashboard
-
+title: Launcher Project Vault
+type: dashboard
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: audit-in-progress
+tags: [launcher, project, obsidian]
 ---
 
-# Launcher — Project Intelligence
+# Launcher — Centro de conocimiento
 
-> Centro de conocimiento técnico, arquitectura y auditoría del proyecto Launcher.
+Repositorio: [ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal)  
+Referencia auditada: `main` · `5c621accde912fc8dda48873fb44d4d93857901a`  
+Versión del proyecto: `0.1.53` · C# / WPF / .NET 10 · Windows.
 
 ## Proyecto
-
-- **Repositorio:** [ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal)
-- **Rama de referencia:** `main`
-- **Tecnología:** C# / WPF / .NET 10
-- **Plataforma:** Windows
-- **Versión declarada en código:** 0.1.53
-- **Estado del Vault:** En construcción
-
-## Contexto del proyecto
-
-- [[00-Project/PROJECT_CONTEXT|Project Context]]
-- [[00-Project/CURRENT_STATE|Current State]]
-- [[00-Project/ROADMAP|Roadmap]]
+- [[00-Project/Project Context|Contexto del proyecto]]
+- [[00-Project/Current State|Estado actual]]
+- [[00-Project/Roadmap|Roadmap]]
 
 ## Arquitectura
-
-- [[01-Architecture/ARCHITECTURE|Architecture]]
-- [[01-Architecture/DIRECTORY_MAP|Directory Map]]
-- [[01-Architecture/DEPENDENCIES|Dependencies]]
-- [[02-Modules/MODULES|Module Catalog]]
+- [[01-Architecture/Architecture|Arquitectura]]
+- [[01-Architecture/DIRECTORY_MAP|Mapa de directorios]]
+- [[01-Architecture/CORE_AUDIT|Auditoría de Core]]
+- [[01-Architecture/Dependencies|Dependencias]]
+- [[02-Modules/Modules|Catálogo de módulos]]
 
 ## Auditoría
+- [[03-Audit/Findings|Hallazgos]]
+- [[03-Audit/Security|Seguridad]]
+- [[03-Audit/Quality|Calidad y fiabilidad]]
+- [[03-Audit/Technical Debt|Deuda técnica]]
 
-- [[04-Audit/FINDINGS|Findings]]
-- [[04-Audit/SECURITY|Security Audit]]
-- [[04-Audit/CODE_QUALITY|Code Quality]]
-- [[04-Audit/TESTING|Testing Audit]]
-
-## Decisiones técnicas
-
-- [[03-Decisions/DECISIONS|Technical Decisions]]
-
-## Trabajo con IA
-
-- [[05-AI/AGENTS|Agent Instructions]]
-- [[05-AI/TASK_CONTEXT_TEMPLATE|Task Context Template]]
+## Decisiones y trabajo con IA
+- [[04-Decisions/Decisions|Decisiones técnicas]]
+- [[05-AI/AGENTS|Instrucciones para agentes]]
+- [[05-AI/Module Instructions|Instrucciones para módulos]]
+- [[05-AI/Task Context Template|Plantilla de tarea]]
 
 ## Historial
+- [[06-History/Audit History|Historial de auditoría]]
 
-- [[06-History/AUDIT_HISTORY|Audit History]]
-
----
-
-## Estado del análisis
-
+## Estado de la documentación
 |Área|Estado|
 |---|---|
-|Identificación del proyecto|Iniciado|
-|Inventario de archivos|Parcial|
-|Arquitectura|Pendiente|
-|Catálogo de módulos|Pendiente|
-|Dependencias|Parcial|
-|Auditoría de código|Pendiente|
-|Auditoría de seguridad|Pendiente|
-|Pruebas|Pendiente|
-|Instrucciones para IA|Pendiente|
+|Contexto y estado|Actualizados con snapshot auditado|
+|Arquitectura y Core|Inventario inicial; faltan validaciones dinámicas|
+|Módulos|Catálogo reconciliado con registro; fichas individuales|
+|Seguridad y calidad|Hallazgos estáticos documentados|
+|Roadmap y decisiones|Pendientes priorizados, decisiones no asumidas|
+|Build y pruebas|No ejecutados en esta auditoría|
 
-## Reglas de conocimiento
-
-1. GitHub `main` es la fuente de verdad del código.
-2. El código tiene prioridad sobre las descripciones antiguas.
-3. Las decisiones del usuario deben quedar registradas.
-4. Los hallazgos deben incluir evidencias.
-5. Las hipótesis no se documentarán como hechos.
-6. Las funcionalidades incompletas deben identificarse explícitamente.
-7. Cada cambio relevante debe actualizar las notas afectadas.
-
-## Etiquetas
-
-- `#launcher/project`
-- `#launcher/architecture`
-- `#launcher/module`
-- `#launcher/audit`
-- `#launcher/decision`
-- `#launcher/ai`
-- `#launcher/pending`
-- `#launcher/verified`
+## Reglas
+1. El código del commit indicado es la referencia del análisis, no necesariamente el HEAD futuro.
+2. No confundir código presente con funcionalidad probada.
+3. Cada hallazgo incluye certeza y condición.
+4. Las decisiones del propietario prevalecen sobre recomendaciones.
+5. No modificar código ni añadir dependencias sin aprobación.

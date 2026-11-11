@@ -1,64 +1,34 @@
 ---
-
-title: Media module_id: media type: module status: documented-pending-verification tags:
-
-- launcher/module
-- launcher/media
-
+title: Media
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Media
 
-## Responsabilidad
+## Estado de integración
+Registrado como MediaModule (Order 2), vista MediaView y ventana de edición de apps. Usa MediaAppsService, NowPlayingService y AudioMixerService. AudioSessionInfo envuelve una sesión NAudio; revisar liberación COM, desconexiones y ciclo de vida de temporizadores.
 
-Gestionar aplicaciones multimedia y proporcionar información y controles relacionados con la reproducción.
+## Archivos y componentes
+Consultar el directorio `Modules/Media/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades documentadas
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Listado de aplicaciones multimedia.
-- Alta y edición de aplicaciones.
-- Integración con reproducción actual.
-- Información de sesiones de audio.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Componentes identificados
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- `MediaModule`.
-- `MediaView`.
-- `MediaAppShortcut`.
-- `MediaAppsService`.
-- `NowPlayingService`.
-- `AudioMixerService`.
-- `NowPlayingInfo`.
-- `AudioSessionInfo`.
-
-## Dependencias que investigar
-
-- NAudio.
-- TagLibSharp.
-- Windows APIs.
-- Core.
-- Persistencia JSON.
-
-## Auditoría
-
-- [ ] Verificar vista actual.
-- [ ] Identificar aplicaciones compatibles.
-- [ ] Revisar sesiones de audio.
-- [ ] Revisar controles de reproducción.
-- [ ] Analizar integración con Music.
-- [ ] Revisar suscripciones a eventos.
-- [ ] Revisar liberación de recursos.
-- [ ] Revisar persistencia.
-
-## Riesgos
-
-- Sesiones de audio que desaparecen.
-- Recursos no liberados.
-- Diferencias entre reproductores.
-- Dependencias entre Media y Music.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[MUSIC]]
-- [[SETTINGS]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
