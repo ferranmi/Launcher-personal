@@ -127,9 +127,14 @@ public sealed class SystemStatusHost : IDisposable
             var frozen = _procs.Processes.Where(p => p.IsFrozen).Select(p => p.Name).ToList();
 
             Snapshot = snap;
-            Report = Evaluator.Evaluate(snap, frozen);
 
             Uplink.Refresh();
+            Evaluator.SetUplinkStatus(
+                Uplink.Devices.Any(d => d.State == UplinkState.Problem)
+                    ? StatusLevel.Warning
+                    : StatusLevel.Online);
+
+            Report = Evaluator.Evaluate(snap, frozen);
             MaybeReadWindowsEvents();
 
             _cycle++;
