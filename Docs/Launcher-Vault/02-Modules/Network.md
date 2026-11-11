@@ -1,34 +1,69 @@
 ---
-title: Network
-type: module
+title: "Network"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Network
 
-## Estado de integración
-Registrado como NetworkModule (Order 7), vista NetworkView. Existen LocalSendService y modelos NetworkDevice/StagedFile; la documentación de código indica integración con peers Tailscale y transferencia LocalSend. Revisar TLS, timeouts, cancelación y validación de destinos.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Network/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Proporcionar información y funcionalidades relacionadas con la conectividad de red.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades que investigar
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Adaptadores de red.
+- Estado de conexión.
+- Direcciones IP.
+- Información de interfaces.
+- Transferencias.
+- Conectividad local.
+- Integraciones con servicios de transferencia de archivos.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Contexto funcional
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+El proyecto ha contemplado funcionalidades relacionadas con LocalSend y Tailscale. Debe verificarse si forman parte del módulo actual o son propuestas.
+
+## Dependencias que investigar
+
+- Windows Networking APIs.
+- System.Management.
+- Servicios HTTP.
+- Devices.
+- Core.
+
+## Auditoría
+
+- [ ] Localizar implementación.
+- [ ] Verificar registro.
+- [ ] Identificar adaptadores.
+- [ ] Revisar actualización de estado.
+- [ ] Revisar tratamiento de direcciones.
+- [ ] Identificar integraciones externas.
+- [ ] Revisar transferencias.
+- [ ] Revisar seguridad de comunicaciones.
+- [ ] Revisar permisos.
+
+## Riesgos
+
+- Exposición de información de red.
+- Direcciones cambiantes.
+- Servicios externos no disponibles.
+- Transferencias sin validación suficiente.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[DEVICES]]
+- [[SETTINGS]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como NetworkModule (Order 7). NetworkView muestra dispositivos Tailscale y prepara archivos antes de transferir. FileTransferService intenta LocalSend y contempla fallback mediante Tailscale.
+
+LocalSendService acepta certificados HTTPS sin validarlos y HttpClient usa timeout infinito; prepare-upload tiene límite de 3 minutos, pero upload depende de cancelación manual. Ver [[../03-Audit/Findings|Findings]]. La aceptación de certificado no equivale a tráfico en claro: es una carencia de autenticación TLS del peer.

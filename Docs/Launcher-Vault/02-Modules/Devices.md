@@ -1,34 +1,61 @@
 ---
-title: Devices
-type: module
+title: "Devices"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Devices
 
-## Estado de integración
-Registrado como DevicesModule (Order 7), vista DevicesView. Existe modelo DeviceInfo con información WMI/PNP, conectividad, fabricante y acceso a ajustes/app del proveedor. Revisar coste WMI, permisos, dispositivos desconectados y tratamiento de errores.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Devices/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Gestionar y mostrar información sobre dispositivos conectados al equipo.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades que investigar
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Enumeración de dispositivos.
+- Información de hardware.
+- Identificación de dispositivos.
+- Estado de conexión.
+- Información de dispositivos multimedia.
+- Posibles acciones de gestión.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Dependencias que investigar
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- System.Management.
+- Windows APIs.
+- Core.
+- Models.
+- Servicios de monitorización.
+
+## Auditoría
+
+- [ ] Localizar implementación.
+- [ ] Verificar registro.
+- [ ] Identificar fuentes de información.
+- [ ] Revisar consultas WMI.
+- [ ] Revisar actualización de estados.
+- [ ] Analizar permisos.
+- [ ] Revisar gestión de errores.
+- [ ] Comprobar liberación de recursos.
+
+## Riesgos
+
+- Consultas WMI costosas.
+- Diferencias entre versiones de Windows.
+- Dispositivos que desaparecen durante una consulta.
+- Confusión entre dispositivos físicos y lógicos.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[MONITOR]]
+- [[NETWORK]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como DevicesModule (Order 7). La vista consulta dispositivos mediante servicios Windows/WMI y permite abrir ajustes o aplicaciones asociadas. Revisar permisos, disponibilidad de dispositivos y latencia WMI en pruebas Windows.

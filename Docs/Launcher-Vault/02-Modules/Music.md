@@ -1,34 +1,69 @@
 ---
-title: Music
-type: module
+title: "Music"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Music
 
-## Estado de integración
-Registrado como MusicModule (Order 3), vista MusicView, DownloadWindow y EditTrackWindow. MusicLibraryService lee metadatos; MusicTrack indica que los archivos de audio son la fuente de verdad y no se persiste en JSON. ExternalToolsService gestiona yt-dlp/FFmpeg; revisar rutas, integridad, metadatos y recursos de audio.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Music/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Proporcionar funcionalidades específicas para la gestión y reproducción musical.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades que investigar
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Biblioteca musical.
+- Exploración de archivos.
+- Metadatos.
+- Álbumes y artistas.
+- Portadas.
+- Reproducción.
+- Listas de reproducción.
+- Integración con Media.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Dependencias que investigar
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- NAudio.
+- TagLibSharp.
+- NowPlayingService.
+- AudioMixerService.
+- Sistema de archivos.
+- Persistencia.
+
+## Auditoría
+
+- [ ] Localizar implementación.
+- [ ] Verificar registro.
+- [ ] Identificar reproductor.
+- [ ] Revisar formatos soportados.
+- [ ] Revisar lectura de metadatos.
+- [ ] Revisar portadas.
+- [ ] Revisar listas.
+- [ ] Revisar persistencia.
+- [ ] Revisar ciclo de vida del audio.
+- [ ] Comprobar integración con Media.
+
+## Riesgos
+
+- Conflictos entre sesiones.
+- Lectura de metadatos defectuosos.
+- Archivos grandes.
+- Recursos de reproducción sin liberar.
+- Duplicación de responsabilidades con Media.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[MEDIA]]
+- [[FOLDERS]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como MusicModule (Order 3). MusicLibraryService obtiene metadatos desde archivos; MusicTrack no se persiste como JSON. ImportAsync compara rutas mediante StartsWith sobre rutas completas, lo que puede confundir carpetas hermanas con subdirectorios. Ver DATA-002 en [[../03-Audit/Findings|Findings]].
+
+ExternalToolsService gestiona yt-dlp y FFmpeg; no se observó verificación explícita de hash/firma en el flujo revisado.

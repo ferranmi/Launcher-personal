@@ -1,34 +1,71 @@
 ---
-title: Processes
-type: module
+title: "Processes"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Processes
 
-## Estado de integración
-Registrado como ProcessesModule (Order 4), vista ProcessesView y ProcessMonitorService. Incluye ProcessGroup, ProcessRow y ProcessSample. Revisar permisos, finalización de procesos, confirmaciones, timers y consumo.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Processes/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Consultar y mostrar los procesos activos del sistema.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades documentadas
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Listado de procesos.
+- Información de consumo.
+- Monitorización.
+- Agrupación de procesos.
+- Información de carga.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Componentes identificados
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- `ProcessesModule`.
+- `ProcessesView`.
+- `ProcessMonitorService`.
+- `ProcessGroup`.
+- `ProcessRow`.
+- `ProcessSample`.
+- `ProcessLoadInfo`.
+
+## Dependencias que investigar
+
+- System.Management.
+- System.Diagnostics.
+- Monitor.
+- Core.
+
+## Auditoría
+
+- [ ] Verificar enumeración.
+- [ ] Revisar actualización de datos.
+- [ ] Revisar cálculo de consumo.
+- [ ] Analizar agrupación.
+- [ ] Revisar permisos.
+- [ ] Revisar procesos protegidos.
+- [ ] Comprobar liberación de recursos.
+- [ ] Revisar concurrencia.
+- [ ] Comprobar impacto sobre el rendimiento.
+
+## Riesgos
+
+- Acceso denegado a determinados procesos.
+- Lecturas inconsistentes.
+- Actualizaciones demasiado frecuentes.
+- Suscripciones o temporizadores persistentes.
+- Operaciones que afecten al sistema.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[MONITOR]]
+- [[DEVICES]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como ProcessesModule (Order 4). ProcessesView ejecuta muestreo en Task.Run, evita solapamientos y llama Dispose al descargar la vista; ProcessMonitorService sigue siendo reutilizable tras esa llamada y reinicia las referencias de CPU/GPU. Probar refrescos, permisos, finalización de procesos y vuelta a la vista.

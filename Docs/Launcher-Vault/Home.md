@@ -1,58 +1,114 @@
 ---
-title: Launcher Project Vault
+title: "Home"
 type: dashboard
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: audit-in-progress
-tags: [launcher, project, obsidian]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, documentation]
 ---
 
-# Launcher — Centro de conocimiento
+# Launcher — Project Intelligence
 
-Repositorio: [ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal)  
-Referencia auditada: `main` · `5c621accde912fc8dda48873fb44d4d93857901a`  
-Versión del proyecto: `0.1.53` · C# / WPF / .NET 10 · Windows.
+> Centro de conocimiento técnico, arquitectura y auditoría del proyecto Launcher.
 
 ## Proyecto
-- [[00-Project/Project Context|Contexto del proyecto]]
-- [[00-Project/Current State|Estado actual]]
-- [[00-Project/Roadmap|Roadmap]]
+
+- **Repositorio:** [ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal)
+- **Rama de referencia:** `main`
+- **Tecnología:** C# / WPF / .NET 10
+- **Plataforma:** Windows
+- **Versión declarada en código:** 0.1.53
+- **Estado del Vault:** En construcción
+
+## Contexto del proyecto
+
+- [[00-Project/PROJECT_CONTEXT|Project Context]]
+- [[00-Project/CURRENT_STATE|Current State]]
+- [[00-Project/ROADMAP|Roadmap]]
 
 ## Arquitectura
+
+- [[01-Architecture/ARCHITECTURE|Architecture]]
+- [[01-Architecture/DIRECTORY_MAP|Directory Map]]
+- [[01-Architecture/DEPENDENCIES|Dependencies]]
+- [[02-Modules/MODULES|Module Catalog]]
+
+## Auditoría
+
+- [[03-Audit/Findings|Findings]]
+- [[03-Audit/Security|Security Audit]]
+- [[03-Audit/Quality|Code Quality]]
+- [[03-Audit/Findings|Testing Audit]]
+
+## Decisiones técnicas
+
+- [[04-Decisions/Decisions|Technical Decisions]]
+
+## Trabajo con IA
+
+- [[05-AI/AGENTS|Agent Instructions]]
+- [[05-AI/TASK_CONTEXT_TEMPLATE|Task Context Template]]
+
+## Historial
+
+- [[06-History/AUDIT_HISTORY|Audit History]]
+
+---
+
+## Estado del análisis
+
+|Área|Estado|
+|---|---|
+|Identificación del proyecto|Iniciado|
+|Inventario de archivos|Parcial|
+|Arquitectura|Pendiente|
+|Catálogo de módulos|Pendiente|
+|Dependencias|Parcial|
+|Auditoría de código|Pendiente|
+|Auditoría de seguridad|Pendiente|
+|Pruebas|Pendiente|
+|Instrucciones para IA|Pendiente|
+
+## Reglas de conocimiento
+
+1. GitHub `main` es la fuente de verdad del código.
+2. El código tiene prioridad sobre las descripciones antiguas.
+3. Las decisiones del usuario deben quedar registradas.
+4. Los hallazgos deben incluir evidencias.
+5. Las hipótesis no se documentarán como hechos.
+6. Las funcionalidades incompletas deben identificarse explícitamente.
+7. Cada cambio relevante debe actualizar las notas afectadas.
+
+## Etiquetas
+
+- `#launcher/project`
+- `#launcher/architecture`
+- `#launcher/module`
+- `#launcher/audit`
+- `#launcher/decision`
+- `#launcher/ai`
+- `#launcher/pending`
+- `#launcher/verified`
+
+## Actualización de auditoría — 2026-11-11
+
+La bóveda se ha reconciliado con el código del commit `5c621accde912fc8dda48873fb44d4d93857901a`, versión 0.1.53. El registro real contiene 13 módulos; Search está implementado pero no registrado, y Assistant es una ventana independiente.
+
+### Índices actuales
+- [[00-Project/Current State|Estado actual]]
 - [[01-Architecture/Architecture|Arquitectura]]
-- [[01-Architecture/DIRECTORY_MAP|Mapa de directorios]]
 - [[01-Architecture/CORE_AUDIT|Auditoría de Core]]
 - [[01-Architecture/Dependencies|Dependencias]]
 - [[02-Modules/Modules|Catálogo de módulos]]
-
-## Auditoría
+- [[02-Modules/Search|Módulo Search no registrado]]
 - [[03-Audit/Findings|Hallazgos]]
 - [[03-Audit/Security|Seguridad]]
-- [[03-Audit/Quality|Calidad y fiabilidad]]
+- [[03-Audit/Quality|Calidad]]
 - [[03-Audit/Technical Debt|Deuda técnica]]
-
-## Decisiones y trabajo con IA
-- [[04-Decisions/Decisions|Decisiones técnicas]]
+- [[04-Decisions/Decisions|Decisiones]]
 - [[05-AI/AGENTS|Instrucciones para agentes]]
-- [[05-AI/Module Instructions|Instrucciones para módulos]]
-- [[05-AI/Task Context Template|Plantilla de tarea]]
+- [[06-History/Audit History|Historial]]
 
-## Historial
-- [[06-History/Audit History|Historial de auditoría]]
-
-## Estado de la documentación
-|Área|Estado|
-|---|---|
-|Contexto y estado|Actualizados con snapshot auditado|
-|Arquitectura y Core|Inventario inicial; faltan validaciones dinámicas|
-|Módulos|Catálogo reconciliado con registro; fichas individuales|
-|Seguridad y calidad|Hallazgos estáticos documentados|
-|Roadmap y decisiones|Pendientes priorizados, decisiones no asumidas|
-|Build y pruebas|No ejecutados en esta auditoría|
-
-## Reglas
-1. El código del commit indicado es la referencia del análisis, no necesariamente el HEAD futuro.
-2. No confundir código presente con funcionalidad probada.
-3. Cada hallazgo incluye certeza y condición.
-4. Las decisiones del propietario prevalecen sobre recomendaciones.
-5. No modificar código ni añadir dependencias sin aprobación.
+La auditoría es estática. No se han ejecutado compilación, pruebas, perfilado ni pentest.

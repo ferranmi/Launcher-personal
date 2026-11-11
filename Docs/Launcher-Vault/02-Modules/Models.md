@@ -1,34 +1,71 @@
 ---
-title: Models
-type: module
+title: "Models"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Models
 
-## Estado de integración
-Registrado como ModelsModule (Order 8), vista ModelsView. El directorio incluye catálogo, servicio Civitai, biblioteca, descargas, cola, referencias, renombrado y wildcards. Revisar integridad de descargas, operaciones sobre archivos, rutas, concurrencia y compatibilidad con Civitai.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Models/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Gestionar los modelos de inteligencia artificial disponibles para Launcher.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades que investigar
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Detección de modelos locales.
+- Listado de modelos.
+- Información de tamaño y formato.
+- Descarga.
+- Instalación.
+- Eliminación.
+- Selección de modelo activo.
+- Integración con Ollama.
+- Integración con otros motores.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Dependencias que investigar
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- OllamaService.
+- Assistant.
+- ImageGen.
+- Servicios HTTP.
+- Sistema de archivos.
+- AppSettingsService.
+
+## Auditoría
+
+- [ ] Localizar implementación.
+- [ ] Verificar registro.
+- [ ] Identificar motores.
+- [ ] Revisar detección.
+- [ ] Revisar descargas.
+- [ ] Revisar almacenamiento.
+- [ ] Revisar selección de modelos.
+- [ ] Revisar gestión de errores.
+- [ ] Revisar seguridad de archivos descargados.
+- [ ] Analizar uso de GPU y memoria.
+
+## Riesgos
+
+- Modelos incompatibles.
+- Descargas incompletas.
+- Uso excesivo de almacenamiento.
+- Consumo de VRAM.
+- Confusión entre modelos de texto e imagen.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[ASSISTANT]]
+- [[IMAGEGEN]]
+- [[MONITOR]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como ModelsModule (Order 8). El árbol incluye catálogo Civitai, biblioteca, descargas, cola, referencias, renombrado y wildcards. La clave API de Civitai se guarda en Windows Credential Manager según ModelsView.
+
+Pendiente: validar integridad de descargas, límites de concurrencia, cancelación, operaciones de renombrado/movimiento y compatibilidad con cambios de la API.
