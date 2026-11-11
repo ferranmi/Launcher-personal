@@ -6,7 +6,7 @@
 > |---|---|
 > | Rama de referencia | `feature/dashboard-cpu-gpu-thermal` (trabajo en curso; basada en `main`) |
 > | Commit de código auditado | `5c621accde912fc8dda48873fb44d4d93857901a` |
-> | Versión | `0.1.55` |
+> | Versión | `0.1.56` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Módulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, versión 1.2.161 |
