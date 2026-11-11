@@ -6,7 +6,7 @@
 > |---|---|
 > | Rama de referencia | `feature/dashboard-cpu-gpu-thermal` (trabajo en curso; basada en `main`) |
 > | Commit de código auditado | `5c621accde912fc8dda48873fb44d4d93857901a` |
-> | Versión | `0.1.54` |
+> | Versión | `0.1.55` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Módulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, versión 1.2.161 |
@@ -31,6 +31,16 @@
 > - Archivos: `Core/Services/ThermalMonitorService.cs` (nuevo), `Core/Services/SystemMonitorService.cs`, `Core/Models/SystemSnapshot.cs`, `Modules/Dashboard/DashboardView.xaml.cs` y `Launcher.csproj`.
 > - **Pendiente de verificación:** compilar y probar en Windows, comprobar temperaturas con CPU Intel y GPU NVIDIA, y verificar comportamiento sin sensores/permisos.
 > - No se ha ejecutado build ni pruebas en este entorno.
+
+
+> **CAMBIO EN CURSO — Alertas y monitorizacion del Dashboard (0.1.55)**
+>
+> - Dashboard consume ahora `SystemStatusHost`, que ya centralizaba monitor, procesos, UPLINK, evaluacion de estados y eventos de Windows. Se elimina la monitorizacion duplicada que tenia la vista.
+> - Las incidencias actuales de UPLINK (por ejemplo, bateria baja de un mando) participan en el estado global como WARNING. La desconexion normal de un dispositivo sigue siendo un evento informativo, no un fallo.
+> - El indicador global pulsa cuando esta en WARNING y con un pulso mas rapido cuando esta en DEFCON. ONLINE permanece estable.
+> - Se mantienen las cajas actuales y su sistema de movimiento/redimensionado.
+> - **Pendiente de completar/auditar:** widgets SECURITY y SYSTEM; definicion exacta de que datos debe mostrar cada uno; comportamiento visual de sirena; fondo con galeria incluida, imagen propia y cambio automatico por tema.
+> - **Pendiente de pruebas en Windows:** compilacion, alertas por metricas, UPLINK, eventos del Visor de eventos, cambio de modulo y vuelta al Dashboard.
 
 # Launcher — README de estado y traspaso
 
