@@ -10,25 +10,31 @@ tags: [launcher/module]
 # Folders
 
 ## Estado de integración
-Registrado como FoldersModule (Order 1), vista FoldersView y panel FolderExplorerPanel. Usa FolderShortcut y FolderShortcutsService; existe FileSystemEntry para representar entradas y clasificar archivos. La exploración integrada existe en el árbol actual; revisar miniaturas, navegación, operaciones y persistencia.
+Registrado como FoldersModule (Order 1), vista FoldersView. Usa FolderShortcut y FolderShortcutsService. El árbol incluye FolderExplorerPanel y FileSystemEntry, que modela entradas de archivos/carpetas y clasifica imágenes, vídeo, audio, texto y otros tipos.
 
-## Archivos y componentes
-Consultar el directorio `Modules/Folders/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+La presencia de FolderExplorerPanel no demuestra por sí sola que todas las operaciones del explorador estén integradas o completas. Verificar el flujo real desde FoldersView antes de afirmar el alcance funcional.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Componentes identificados
+- FoldersModule
+- FoldersView
+- FolderExplorerPanel
+- AddEditFolderWindow
+- FolderShortcut
+- FileSystemEntry
+- FolderShortcutsService
+- ThumbnailService y ShellThumbnailService (servicios compartidos de miniaturas)
 
 ## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- [ ] Comprobar integración de FolderExplorerPanel en FoldersView.
+- [ ] Revisar navegación, historial y selección.
+- [ ] Revisar miniaturas, caché y cancelación.
+- [ ] Revisar operaciones de copiar/mover/borrar y confirmaciones.
+- [ ] Revisar rutas largas, enlaces simbólicos y permisos.
+- [ ] Revisar accesos predeterminados y persistencia JSON.
+- [ ] Ejecutar pruebas con ubicaciones inexistentes y unidades desconectadas.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Dependencias y datos
+Ver [[../01-Architecture/Dependencies|Dependencias]] y [[../03-Audit/Findings|Hallazgos]]. No inferir dependencias directas solo por coexistencia en el árbol.
 
 ## Regla
 La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
