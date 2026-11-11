@@ -1,195 +1,52 @@
 ---
-
-title: Project Context type: project-context project: Launcher-personal status: initial source_of_truth: GitHub main tags:
-
-- launcher/project
-- launcher/context
-- launcher/verified
-
+title: Project Context
+type: project-context
+project: Launcher
+source_of_truth: GitHub main
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: verified-static
+tags: [launcher/project, launcher/context]
 ---
 
-# Project Context
+# Contexto del proyecto
 
-## 1. Identificación
+## Identificación
+Launcher es una aplicación de escritorio Windows desarrollada en C# con WPF sobre .NET 10. Versión del snapshot: 0.1.53. Repositorio: [ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal).
 
-| Propiedad             | Valor                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------- |
-| Nombre                | Launcher                                                                                       |
-| Repositorio           | [https://github.com/ferranmi/Launcher-personal](https://github.com/ferranmi/Launcher-personal) |
-| Rama principal        | `main`                                                                                         |
-| Proyecto              | Aplicación de escritorio                                                                       |
-| Lenguaje principal    | C#                                                                                             |
-| Framework de interfaz | WPF                                                                                            |
-| Plataforma            | Windows                                                                                        |
-| Target Framework      | `net10.0-windows10.0.19041.0`                                                                  |
-| Versión del proyecto  | `0.1.52`                                                                                       |
-| Archivo de proyecto   | `Launcher.csproj`                                                                              |
-| Idioma de trabajo     | Español                                                                                        |
+## Propósito
+Centralizar en una interfaz modular herramientas del equipo: juegos, carpetas, multimedia, comandos, monitorización, procesos, dispositivos, red, generación de imágenes y gestión de modelos.
 
-## 2. Objetivo del proyecto
+El propósito no implica que cada idea futura esté terminada o integrada.
 
-Launcher es una aplicación de escritorio para Windows que pretende centralizar distintas funcionalidades y herramientas del ordenador en una única interfaz modular.
+## Restricciones de producto y desarrollo
+- Windows exclusivamente.
+- C# / WPF / .NET 10.
+- Sin frameworks MVVM externos.
+- Datos JSON locales en %AppData%\Launcher, según servicios que lo implementan.
+- Los módulos oficiales implementan IModule y se registran en MainWindow.xaml.cs.
+- Construcción conceptual: modelo → servicio → módulo → vista.
+- Mantener patrones existentes; no refactorizar ni añadir dependencias sin justificación y aprobación.
+- Los archivos de datos ausentes/corruptos deben gestionarse con defaults cuando sea razonable.
+- UI en español; textos de interfaz sin tildes ni eñes.
+- No afirmar compilación/funcionamiento sin pruebas.
 
-La aplicación utiliza una estética visual oscura, inspirada en terminales, con acentos verdes y navegación mediante una barra lateral.
+## Estructura principal
+- `Core/`: Interfaces, Models, Mvvm, Converters y Services.
+- `Modules/`: funcionalidades y vistas.
+- `UI/`: controles y temas.
+- Raíz: Program.cs, App.xaml, MainWindow.xaml, Launcher.csproj, manifiesto y script de publicación.
+- `Docs/Launcher-Vault/`: documentación Obsidian.
 
-El objetivo funcional es ofrecer un punto central desde el que acceder a herramientas, aplicaciones, juegos, información del sistema y otras funcionalidades del equipo.
+## Módulos y elementos auxiliares
+Los 13 módulos registrados aparecen en [[Current State|Estado actual]]. SearchModule existe sin registro. Assistant existe como ventana independiente y no implementa IModule. Mantener esta distinción hasta decisión del propietario.
 
-Esta descripción representa el propósito general declarado del proyecto. No implica que todas las funcionalidades previstas estén implementadas.
-
-## 3. Alcance funcional conocido
-
-El README identifica las siguientes áreas funcionales:
-
-|Área|Identificador conceptual|Descripción|
-|---|---|---|
-|Juegos|Games|Gestión y lanzamiento de juegos|
-|Carpetas|Folders|Accesos a ubicaciones del sistema|
-|Multimedia|Media|Control y acceso a aplicaciones multimedia|
-|Comandos|Commands|Accesos y ejecución de comandos|
-|Monitor|Monitor|Información y monitorización del sistema|
-|Procesos|Processes|Consulta y seguimiento de procesos|
-|Configuración|Settings|Preferencias de la aplicación|
-|Música|Music|Área funcional pendiente de verificar|
-|Buscar|Search|Área funcional pendiente de verificar|
-|Asistente|Assistant|Integración de asistente pendiente de verificar|
-
-El inventario definitivo de módulos se establecerá mediante la inspección del código y del registro de módulos de la aplicación.
-
-## 4. Arquitectura tecnológica
-
-### Tecnologías principales
-
-- C#.
-- .NET 10.
-- WPF.
-- Windows Forms para determinadas integraciones de escritorio.
-- XAML para interfaces y recursos visuales.
-
-### Dependencias declaradas en Launcher.csproj
-
-- Velopack 1.2.161.
-- NAudio 2.2.1.
-- System.Management 10.0.*.
-- Microsoft.Playwright 1.*.
-- System.Data.OleDb 9.0.0.
-- TagLibSharp 2.3.0.
-
-La presencia de una dependencia en el proyecto no demuestra por sí sola que esté siendo utilizada funcionalmente. Su utilización efectiva y necesidad se estudiarán en la auditoría de dependencias.
-
-## 5. Organización general
-
-La raíz de GitHub contiene, entre otros elementos:
-
-- `Assets/`: recursos gráficos.
-- `Core/`: componentes centrales.
-- `Modules/`: funcionalidades modulares.
-- `UI/`: componentes y recursos de interfaz.
-- `posos lora/`: directorio adicional pendiente de clasificación.
-
-También existen archivos de aplicación, configuración, publicación y documentación:
-
-- `App.xaml`
-- `App.xaml.cs`
-- `AssemblyInfo.cs`
-- `Launcher.csproj`
-- `MainWindow.xaml`
-- `MainWindow.xaml.cs`
-- `Program.cs`
-- `README.md`
-- `app.manifest`
-- `publish.ps1`
-
-En el repositorio también aparecen archivos ZIP y PATCH relacionados con cambios del buscador y widgets. Su finalidad, vigencia y relación con el código principal deben determinarse antes de clasificarlos como parte del producto.
-
-## 6. Ejecución y distribución
-
-El proyecto está orientado a Windows y utiliza WPF.
-
-El README documenta un proceso de publicación mediante `publish.ps1` y Velopack.
-
-La configuración del proyecto establece:
-
-- Aplicación Windows (`WinExe`).
-- WPF habilitado.
-- Windows Forms habilitado.
-- Manifiesto de aplicación.
-- Punto de entrada personalizado `Launcher.Program`.
-
-El proceso de compilación, ejecución y publicación deberá verificarse en un entorno Windows con el SDK correspondiente.
-
-## 7. Persistencia de datos
-
-El README describe una persistencia basada principalmente en archivos JSON bajo el perfil del usuario.
-
-Entre los datos documentados se encuentran:
-
-- Configuración general.
-- Rutas de bibliotecas.
-- Biblioteca de juegos.
-- Juegos ignorados.
-- Accesos a carpetas.
-- Comandos.
-- Aplicaciones multimedia.
-- Portadas.
-- Registros de actividad.
-
-Esta descripción se considera documentación declarativa hasta verificar los servicios de almacenamiento y las rutas reales en el código actual.
-
-## 8. Criterios de desarrollo
-
-El proyecto debe evolucionar respetando las siguientes directrices:
-
-1. Mantener la arquitectura existente salvo que exista una justificación técnica.
-2. Evitar duplicar servicios y responsabilidades.
-3. Respetar los contratos entre módulos.
-4. Mantener la compatibilidad de los datos persistidos.
-5. No eliminar funcionalidades existentes sin autorización.
-6. Priorizar cambios pequeños y verificables.
-7. Mantener la coherencia visual de la aplicación.
-8. Documentar las decisiones arquitectónicas relevantes.
-9. Ejecutar las comprobaciones disponibles después de modificar código.
-10. No declarar terminada una funcionalidad sin evidencia.
-
-## 9. Fuente de verdad
-
-Orden de prioridad para resolver discrepancias:
-
-1. Código actual de la rama `main`.
+## Fuente de verdad
+1. Código del commit auditado para describir implementación.
 2. Configuración efectiva del proyecto.
-3. Pruebas automatizadas y resultados de ejecución.
+3. Pruebas ejecutadas para demostrar comportamiento.
 4. Historial Git.
-5. README y documentación técnica.
-6. Inferencias y propuestas.
+5. Obsidian para decisiones, contexto, auditoría y roadmap.
+6. README como guía de entrada, subordinada al código actual.
 
-Las peticiones futuras y las ideas de diseño no deben confundirse con funcionalidades implementadas.
-
-## 10. Limitaciones conocidas del análisis
-
-En el momento de crear este documento:
-
-- Se ha inspeccionado la estructura raíz.
-- Se ha consultado el archivo `Launcher.csproj`.
-- Se ha consultado el README.
-- No se ha ejecutado la aplicación.
-- No se ha realizado una compilación independiente.
-- No se ha completado el análisis recursivo de todos los módulos.
-- No se ha verificado la cobertura de pruebas.
-
-Estas limitaciones deberán actualizarse conforme avance la auditoría.
-
-## 11. Documentos relacionados
-
-- [[Home|Vault principal]]
-- [[CURRENT_STATE|Estado actual]]
-- [[ROADMAP|Roadmap]]
-- [[../01-Architecture/ARCHITECTURE|Arquitectura]]
-- [[../01-Architecture/DIRECTORY_MAP|Mapa de directorios]]
-- [[../02-Modules/MODULES|Catálogo de módulos]]
-- [[../03-Decisions/DECISIONS|Decisiones técnicas]]
-
-## 12. Historial
-
-|Fecha|Cambio|
-|---|---|
-|2026-11-11|Creación inicial del contexto del proyecto|
-|Pendiente|Completar después del inventario y auditoría de módulos|
+## Límites de la auditoría actual
+Se inspeccionó estáticamente el árbol y componentes seleccionados. No se ejecutó build, WPF, pruebas, perfilado ni pentest. Las conclusiones dinámicas quedan pendientes.
