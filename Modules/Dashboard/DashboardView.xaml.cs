@@ -248,7 +248,11 @@ public partial class DashboardView : UserControl
         StatusLevel Lvl(string key) => report.Metrics.TryGetValue(key, out var l) ? l : StatusLevel.Online;
 
         SetMetric(CpuText, Lvl("CPU"), $"{s.CpuPercent:0}%");
-        CpuDetail.Text = s.CpuTemperatureCelsius.HasValue ? $"{s.CpuTemperatureCelsius.Value:0}°C" : "--°C";
+        var cpuTopology = s.CpuCoreCount > 0
+            ? $"{s.CpuCoreCount} nucleos / {s.CpuThreadCount} hilos"
+            : $"{s.CpuThreadCount} hilos";
+        var cpuTemperature = s.CpuTemperatureCelsius.HasValue ? $"{s.CpuTemperatureCelsius.Value:0}°C" : "--°C";
+        CpuDetail.Text = $"{s.CpuName} · {cpuTopology} · {cpuTemperature}";
 
         var ramUsed = s.RamUsedBytes / 1024d / 1024 / 1024;
         var ramTotal = s.RamTotalBytes / 1024d / 1024 / 1024;
@@ -256,7 +260,8 @@ public partial class DashboardView : UserControl
         RamDetail.Text = $"{ramUsed:0.#} / {ramTotal:0.#} GB";
 
         SetMetric(GpuText, Lvl("GPU"), $"{s.GpuPercent:0}%");
-        GpuDetail.Text = s.GpuTemperatureCelsius.HasValue ? $"{s.GpuTemperatureCelsius.Value:0}°C" : "--°C";
+        var gpuTemperature = s.GpuTemperatureCelsius.HasValue ? $"{s.GpuTemperatureCelsius.Value:0}°C" : "--°C";
+        GpuDetail.Text = $"{s.GpuName} · {gpuTemperature}";
 
         var vramUsed = s.VramUsedBytes / 1024d / 1024 / 1024;
         var vramTotal = s.VramTotalBytes / 1024d / 1024 / 1024;
