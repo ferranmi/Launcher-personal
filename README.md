@@ -33,13 +33,22 @@
 > - No se ha ejecutado build ni pruebas en este entorno.
 
 
+> **AMPLIACION — Identificacion de hardware en Dashboard (0.1.56)**
+>
+> - CPU: se anaden modelo, nucleos e hilos al detalle existente; se conservan uso y temperatura.
+> - GPU: se muestra el modelo que ya obtenia el monitor; se conservan uso y temperatura.
+> - RAM y VRAM no cambian: ya muestran porcentaje de uso y memoria utilizada/total.
+> - No se modifican los cuatro contenedores, su distribucion ni su comportamiento de movimiento/redimensionado.
+> - La identificacion de CPU se consulta una sola vez mediante WMI. Si WMI falla, se conserva al menos el recuento de hilos logicos disponible en .NET.
+> - **Pendiente de verificacion:** compilar y comprobar los nombres/modelos y recuentos en Windows.
+>
 > **CAMBIO EN CURSO — Alertas y monitorizacion del Dashboard (0.1.55)**
 >
 > - Dashboard consume ahora `SystemStatusHost`, que ya centralizaba monitor, procesos, UPLINK, evaluacion de estados y eventos de Windows. Se elimina la monitorizacion duplicada que tenia la vista.
 > - Las incidencias actuales de UPLINK (por ejemplo, bateria baja de un mando) participan en el estado global como WARNING. La desconexion normal de un dispositivo sigue siendo un evento informativo, no un fallo.
 > - El indicador global pulsa cuando esta en WARNING y con un pulso mas rapido cuando esta en DEFCON. ONLINE permanece estable.
 > - Se mantienen las cajas actuales y su sistema de movimiento/redimensionado.
-> - **Pendiente de completar/auditar:** widgets SECURITY y SYSTEM; definicion exacta de que datos debe mostrar cada uno; comportamiento visual de sirena; fondo con galeria incluida, imagen propia y cambio automatico por tema.
+> - **Pendiente de completar/auditar:** widget SECURITY (Defender, Firewall y Windows Update); comportamiento visual de sirena; fondo con galeria incluida, imagen propia y cambio automatico por tema. Bitwarden queda pospuesto.
 > - **Pendiente de pruebas en Windows:** compilacion, alertas por metricas, UPLINK, eventos del Visor de eventos, cambio de modulo y vuelta al Dashboard.
 
 # Launcher — README de estado y traspaso
