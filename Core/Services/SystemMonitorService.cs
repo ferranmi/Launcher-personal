@@ -60,6 +60,7 @@ public class SystemMonitorService : IDisposable
     private bool _gpuInfoLoaded;
     private string _gpuName = "GPU";
     private ulong _vramTotalBytes;
+    private readonly ThermalMonitorService _thermal = new();
 
     public SystemSnapshot Sample()
     {
@@ -74,14 +75,17 @@ public class SystemMonitorService : IDisposable
         var (netDown, netUp) = SampleNetwork();
         var diskIoByDrive = SampleDiskIOPerDrive();
         var drives = SampleDrives(diskIoByDrive);
+        var (cpuTemperature, gpuTemperature) = _thermal.Sample();
         
         return new SystemSnapshot
         {
             CpuPercent = cpu,
+            CpuTemperatureCelsius = cpuTemperature,
             RamPercent = ramPercent,
             RamUsedBytes = ramUsed,
             RamTotalBytes = ramTotal,
             GpuPercent = gpuPercent,
+            GpuTemperatureCelsius = gpuTemperature,
             GpuName = _gpuName,
             VramPercent = vramPercent,
             VramUsedBytes = vramUsed,
@@ -489,6 +493,7 @@ public class SystemMonitorService : IDisposable
 
     public void Dispose()
     {
+        _thermal.Dispose();
         foreach (var c in _gpuEngineCounters.Values) c.Dispose();
         foreach (var c in _gpuMemCounters.Values) c.Dispose();
         foreach (var (read, write) in _diskIoCounters.Values) { read.Dispose(); write.Dispose(); }
