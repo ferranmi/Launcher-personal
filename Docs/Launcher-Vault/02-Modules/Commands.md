@@ -1,34 +1,73 @@
 ---
-title: Commands
-type: module
+title: "Commands"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Commands
 
-## Estado de integración
-Registrado como CommandsModule (Order 10). Contiene CommandsView, CommandsService, sugerencias, edición y WebShortcutWindow. Los comandos se guardan en commands.json. Admite destinos ejecutables/URI y autologin web con CredentialStore/Playwright. Revisar validación de destinos, argumentos, HTTPS/origen y ciclo de vida.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Commands/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Gestionar accesos y comandos personalizados ejecutables desde Launcher.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades documentadas
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Listado de comandos.
+- Alta, edición y eliminación.
+- Categorías.
+- Sugerencias.
+- Ejecución de comandos.
+- Persistencia de accesos.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Componentes identificados en documentación
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- `CommandsModule`.
+- `CommandsView`.
+- `CommandsService`.
+- `CommandShortcut`.
+- `CommandCategory`.
+- Ventana Add/Edit.
+
+## Dependencias que investigar
+
+- Core.
+- AppSettingsService.
+- Persistencia JSON.
+- Procesos de Windows.
+- Navegadores y terminales externos.
+
+## Auditoría
+
+- [ ] Verificar implementación actual.
+- [ ] Revisar comandos permitidos.
+- [ ] Analizar argumentos.
+- [ ] Revisar ejecución de procesos.
+- [ ] Revisar permisos.
+- [ ] Revisar validación de rutas.
+- [ ] Revisar persistencia.
+- [ ] Revisar manejo de errores.
+- [ ] Identificar posibles inyecciones de comandos.
+
+## Riesgos
+
+- Ejecución de comandos no deseados.
+- Argumentos mal validados.
+- Bloqueos por procesos síncronos.
+- Exposición de rutas o parámetros sensibles.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[PROCESSES]]
+- [[SETTINGS]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como CommandsModule (Order 10). Usa CommandsService y persiste en `commands.json`. Incluye accesos a aplicaciones/comandos y WebShortcutWindow para webs, perfiles, modo privado y autologin. El autologin usa CredentialStore y Playwright.
+
+Riesgos: destinos URI aceptados de forma amplia por diseño; autologin admite HTTP y no vincula credenciales al origen final tras redirecciones. Ver [[../03-Audit/Findings|Findings]]. No modificar la ejecución de comandos sin revisar los casos de uso.

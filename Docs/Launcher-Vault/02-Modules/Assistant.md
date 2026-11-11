@@ -1,34 +1,72 @@
 ---
-title: Assistant
-type: module
+title: "Assistant"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Assistant
 
-## Estado de integración
-No es módulo registrado. Existe AssistantWindow; instancia OllamaService, mantiene historial en memoria y transmite respuestas. Se cierra al perder foco. No hay AssistantModule ni registro en MainWindow. Pendiente: decidir si ventana auxiliar o módulo; revisar permisos/contexto y persistencia.
+## Responsabilidad
 
-## Archivos y componentes
-Consultar el directorio `Modules/Assistant/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
+Módulo destinado a proporcionar un asistente de inteligencia artificial integrado en Launcher.
 
-## Dependencias y datos
-Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
+## Funcionalidades que investigar
 
-## Auditoría pendiente
-- [ ] Leer todas las vistas XAML y code-behind.
-- [ ] Identificar cada consumidor y evento.
-- [ ] Revisar validación de entradas y permisos.
-- [ ] Revisar concurrencia, cancelación y errores.
-- [ ] Revisar persistencia y compatibilidad.
-- [ ] Revisar ciclo de vida de timers, procesos y recursos.
-- [ ] Definir y ejecutar pruebas en Windows.
+- Interfaz conversacional.
+- Comunicación con modelos locales.
+- Historial de conversaciones.
+- Gestión del contexto.
+- Ejecución de acciones desde el asistente.
+- Integración con el resto de módulos.
+- Atajos globales y activación rápida.
 
-## Hallazgos relacionados
-Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
+## Componentes identificados en documentación
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+- `AssistantWindow`.
+- `AssistantMessage`.
+- `OllamaService`.
+- `GlobalHotkeyService`.
+
+La documentación anterior indica que AssistantWindow existe en el snapshot, pero no está registrado como módulo. Debe comprobarse en `main`.
+
+## Dependencias que investigar
+
+- Models.
+- OllamaService.
+- AppSettingsService.
+- Servicios de navegación.
+- Core.
+
+## Auditoría
+
+- [ ] Localizar implementación actual.
+- [ ] Verificar registro como módulo.
+- [ ] Inspeccionar AssistantWindow.
+- [ ] Inspeccionar OllamaService.
+- [ ] Verificar conexión con Ollama.
+- [ ] Revisar gestión de conversaciones.
+- [ ] Revisar seguridad de acciones.
+- [ ] Revisar tratamiento de errores.
+- [ ] Identificar funcionalidades incompletas.
+
+## Riesgos
+
+- Exposición de información sensible en el contexto.
+- Ejecución de acciones sin autorización suficiente.
+- Bloqueos de interfaz durante inferencias.
+- Dependencia de servicios externos o locales.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[MODELS]]
+- [[../01-Architecture/DEPENDENCIES]]
+
+## Estado contrastado con código — 2026-11-11
+
+Existe `AssistantWindow.xaml.cs` y usa `OllamaService`; no existe `AssistantModule` ni registro en MainWindow. Es una ventana independiente. El historial se mantiene en memoria y la ventana se cierra al perder foco. No asumir persistencia ni integración como módulo. Pendiente: decidir si se conserva como paleta auxiliar o se integra en navegación.

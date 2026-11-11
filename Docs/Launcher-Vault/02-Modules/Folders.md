@@ -1,40 +1,77 @@
 ---
-title: Folders
-type: module
+title: "Folders"
+type: module-reference
 project: Launcher
+source_of_truth: GitHub main
 audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-status: static-review
-tags: [launcher/module]
+last_reviewed: 2026-11-11
+status: reconciled-static
+tags: [launcher, module]
 ---
 
 # Folders
 
-## Estado de integración
-Registrado como FoldersModule (Order 1), vista FoldersView. Usa FolderShortcut y FolderShortcutsService. El árbol incluye FolderExplorerPanel y FileSystemEntry, que modela entradas de archivos/carpetas y clasifica imágenes, vídeo, audio, texto y otros tipos.
+## Responsabilidad
 
-La presencia de FolderExplorerPanel no demuestra por sí sola que todas las operaciones del explorador estén integradas o completas. Verificar el flujo real desde FoldersView antes de afirmar el alcance funcional.
+Gestionar accesos y navegación por carpetas y ubicaciones del sistema.
+
+## Funcionalidades documentadas
+
+- Tarjetas de accesos directos.
+- Alta y edición.
+- Eliminación.
+- Iconos personalizados.
+- Detección de rutas inexistentes.
+- Accesos predeterminados.
 
 ## Componentes identificados
-- FoldersModule
-- FoldersView
-- FolderExplorerPanel
-- AddEditFolderWindow
-- FolderShortcut
-- FileSystemEntry
-- FolderShortcutsService
-- ThumbnailService y ShellThumbnailService (servicios compartidos de miniaturas)
 
-## Auditoría pendiente
-- [ ] Comprobar integración de FolderExplorerPanel en FoldersView.
-- [ ] Revisar navegación, historial y selección.
-- [ ] Revisar miniaturas, caché y cancelación.
-- [ ] Revisar operaciones de copiar/mover/borrar y confirmaciones.
-- [ ] Revisar rutas largas, enlaces simbólicos y permisos.
-- [ ] Revisar accesos predeterminados y persistencia JSON.
-- [ ] Ejecutar pruebas con ubicaciones inexistentes y unidades desconectadas.
+- `FoldersModule`.
+- `FoldersView`.
+- `FolderShortcut`.
+- `FolderShortcutsService`.
+- Ventana Add/Edit.
 
-## Dependencias y datos
-Ver [[../01-Architecture/Dependencies|Dependencias]] y [[../03-Audit/Findings|Hallazgos]]. No inferir dependencias directas solo por coexistencia en el árbol.
+## Funcionalidad pendiente documentada
 
-## Regla
-La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
+Se ha planteado transformar el módulo en un explorador integrado con navegación, miniaturas y previsualización.
+
+No se considera implementada hasta verificarlo.
+
+## Dependencias que investigar
+
+- Core.
+- FolderShortcutsService.
+- Sistema de archivos.
+- Persistencia JSON.
+- UI.
+
+## Auditoría
+
+- [ ] Revisar rutas.
+- [ ] Revisar permisos.
+- [ ] Revisar operaciones de archivos.
+- [ ] Analizar navegación.
+- [ ] Revisar persistencia.
+- [ ] Analizar accesos predeterminados.
+- [ ] Revisar enlaces simbólicos.
+- [ ] Identificar riesgos de acceso a ubicaciones externas.
+
+## Riesgos
+
+- Rutas inexistentes.
+- Acceso a ubicaciones no disponibles.
+- Operaciones sobre archivos sin confirmación.
+- Problemas con rutas largas.
+
+## Documentación relacionada
+
+- [[MODULES]]
+- [[SETTINGS]]
+- [[COMMANDS]]
+
+## Estado contrastado con código — 2026-11-11
+
+Registrado como FoldersModule (Order 1). Usa FolderShortcutsService, FolderShortcut y FileSystemEntry; el árbol incluye FolderExplorerPanel, ThumbnailService y ShellThumbnailService. La integración exacta de todas las operaciones del explorador debe comprobarse en FoldersView antes de asumirlas.
+
+Pendiente: probar navegación, rutas largas, permisos, miniaturas y operaciones de archivos. Los errores de persistencia JSON se describen en [[../03-Audit/Findings|Findings]].
