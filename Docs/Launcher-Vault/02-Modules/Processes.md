@@ -1,65 +1,34 @@
 ---
-
-title: Processes module_id: processes type: module status: documented-pending-verification tags:
-
-- launcher/module
-- launcher/system
-
+title: Processes
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Processes
 
-## Responsabilidad
+## Estado de integración
+Registrado como ProcessesModule (Order 4), vista ProcessesView y ProcessMonitorService. Incluye ProcessGroup, ProcessRow y ProcessSample. Revisar permisos, finalización de procesos, confirmaciones, timers y consumo.
 
-Consultar y mostrar los procesos activos del sistema.
+## Archivos y componentes
+Consultar el directorio `Modules/Processes/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades documentadas
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Listado de procesos.
-- Información de consumo.
-- Monitorización.
-- Agrupación de procesos.
-- Información de carga.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Componentes identificados
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- `ProcessesModule`.
-- `ProcessesView`.
-- `ProcessMonitorService`.
-- `ProcessGroup`.
-- `ProcessRow`.
-- `ProcessSample`.
-- `ProcessLoadInfo`.
-
-## Dependencias que investigar
-
-- System.Management.
-- System.Diagnostics.
-- Monitor.
-- Core.
-
-## Auditoría
-
-- [ ] Verificar enumeración.
-- [ ] Revisar actualización de datos.
-- [ ] Revisar cálculo de consumo.
-- [ ] Analizar agrupación.
-- [ ] Revisar permisos.
-- [ ] Revisar procesos protegidos.
-- [ ] Comprobar liberación de recursos.
-- [ ] Revisar concurrencia.
-- [ ] Comprobar impacto sobre el rendimiento.
-
-## Riesgos
-
-- Acceso denegado a determinados procesos.
-- Lecturas inconsistentes.
-- Actualizaciones demasiado frecuentes.
-- Suscripciones o temporizadores persistentes.
-- Operaciones que afecten al sistema.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[MONITOR]]
-- [[DEVICES]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

@@ -1,63 +1,34 @@
 ---
-
-title: Models module_id: models type: module status: pending-verification tags:
-
-- launcher/module
-- launcher/ai
-
+title: Models
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Models
 
-## Responsabilidad
+## Estado de integración
+Registrado como ModelsModule (Order 8), vista ModelsView. El directorio incluye catálogo, servicio Civitai, biblioteca, descargas, cola, referencias, renombrado y wildcards. Revisar integridad de descargas, operaciones sobre archivos, rutas, concurrencia y compatibilidad con Civitai.
 
-Gestionar los modelos de inteligencia artificial disponibles para Launcher.
+## Archivos y componentes
+Consultar el directorio `Modules/Models/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades que investigar
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Detección de modelos locales.
-- Listado de modelos.
-- Información de tamaño y formato.
-- Descarga.
-- Instalación.
-- Eliminación.
-- Selección de modelo activo.
-- Integración con Ollama.
-- Integración con otros motores.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Dependencias que investigar
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- OllamaService.
-- Assistant.
-- ImageGen.
-- Servicios HTTP.
-- Sistema de archivos.
-- AppSettingsService.
-
-## Auditoría
-
-- [ ] Localizar implementación.
-- [ ] Verificar registro.
-- [ ] Identificar motores.
-- [ ] Revisar detección.
-- [ ] Revisar descargas.
-- [ ] Revisar almacenamiento.
-- [ ] Revisar selección de modelos.
-- [ ] Revisar gestión de errores.
-- [ ] Revisar seguridad de archivos descargados.
-- [ ] Analizar uso de GPU y memoria.
-
-## Riesgos
-
-- Modelos incompatibles.
-- Descargas incompletas.
-- Uso excesivo de almacenamiento.
-- Consumo de VRAM.
-- Confusión entre modelos de texto e imagen.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[ASSISTANT]]
-- [[IMAGEGEN]]
-- [[MONITOR]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

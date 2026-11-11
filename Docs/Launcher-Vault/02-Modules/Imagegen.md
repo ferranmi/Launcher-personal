@@ -1,67 +1,34 @@
 ---
-
-title: ImageGen module_id: imagegen type: module status: pending-verification tags:
-
-- launcher/module
-- launcher/ai
-
+title: ImageGen
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # ImageGen
 
-## Responsabilidad
+## Estado de integración
+Registrado como ImageGenModule (Order 7), vista ImageGenView y LibraryView. Incluye StableDiffusionService, GalleryService, parámetros de generación y extensiones para ControlNet, ADetailer, wildcards, tags y scripts. Revisar endpoints, trabajos/cancelación, almacenamiento, recursos y errores.
 
-Integrar funcionalidades de generación de imágenes en Launcher.
+## Archivos y componentes
+Consultar el directorio `Modules/Imagegen/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades que investigar
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Conexión con motores de generación.
-- Configuración de modelos.
-- Parámetros de generación.
-- Gestión de prompts.
-- Cola de trabajos.
-- Visualización de resultados.
-- Galería.
-- Guardado de imágenes.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Contexto documentado
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-El proyecto ha contemplado una integración con AUTOMATIC1111 / Stable Diffusion.
-
-La integración actual debe verificarse.
-
-## Dependencias que investigar
-
-- Models.
-- Assistant.
-- Microsoft.Playwright, si existe utilización efectiva.
-- Servicios HTTP.
-- Gestión de imágenes.
-- Persistencia.
-
-## Auditoría
-
-- [ ] Localizar implementación.
-- [ ] Verificar registro.
-- [ ] Identificar motores compatibles.
-- [ ] Revisar endpoints.
-- [ ] Revisar gestión de prompts.
-- [ ] Revisar trabajos asíncronos.
-- [ ] Revisar cancelación.
-- [ ] Revisar almacenamiento.
-- [ ] Revisar tratamiento de errores.
-- [ ] Revisar seguridad de comunicaciones.
-
-## Riesgos
-
-- Dependencia de servicios externos.
-- Consumo elevado de recursos.
-- Operaciones largas.
-- Imágenes temporales no eliminadas.
-- Credenciales o endpoints expuestos.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[MODELS]]
-- [[ASSISTANT]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

@@ -1,69 +1,34 @@
 ---
-
-title: Folders module_id: folders type: module status: documented-pending-verification tags:
-
-- launcher/module
-- launcher/filesystem
-
+title: Folders
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Folders
 
-## Responsabilidad
+## Estado de integración
+Registrado como FoldersModule (Order 1), vista FoldersView y panel FolderExplorerPanel. Usa FolderShortcut y FolderShortcutsService; existe FileSystemEntry para representar entradas y clasificar archivos. La exploración integrada existe en el árbol actual; revisar miniaturas, navegación, operaciones y persistencia.
 
-Gestionar accesos y navegación por carpetas y ubicaciones del sistema.
+## Archivos y componentes
+Consultar el directorio `Modules/Folders/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades documentadas
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Tarjetas de accesos directos.
-- Alta y edición.
-- Eliminación.
-- Iconos personalizados.
-- Detección de rutas inexistentes.
-- Accesos predeterminados.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Componentes identificados
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- `FoldersModule`.
-- `FoldersView`.
-- `FolderShortcut`.
-- `FolderShortcutsService`.
-- Ventana Add/Edit.
-
-## Funcionalidad pendiente documentada
-
-Se ha planteado transformar el módulo en un explorador integrado con navegación, miniaturas y previsualización.
-
-No se considera implementada hasta verificarlo.
-
-## Dependencias que investigar
-
-- Core.
-- FolderShortcutsService.
-- Sistema de archivos.
-- Persistencia JSON.
-- UI.
-
-## Auditoría
-
-- [ ] Revisar rutas.
-- [ ] Revisar permisos.
-- [ ] Revisar operaciones de archivos.
-- [ ] Analizar navegación.
-- [ ] Revisar persistencia.
-- [ ] Analizar accesos predeterminados.
-- [ ] Revisar enlaces simbólicos.
-- [ ] Identificar riesgos de acceso a ubicaciones externas.
-
-## Riesgos
-
-- Rutas inexistentes.
-- Acceso a ubicaciones no disponibles.
-- Operaciones sobre archivos sin confirmación.
-- Problemas con rutas largas.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[SETTINGS]]
-- [[COMMANDS]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.

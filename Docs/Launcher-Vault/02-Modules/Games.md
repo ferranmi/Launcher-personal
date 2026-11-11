@@ -1,74 +1,34 @@
 ---
-
-title: Games module_id: games type: module status: documented-pending-verification tags:
-
-- launcher/module
-- launcher/games
-
+title: Games
+type: module
+project: Launcher
+audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
+status: static-review
+tags: [launcher/module]
 ---
 
 # Games
 
-## Responsabilidad
+## Estado de integración
+Registrado como GamesModule (Order 0). Incluye GamesView, GameLibraryService, proveedores Steam/Epic, edición, sincronización, ficha y gestión de carpetas. Game y GameInfo son modelos; LibraryPathsService almacena rutas y SteamApiKey. Revisar claves, sincronización, rutas y compatibilidad JSON.
 
-Gestionar una biblioteca unificada de juegos y permitir su lanzamiento.
+## Archivos y componentes
+Consultar el directorio `Modules/Games/` en el commit auditado. Los nombres citados arriba se han identificado en el árbol o en la inspección estática.
 
-## Funcionalidades documentadas
+## Dependencias y datos
+Los servicios/modelos compartidos relacionados se enumeran en el texto anterior. No se debe inferir una dependencia directa solo por coexistir en el proyecto. Ver [[../01-Architecture/Dependencies|Dependencias]].
 
-- Biblioteca de juegos.
-- Integración con Steam.
-- Integración con Epic Games.
-- Juegos manuales.
-- Portadas.
-- Favoritos.
-- Ocultación.
-- Búsqueda y filtros.
-- Tiempo jugado.
-- Sincronización.
-- Gestión de juegos ignorados.
+## Auditoría pendiente
+- [ ] Leer todas las vistas XAML y code-behind.
+- [ ] Identificar cada consumidor y evento.
+- [ ] Revisar validación de entradas y permisos.
+- [ ] Revisar concurrencia, cancelación y errores.
+- [ ] Revisar persistencia y compatibilidad.
+- [ ] Revisar ciclo de vida de timers, procesos y recursos.
+- [ ] Definir y ejecutar pruebas en Windows.
 
-## Componentes identificados
+## Hallazgos relacionados
+Ver [[../03-Audit/Findings|Hallazgos]] y [[../00-Project/Roadmap|Roadmap]].
 
-- `GamesModule`.
-- `GamesView`.
-- `GameLibraryService`.
-- `IGameProvider`.
-- `SteamGameProvider`.
-- `EpicGameProvider`.
-- `Game`.
-- `GameSource`.
-- `CoverArtService`.
-
-## Persistencia documentada
-
-- `games.json`.
-- `ignored-games.json`.
-- Directorio de portadas.
-
-## Auditoría
-
-- [ ] Verificar proveedores.
-- [ ] Revisar sincronización.
-- [ ] Validar manifiestos de Steam.
-- [ ] Validar manifiestos de Epic.
-- [ ] Revisar ejecución de juegos.
-- [ ] Revisar medición de tiempo.
-- [ ] Revisar descarga de portadas.
-- [ ] Revisar concurrencia.
-- [ ] Revisar persistencia.
-- [ ] Revisar seguridad de rutas y ejecutables.
-
-## Riesgos
-
-- Cambios en formatos de manifiestos.
-- Portadas incorrectas.
-- Descargas lentas.
-- Juegos lanzados mediante protocolo sin proceso directamente controlable.
-- Datos duplicados durante sincronización.
-
-## Documentación relacionada
-
-- [[MODULES]]
-- [[DASHBOARD]]
-- [[FOLDERS]]
-- [[SETTINGS]]
+## Regla
+La existencia de archivos y el registro del módulo no demuestran que todas sus funciones estén verificadas en ejecución.
