@@ -18,6 +18,8 @@ public partial class SettingsView : UserControl
 {
     private readonly AppSettingsService _settings = AppSettingsService.Instance;
     private AppSettingsService _draft = new();
+    private Launcher.Core.Services.LibraryPathsService _draftLibraryPaths = new();
+    private Launcher.Modules.ImageGen.ImageGenSettings _draftImageGen = new();
     private bool _draftStartupEnabled;
 
     // Evita que asignar IsChecked desde codigo dispare los handlers de usuario.
@@ -26,7 +28,9 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
-        _draft = CloneSettings(_settings);
+        _draft = CloneObject(_settings);
+        _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
+        _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftStartupEnabled = StartupService.IsEnabled();
         BuildStartModuleChips();
         BuildAccentChips();
@@ -67,6 +71,7 @@ public partial class SettingsView : UserControl
 
 
         UpdateSyncFoldersSummary();
+        UpdateSteamAccountSummary();
         UpdateImageGenSummary();
         UpdateIgnoredSummary();
         UpdateDataSummaries();
@@ -153,15 +158,15 @@ public partial class SettingsView : UserControl
         }
     }
 
-    private static AppSettingsService CloneSettings(AppSettingsService source)
+    private static T CloneObject<T>(T source) where T : class
     {
         var json = JsonSerializer.Serialize(source);
-        return JsonSerializer.Deserialize<AppSettingsService>(json) ?? new AppSettingsService();
+        return JsonSerializer.Deserialize<T>(json) ?? throw new InvalidOperationException("No se pudo copiar la configuracion.");
     }
 
-    private static void CopySettings(AppSettingsService source, AppSettingsService target)
+    private static void CopyObject<T>(T source, T target) where T : class
     {
-        foreach (var property in typeof(AppSettingsService).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        foreach (var property in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (property.CanRead && property.CanWrite)
                 property.SetValue(target, property.GetValue(source));
@@ -170,9 +175,9 @@ public partial class SettingsView : UserControl
 
     private bool HasPendingChanges()
     {
-        var draftJson = JsonSerializer.Serialize(_draft);
-        var savedJson = JsonSerializer.Serialize(_settings);
-        return !string.Equals(draftJson, savedJson, StringComparison.Ordinal) ||
+        return !string.Equals(JsonSerializer.Serialize(_draft), JsonSerializer.Serialize(_settings), StringComparison.Ordinal) ||
+               !string.Equals(JsonSerializer.Serialize(_draftLibraryPaths), JsonSerializer.Serialize(LibraryPathsService.Instance), StringComparison.Ordinal) ||
+               !string.Equals(JsonSerializer.Serialize(_draftImageGen), JsonSerializer.Serialize(Launcher.Modules.ImageGen.ImageGenSettings.Instance), StringComparison.Ordinal) ||
                _draftStartupEnabled != StartupService.IsEnabled();
     }
 
@@ -195,7 +200,9 @@ public partial class SettingsView : UserControl
             if (result != MessageBoxResult.Yes) return;
         }
 
-        _draft = CloneSettings(_settings);
+        _draft = CloneObject(_settings);
+        _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
+        _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftStartupEnabled = StartupService.IsEnabled();
         LoadFromState();
         MarkPending();
@@ -205,16 +212,22 @@ public partial class SettingsView : UserControl
     {
         if (!HasPendingChanges()) return;
 
-        var previous = CloneSettings(_settings);
+        var previousApp = CloneObject(_settings);
+        var previousLibraries = CloneObject(LibraryPathsService.Instance);
+        var previousImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         var previousStartup = StartupService.IsEnabled();
 
-        CopySettings(_draft, _settings);
+        CopyObject(_draft, _settings);
+        CopyObject(_draftLibraryPaths, LibraryPathsService.Instance);
+        CopyObject(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
 
-        if (!_settings.TrySave(notifyChanged: false))
+        if (!_settings.TrySave(notifyChanged: false) ||
+            !LibraryPathsService.Instance.TrySave() ||
+            !Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave())
         {
-            CopySettings(previous, _settings);
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
-                "No se ha podido guardar config.json. Los cambios siguen pendientes.",
+                "No se ha podido guardar uno de los archivos de configuracion. Los cambios siguen pendientes.",
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -222,9 +235,7 @@ public partial class SettingsView : UserControl
         var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         if (!hotkeyOk)
         {
-            CopySettings(previous, _settings);
-            _settings.TrySave(notifyChanged: false);
-            WindowBehaviorService.Instance?.ApplyHotkey();
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
                 "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados.",
                 "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -233,10 +244,7 @@ public partial class SettingsView : UserControl
 
         if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
         {
-            CopySettings(previous, _settings);
-            _settings.TrySave(notifyChanged: false);
-            StartupService.SetEnabled(previousStartup, previous.StartMinimized);
-            WindowBehaviorService.Instance?.ApplyHotkey();
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -248,10 +256,33 @@ public partial class SettingsView : UserControl
         WindowBehaviorService.Instance?.ApplyTray();
         ThemeService.ApplyAccent(_settings.AccentColor);
 
-        _draft = CloneSettings(_settings);
+        _draft = CloneObject(_settings);
+        _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
+        _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftStartupEnabled = StartupService.IsEnabled();
         LoadFromState();
         MarkPending();
+    }
+
+    private void RestorePreviousConfiguration(
+        AppSettingsService previousApp,
+        LibraryPathsService previousLibraries,
+        Launcher.Modules.ImageGen.ImageGenSettings previousImageGen,
+        bool previousStartup)
+    {
+        CopyObject(previousApp, _settings);
+        CopyObject(previousLibraries, LibraryPathsService.Instance);
+        CopyObject(previousImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+
+        _settings.TrySave(notifyChanged: false);
+        LibraryPathsService.Instance.TrySave();
+        Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave();
+        StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
+
+        WindowBehaviorService.Instance?.ApplyHotkey();
+        _settings.ApplyToWindow(Window.GetWindow(this)!);
+        WindowBehaviorService.Instance?.ApplyTray();
+        ThemeService.ApplyAccent(_settings.AccentColor);
     }
 
     private void NavigateSection_Click(object sender, RoutedEventArgs e)
@@ -387,9 +418,13 @@ public partial class SettingsView : UserControl
 
     private void ConfigureFolders_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ConfigureSyncFoldersWindow { Owner = Window.GetWindow(this) };
+        var dialog = new ConfigureSyncFoldersWindow(_draftLibraryPaths, deferSave: true)
+        {
+            Owner = Window.GetWindow(this)
+        };
         dialog.ShowDialog();
         UpdateSyncFoldersSummary();
+        MarkPending();
     }
 
     private void UpdateIgnoredSummary()
@@ -424,7 +459,7 @@ public partial class SettingsView : UserControl
 
     private void UpdateSyncFoldersSummary()
     {
-        var paths = LibraryPathsService.Instance;
+        var paths = _draftLibraryPaths;
         var steam = paths.HasSteamPath ? "configurada" : "sin configurar";
         var epic = paths.HasEpicPath ? "configurada" : "sin configurar";
         SyncFoldersRow.Tag = $"Steam: {steam}  ·  Epic: {epic}";
@@ -490,14 +525,18 @@ public partial class SettingsView : UserControl
 
     private void ConfigureSteamAccount_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SteamAccountWindow { Owner = Window.GetWindow(this) };
+        var dialog = new SteamAccountWindow(_draftLibraryPaths, deferSave: true)
+        {
+            Owner = Window.GetWindow(this)
+        };
         dialog.ShowDialog();
         UpdateSteamAccountSummary();
+        MarkPending();
     }
 
     private void UpdateSteamAccountSummary()
     {
-        var paths = LibraryPathsService.Instance;
+        var paths = _draftLibraryPaths;
         SteamAccountRow.Tag = paths.HasSteamApiKey
             ? "Clave configurada. Ya puedes ver los logros de Steam en la ficha de cada juego."
             : "Sin configurar. Hace falta una clave gratuita de la Web API de Steam para ver tus logros.";
@@ -547,13 +586,17 @@ public partial class SettingsView : UserControl
 
     private void ConfigureImageGen_Click(object sender, RoutedEventArgs e)
     {
-        new Launcher.Modules.ImageGen.ImageGenSettingsWindow { Owner = Window.GetWindow(this) }.ShowDialog();
+        new Launcher.Modules.ImageGen.ImageGenSettingsWindow(_draftImageGen, deferSave: true)
+        {
+            Owner = Window.GetWindow(this)
+        }.ShowDialog();
         UpdateImageGenSummary();
+        MarkPending();
     }
 
     private void UpdateImageGenSummary()
     {
-        var s = Launcher.Modules.ImageGen.ImageGenSettings.Instance;
+        var s = _draftImageGen;
         ImageGenRow.Tag = string.IsNullOrWhiteSpace(s.InstallPath) ? "Sin instalacion configurada." : s.InstallPath;
     }
 
