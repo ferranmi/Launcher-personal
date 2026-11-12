@@ -403,12 +403,21 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="CPU" Style="{StaticResource TileLabel}" />
-                    <TextBlock Grid.Row="1" x:Name="CpuText" Text="0%"
-                               Style="{StaticResource TileNumber}" FontSize="22"
-                               TextTrimming="None" />
+                    <Grid Grid.Row="1" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" x:Name="CpuText" Text="0%"
+                                   Style="{StaticResource TileNumber}" FontSize="22"
+                                   TextTrimming="None" />
+                        <TextBlock Grid.Column="1" x:Name="CpuTemperatureText" Text="--°C"
+                                   Style="{StaticResource TileDetail}" FontSize="11"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </Grid>
                     <TextBlock Grid.Row="2" x:Name="CpuDetail" Text=""
                                Style="{StaticResource TileDetail}" FontSize="9"
-                               TextWrapping="Wrap" MaxHeight="30" />
+                               TextTrimming="CharacterEllipsis" />
                 </Grid>
             </ctl:BoardBox>
 
@@ -436,12 +445,21 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="GPU" Style="{StaticResource TileLabel}" />
-                    <TextBlock Grid.Row="1" x:Name="GpuText" Text="0%"
-                               Style="{StaticResource TileNumber}" FontSize="22"
-                               TextTrimming="None" />
+                    <Grid Grid.Row="1" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" x:Name="GpuText" Text="0%"
+                                   Style="{StaticResource TileNumber}" FontSize="22"
+                                   TextTrimming="None" />
+                        <TextBlock Grid.Column="1" x:Name="GpuTemperatureText" Text="--°C"
+                                   Style="{StaticResource TileDetail}" FontSize="11"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </Grid>
                     <TextBlock Grid.Row="2" x:Name="GpuDetail" Text=""
                                Style="{StaticResource TileDetail}" FontSize="9"
-                               TextWrapping="Wrap" MaxHeight="30" />
+                               TextTrimming="CharacterEllipsis" />
                 </Grid>
             </ctl:BoardBox>
 
