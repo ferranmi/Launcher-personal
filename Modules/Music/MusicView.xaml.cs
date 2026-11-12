@@ -160,26 +160,8 @@ public partial class MusicView : UserControl
 
     // ===================== Carpeta de la biblioteca =====================
 
-    private async void ChangeFolder_Click(object sender, RoutedEventArgs e)
-    {
-        using var dialog = new WinForms.FolderBrowserDialog
-        {
-            Description = "Selecciona la carpeta de tu biblioteca de musica",
-            SelectedPath = _library.Folder
-        };
-
-        if (dialog.ShowDialog() != WinForms.DialogResult.OK) return;
-
-        var settings = AppSettingsService.Instance;
-        settings.MusicFolder = dialog.SelectedPath;
-        settings.Save();
-
-        await _library.LoadAsync();
-        _view.Refresh();
-        UpdateState();
-    }
-
-    // ===================== Acciones sobre una cancion =====================
+    private void ChangeFolder_Click(object sender, RoutedEventArgs e) =>
+        Launcher.Modules.Settings.SettingsView.OpenSection("music");
 
     private MusicTrack GetTrackFromMenuItem(object sender)
     {
