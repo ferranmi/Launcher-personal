@@ -7,16 +7,22 @@ namespace Launcher.Modules.Games;
 
 public partial class ConfigureSyncFoldersWindow : Window
 {
-    /// <summary>True si el usuario guardo (para que quien abrio el dialogo sepa si debe re-sincronizar).</summary>
+    private readonly LibraryPathsService _settings;
+    private readonly bool _deferSave;
+
+    /// <summary>True si el usuario confirmo los cambios del dialogo.</summary>
     public bool Saved { get; private set; }
 
-    public ConfigureSyncFoldersWindow()
+    public ConfigureSyncFoldersWindow() : this(LibraryPathsService.Instance, false) { }
+
+    public ConfigureSyncFoldersWindow(LibraryPathsService settings, bool deferSave)
     {
+        _settings = settings;
+        _deferSave = deferSave;
         InitializeComponent();
 
-        var settings = LibraryPathsService.Instance;
-        SteamPathBox.Text = settings.SteamPath ?? "";
-        EpicPathBox.Text = settings.EpicManifestsPath ?? "";
+        SteamPathBox.Text = _settings.SteamPath ?? "";
+        EpicPathBox.Text = _settings.EpicManifestsPath ?? "";
     }
 
     private void BrowseSteam_Click(object sender, RoutedEventArgs e)
@@ -55,10 +61,15 @@ public partial class ConfigureSyncFoldersWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        var settings = LibraryPathsService.Instance;
-        settings.SteamPath = string.IsNullOrWhiteSpace(SteamPathBox.Text) ? null : SteamPathBox.Text.Trim();
-        settings.EpicManifestsPath = string.IsNullOrWhiteSpace(EpicPathBox.Text) ? null : EpicPathBox.Text.Trim();
-        settings.Save();
+        _settings.SteamPath = string.IsNullOrWhiteSpace(SteamPathBox.Text) ? null : SteamPathBox.Text.Trim();
+        _settings.EpicManifestsPath = string.IsNullOrWhiteSpace(EpicPathBox.Text) ? null : EpicPathBox.Text.Trim();
+
+        if (!_deferSave && !_settings.TrySave())
+        {
+            MessageBox.Show(this, "No se han podido guardar las rutas de las bibliotecas.",
+                "Juegos", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
 
         Saved = true;
         DialogResult = true;
