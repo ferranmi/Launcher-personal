@@ -188,29 +188,24 @@ public partial class ImageGenView : UserControl
         await ConnectAsync();
     }
 
-    private async void StartServer_Click(object sender, RoutedEventArgs e) => await StartServerAsync(askPath: true);
+    private async void StartServer_Click(object sender, RoutedEventArgs e)
+    {
+        var bat = _settings.EffectiveBatPath;
+        if (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat))
+        {
+            Launcher.Modules.Settings.SettingsView.OpenSection("imagegen");
+            return;
+        }
 
-    private async Task StartServerAsync(bool askPath)
+        await StartServerAsync();
+    }
+
+    private async Task StartServerAsync()
     {
         if (_startingServer) return;
 
         var bat = _settings.EffectiveBatPath;
-        if (!askPath && (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat))) return;
-
-        if (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat))
-        {
-            var dialog = new OpenFileDialog
-            {
-                Title = "Selecciona el webui-user.bat de A1111",
-                Filter = "Scripts (*.bat;*.cmd)|*.bat;*.cmd|Todos los archivos (*.*)|*.*"
-            };
-            if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
-
-            bat = dialog.FileName;
-            _settings.ServerBatPath = bat;
-            if (string.IsNullOrWhiteSpace(_settings.InstallPath)) _settings.InstallPath = Path.GetDirectoryName(bat);
-            _settings.Save();
-        }
+        if (string.IsNullOrWhiteSpace(bat) || !File.Exists(bat)) return;
 
         try
         {
