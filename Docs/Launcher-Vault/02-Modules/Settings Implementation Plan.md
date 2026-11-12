@@ -2,10 +2,10 @@
 title: Settings Implementation Plan
 type: implementation-plan
 project: Launcher
-source_of_truth: GitHub main
+source_of_truth: feature/settings-centralized-management
 audit_ref: main @ tree 2c81caa430d49221a2e8cd7d5981e0aea688c0ef
 last_reviewed: 2026-11-12
-status: proposed
+status: implementation-in-progress
 tags: [launcher, settings, implementation]
 ---
 
@@ -59,6 +59,47 @@ El registro de Windows y los cambios de atajo/ventana/tema requieren aplicar y r
 Acciones como reparar portadas, restaurar elementos ignorados, comprobar/aplicar actualizaciones o abrir carpetas son operaciones explicitas. No forman parte del ciclo Guardar/Descartar salvo que se transformen expresamente en un flujo de configuracion.
 
 Los dialogos de configuracion de Steam, ImageGen y otras areas deben migrarse a secciones centrales cuando sus parametros y validaciones esten inventariados.
+
+## Estado de ejecucion (2026-11-12)
+
+### Fase 0 — Auditoria
+<badge>Completada estaticamente</badge>
+
+Inventario inicial de config.json, settings.json, imagegen.json, models.json y registro Run.
+
+### Fase 1 — Sesion de edicion y persistencia
+<badge color="success">Implementada en codigo; sin compilar</badge>
+
+- Copias de trabajo para AppSettings, bibliotecas de Games, ImageGen y Models.
+- Guardado coordinado de JSON, registro Run y credencial Civitai.
+- Escritura temporal y reemplazo por archivo.
+- Rollback compensatorio cuando se detecta un fallo.
+- Notificacion de AppSettings despues de guardar.
+- Inicio de Windows y atajo global aplicados al confirmar.
+- Guardar/Descartar y avisos al navegar o cerrar.
+- MusicFolder incorporado a la sesion.
+
+### Fase 2 — Navegacion e interfaz
+<badge color="success">Primera version implementada; sin validacion visual</badge>
+
+- Sidebar de categorias.
+- Scroll continuo con saltos.
+- Categoria activa segun posicion del scroll.
+- Contadores/estado de cambios pendientes y botones Guardar/Descartar.
+- Seccion Models incorporada y pestaña de configuracion local oculta.
+- Los dialogos de Games e ImageGen siguen siendo modales, aunque editan borradores.
+
+### Fase 3 — Ambitos y sobrescrituras
+<badge color="warning">Parcial</badge>
+
+- Se identifica el intervalo Monitor/Procesos como COMPARTIDO.
+- Los parametros globales principales se marcan como GLOBAL.
+- No se ha creado aun un ejemplo de sobrescritura por modulo ni la resolucion de herencia global/individual.
+
+### Fase 4 — Validacion
+<badge color="warning">Pendiente</badge>
+
+No se ha ejecutado dotnet build ni pruebas manuales en Windows. No declarar terminado hasta validar guardado, descarte, fallos parciales, cierre, registro, credenciales y refresco de los modulos.
 
 ## Secuencia incremental
 
