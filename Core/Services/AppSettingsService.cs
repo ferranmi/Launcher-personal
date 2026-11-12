@@ -121,7 +121,20 @@ public class AppSettingsService
             {
                 var json = File.ReadAllText(ConfigPath);
                 var loaded = JsonSerializer.Deserialize<AppSettingsService>(json);
-                if (loaded != null) return loaded;
+                if (loaded != null)
+                {
+                    // Un JSON valido puede contener null en propiedades que esperan valores por defecto.
+                    loaded.StartModule ??= "games";
+                    loaded.Hotkey ??= "None";
+                    loaded.AccentColor ??= DefaultAccent;
+                    loaded.ThresholdProfile ??= "normal";
+                    loaded.BackgroundMode ??= "none";
+                    loaded.MusicFolder ??= "";
+                    loaded.CardSize ??= "medium";
+                    loaded.UpdateSource ??= DefaultUpdateSource;
+                    loaded.Layouts ??= new Dictionary<string, double[]>();
+                    return loaded;
+                }
             }
         }
         catch
