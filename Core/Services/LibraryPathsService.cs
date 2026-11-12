@@ -47,19 +47,25 @@ public class LibraryPathsService
         return new LibraryPathsService();
     }
 
-    public void Save()
+    public void Save() => TrySave();
+
+    public bool TrySave()
     {
+        var tempPath = SettingsPath + ".tmp";
         try
         {
             var folder = Path.GetDirectoryName(SettingsPath)!;
             Directory.CreateDirectory(folder);
             var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsPath, json);
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, SettingsPath, true);
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
-            // No es critico: si falla el guardado, en la siguiente sesion se
-            // volvera a pedir la carpeta.
+            try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
+            LogService.Error("No se pudo guardar settings.json", ex);
+            return false;
         }
     }
 
