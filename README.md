@@ -5,8 +5,7 @@
 > | Campo | Estado actual comprobado |
 > |---|---|
 > | Rama de implementacion | `feature/settings-centralized-management` |
-> | Commit de implementacion | `3304ba6ee2f50abe434e0acc57b0d97c0613d0a8` |
-> | Version | `0.1.54` |
+>> | Version | `0.1.54` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Modulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, version 1.2.161 |
