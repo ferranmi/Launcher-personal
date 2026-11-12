@@ -248,11 +248,14 @@ public partial class DashboardView : UserControl
         StatusLevel Lvl(string key) => report.Metrics.TryGetValue(key, out var l) ? l : StatusLevel.Online;
 
         SetMetric(CpuText, Lvl("CPU"), $"{s.CpuPercent:0}%");
+        CpuTemperatureText.Text = s.CpuTemperatureCelsius.HasValue
+            ? $"{s.CpuTemperatureCelsius.Value:0}°C"
+            : "--°C";
+        var cpuModel = ShortCpuName(s.CpuName);
         var cpuTopology = s.CpuCoreCount > 0
-            ? $"{s.CpuCoreCount} nucleos / {s.CpuThreadCount} hilos"
-            : $"{s.CpuThreadCount} hilos";
-        var cpuTemperature = s.CpuTemperatureCelsius.HasValue ? $"{s.CpuTemperatureCelsius.Value:0}°C" : "--°C";
-        CpuDetail.Text = $"{s.CpuName} · {cpuTopology} · {cpuTemperature}";
+            ? $"{s.CpuCoreCount}C / {s.CpuThreadCount}T"
+            : $"{s.CpuThreadCount}T";
+        CpuDetail.Text = $"{cpuModel} {cpuTopology}";
 
         var ramUsed = s.RamUsedBytes / 1024d / 1024 / 1024;
         var ramTotal = s.RamTotalBytes / 1024d / 1024 / 1024;
@@ -260,8 +263,10 @@ public partial class DashboardView : UserControl
         RamDetail.Text = $"{ramUsed:0.#} / {ramTotal:0.#} GB";
 
         SetMetric(GpuText, Lvl("GPU"), $"{s.GpuPercent:0}%");
-        var gpuTemperature = s.GpuTemperatureCelsius.HasValue ? $"{s.GpuTemperatureCelsius.Value:0}°C" : "--°C";
-        GpuDetail.Text = $"{s.GpuName} · {gpuTemperature}";
+        GpuTemperatureText.Text = s.GpuTemperatureCelsius.HasValue
+            ? $"{s.GpuTemperatureCelsius.Value:0}°C"
+            : "--°C";
+        GpuDetail.Text = ShortGpuName(s.GpuName);
 
         var vramUsed = s.VramUsedBytes / 1024d / 1024 / 1024;
         var vramTotal = s.VramTotalBytes / 1024d / 1024 / 1024;
@@ -270,6 +275,29 @@ public partial class DashboardView : UserControl
 
         NetDownText.Text = $"\u2193 {FormatRate(s.NetDownBytesPerSec)}";
         NetUpText.Text = $"\u2191 {FormatRate(s.NetUpBytesPerSec)}";
+    }
+
+    private static string ShortCpuName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "CPU";
+
+        var value = System.Text.RegularExpressions.Regex.Replace(name, @"\s+CPU\s+@.*$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        value = value.Replace("(R)", "", StringComparison.OrdinalIgnoreCase)
+                     .Replace("(TM)", "", StringComparison.OrdinalIgnoreCase)
+                     .Replace("Core", "", StringComparison.OrdinalIgnoreCase)
+                     .Replace("Intel", "", StringComparison.OrdinalIgnoreCase)
+                     .Trim();
+        return System.Text.RegularExpressions.Regex.Replace(value, @"\s+", " ");
+    }
+
+    private static string ShortGpuName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "GPU";
+
+        var value = name.Trim();
+        value = System.Text.RegularExpressions.Regex.Replace(value, @"^(NVIDIA|AMD|Intel)\s+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        value = System.Text.RegularExpressions.Regex.Replace(value, @"\s+", " ");
+        return value;
     }
 
     private void SetMetric(TextBlock number, StatusLevel level, string text)
