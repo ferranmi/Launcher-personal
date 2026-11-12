@@ -195,7 +195,16 @@ public class AppSettingsService
     }
 
     /// <summary>Notifica a los modulos despues de confirmar todos los destinos de configuracion.</summary>
-    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    public void NotifyChanged()
+    {
+        if (Changed == null) return;
+
+        foreach (EventHandler handler in Changed.GetInvocationList())
+        {
+            try { handler(this, EventArgs.Empty); }
+            catch (Exception ex) { LogService.Error("Un modulo no pudo aplicar la configuracion actualizada", ex); }
+        }
+    }
 
     /// <summary>Vuelve a los valores por defecto y guarda.</summary>
     public void Reset()
