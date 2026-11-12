@@ -70,6 +70,8 @@ public partial class SettingsView : UserControl
         SelectChip(StartModulePanel, _draft.StartModule);
         SelectChip(AccentPanel, _draft.AccentColor);
         SelectChip(RefreshPanel, _draft.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
+        SelectChip(MonitorOverridePanel, _draft.MonitorRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
+        SelectChip(ProcessesOverridePanel, _draft.ProcessesRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
         BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
         BackgroundImageRow.Tag = _draft.BackgroundImagePath ?? "Sin imagen seleccionada";
@@ -91,6 +93,7 @@ public partial class SettingsView : UserControl
         SelectChip(ThresholdPanel, _draft.ThresholdProfile);
         SelectChip(IntervalPanel, _draft.StatusIntervalSeconds.ToString());
         LoadModelsSettingsControls();
+        RefreshOverrideTags();
 
         _loading = false;
     }
@@ -385,6 +388,22 @@ public partial class SettingsView : UserControl
                _draftStartupEnabled != StartupService.IsEnabled();
     }
 
+    private void RefreshOverrideTags()
+    {
+        if (MonitorOverrideRow == null || ProcessesOverrideRow == null) return;
+
+        MonitorOverrideRow.Tag = _draft.MonitorRefreshSecondsOverride is double monitor
+            ? $"SOBRESCRIBE GLOBAL · Monitor usa {FormatOverrideValue(monitor)} y no sigue el valor compartido."
+            : "HEREDA GLOBAL · Monitor utiliza el intervalo COMPARTIDO.";
+
+        ProcessesOverrideRow.Tag = _draft.ProcessesRefreshSecondsOverride is double processes
+            ? $"SOBRESCRIBE GLOBAL · Procesos usa {FormatOverrideValue(processes)} y no sigue el valor compartido."
+            : "HEREDA GLOBAL · Procesos utiliza el intervalo COMPARTIDO.";
+    }
+
+    private static string FormatOverrideValue(double seconds) =>
+        seconds <= 0 ? "Auto" : $"{seconds.ToString("0.##", CultureInfo.InvariantCulture)} s";
+
     private void MarkPending()
     {
         var pending = HasPendingChanges();
@@ -392,6 +411,7 @@ public partial class SettingsView : UserControl
         PendingStatusText.Foreground = (Brush)FindResource(pending ? "Brush.Accent" : "Brush.TextDim");
         SaveChangesButton.IsEnabled = pending;
         DiscardChangesButton.IsEnabled = pending;
+        RefreshOverrideTags();
     }
 
     private void DiscardChanges_Click(object sender, RoutedEventArgs e)
@@ -663,6 +683,18 @@ public partial class SettingsView : UserControl
         else if (chip.GroupName == "Refresh" &&
                  double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
             _draft.RefreshSeconds = seconds;
+        else if (chip.GroupName == "MonitorRefreshOverride")
+            _draft.MonitorRefreshSecondsOverride = value == "inherit"
+                ? null
+                : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var monitorSeconds)
+                    ? monitorSeconds
+                    : _draft.MonitorRefreshSecondsOverride;
+        else if (chip.GroupName == "ProcessesRefreshOverride")
+            _draft.ProcessesRefreshSecondsOverride = value == "inherit"
+                ? null
+                : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var processSeconds)
+                    ? processSeconds
+                    : _draft.ProcessesRefreshSecondsOverride;
         else if (chip.GroupName == "ThresholdProfile") _draft.ThresholdProfile = value;
         else if (chip.GroupName == "StatusInterval" && int.TryParse(value, out var interval))
             _draft.StatusIntervalSeconds = interval;
