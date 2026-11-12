@@ -542,6 +542,7 @@ public partial class SettingsView : UserControl
         }
 
         _settings.NotifyChanged();
+        Launcher.Modules.ImageGen.ImageGenSettings.Instance.NotifyChanged();
         _settings.ApplyToWindow(Window.GetWindow(this)!);
         WindowBehaviorService.Instance?.ApplyTray();
         ThemeService.ApplyAccent(_settings.AccentColor);
