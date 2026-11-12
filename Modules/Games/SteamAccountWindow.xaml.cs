@@ -8,19 +8,24 @@ namespace Launcher.Modules.Games;
 public partial class SteamAccountWindow : Window
 {
     private const string ApiKeyPageUrl = "https://steamcommunity.com/dev/apikey";
+    private readonly LibraryPathsService _settings;
+    private readonly bool _deferSave;
 
     /// <summary>True si el usuario guardo.</summary>
     public bool Saved { get; private set; }
 
-    public SteamAccountWindow()
+    public SteamAccountWindow() : this(LibraryPathsService.Instance, false) { }
+
+    public SteamAccountWindow(LibraryPathsService settings, bool deferSave)
     {
+        _settings = settings;
+        _deferSave = deferSave;
         InitializeComponent();
 
-        var paths = LibraryPathsService.Instance;
-        ApiKeyBox.Text = paths.SteamApiKey ?? "";
+        ApiKeyBox.Text = _settings.SteamApiKey ?? "";
 
         // Si aun no hay SteamID guardado, se propone el de la instalacion local.
-        SteamIdBox.Text = paths.SteamId ?? SteamInfoService.TryDetectSteamId64() ?? "";
+        SteamIdBox.Text = _settings.SteamId ?? SteamInfoService.TryDetectSteamId64() ?? "";
     }
 
     private void GetKey_Click(object sender, RoutedEventArgs e)
@@ -67,10 +72,15 @@ public partial class SteamAccountWindow : Window
             if (proceed != MessageBoxResult.Yes) return;
         }
 
-        var paths = LibraryPathsService.Instance;
-        paths.SteamApiKey = key.Length == 0 ? null : key;
-        paths.SteamId = steamId.Length == 0 ? null : steamId;
-        paths.Save();
+        _settings.SteamApiKey = key.Length == 0 ? null : key;
+        _settings.SteamId = steamId.Length == 0 ? null : steamId;
+
+        if (!_deferSave && !_settings.TrySave())
+        {
+            MessageBox.Show(this, "No se han podido guardar los datos de Steam.",
+                "Cuenta de Steam", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
 
         Saved = true;
         DialogResult = true;
