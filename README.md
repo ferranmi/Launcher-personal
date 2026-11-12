@@ -17,6 +17,8 @@
 >
 > **Módulos registrados:** Dashboard, Games, Folders, Media, Music, Network, ImageGen, Models, Commands, Devices, Monitor, Processes y Settings.
 >
+> **Auditoria de Settings:** inventario de persistencia y clasificacion de los 13 modulos en `Docs/Launcher-Vault/02-Modules/Settings Audit.md`.
+>
 > **Elementos no registrados:** SearchModule implementa IModule pero no se registra en MainWindow. AssistantWindow existe como ventana independiente, sin AssistantModule.
 >
 > **Hallazgos estáticos prioritarios:** SteamApiKey en JSON; autologin web que permite HTTP y no fija el origen tras redirecciones; LocalSend acepta certificados sin validacion; persistencia JSON heterogenea; sesiones Playwright sin cierre explicito visible; recursos CoreAudio sin liberacion explicita; comparacion de rutas por prefijo en la biblioteca musical; muestreo de sistema potencialmente duplicado/sincrono. Ver `Docs/Launcher-Vault/03-Audit/Findings.md`.
@@ -509,13 +511,17 @@ Idea (sin decisión) de pasar a Nobara (KDE Plasma). Vías: adaptar el Launcher,
 
 > Resultado de leer el snapshot. Ninguno está confirmado en ejecución salvo que se indique.
 
-### 6.1 🔴 Bloqueantes de compilación (probables)
+### 6.1 Hallazgos del snapshot historico (2026-11-06; no vigentes en esta rama)
 
-| # | Dónde | Problema | Arreglo sugerido |
-|---|---|---|---|
-| B1 | `Core/Services/AppSettingsService.cs` → `Reset()` | Dentro del método están pegadas declaraciones de **miembros de clase** (`public static readonly string DefaultUpdateSource`, `public string UpdateSource {get;set;}`, `public bool CheckUpdatesOnStartup {get;set;}`). No es C# válido, y esas propiedades las usan `UpdateService`, `MainWindow` y `SettingsView` | Mover las tres declaraciones a nivel de clase (junto a las demás propiedades) y dejar en `Reset()` solo las asignaciones, **antes** de `Save()` |
-| B2 | `Launcher.csproj` | Falta `<PackageReference Include="Velopack" …/>` (usado en `Program.cs` y `UpdateService.cs`) | Añadir la referencia con la versión que coincida con `vpk` instalada (la memoria menciona 1.2.161) |
-| B3 | `README.md` del repo | Marcadores de conflicto de git sin resolver | Sustituir el archivo por este documento |
+Los siguientes puntos pertenecian a un snapshot anterior y no deben usarse como diagnostico actual:
+
+| # | Hallazgo historico | Estado en feature/settings-centralized-management |
+|---|---|---|
+| B1 | AppSettingsService.Reset contenia declaraciones de miembros dentro del metodo | Superado: el metodo actual contiene asignaciones y persiste al final. Ademas se ampliaron los valores restablecidos en 0.1.55. |
+| B2 | Faltaba la referencia NuGet de Velopack | Superado: Launcher.csproj declara Velopack 1.2.161. |
+| B3 | README contenia marcadores de conflicto | No se ha confirmado su ausencia; revisar antes de merge. |
+
+Esto no equivale a una compilacion satisfactoria. Sigue pendiente ejecutar dotnet build en Windows con .NET 10 SDK.
 
 ### 6.2 🐞 Bugs probables de comportamiento
 
@@ -525,7 +531,7 @@ Idea (sin decisión) de pasar a Nobara (KDE Plasma). Vías: adaptar el Launcher,
 | F2 | `MediaView.xaml.cs` | `_isDraggingMaster` nunca se desactiva (ver 4.3) |
 | F3 | `App.xaml` + `App.xaml.cs` | `StartupUri="MainWindow.xaml"` coexiste con `new MainWindow().Show()` en `OnStartup`. **Posible doble ventana principal** [I]. Comprobar al arrancar; si ocurre, quitar `StartupUri` |
 | F4 | `CommandsService.Launch` | Rutas con espacios sin entrecomillar en CMD/PowerShell |
-| F5 | `AppSettingsService.Reset` | `Save()` antes de restablecer algunos campos (ver 4.9) |
+| F5 | `AppSettingsService.Reset` | Corregido en 0.1.55: se asignan los valores por defecto antes de guardar; se amplió el reset para incluir Music, Devices y los intervalos de Media/Red. |
 | F6 | Orden de módulos | `Procesos` y `Buscar` ambos con `Order = 4` |
 
 ### 6.3 🟡 Rendimiento y diseño
@@ -770,7 +776,7 @@ Un proyecto `Launcher.Tests` (xUnit) sin dependencia de WPF cubriría con facili
 | `Program.cs` | `VelopackApp.Build().Run()` y arranque de WPF |
 | `App.xaml(.cs)` | Tema, instancia única, escucha de "mostrar", manejadores de excepciones |
 | `MainWindow.xaml(.cs)` | Shell, sidebar, registro de módulos, indicador de actualización, controles de ventana |
-| `Core/Services/AppSettingsService.cs` | Ajustes (`config.json`) — **contiene B1** |
+| `Core/Services/AppSettingsService.cs` | Ajustes centrales (`config.json`), migracion heredada de rutas de Devices e intervalos de Media/Red |
 | `Core/Services/LibraryPathsService.cs` | Rutas Steam/Epic y su auto-detección |
 | `Core/Services/WindowBehaviorService.cs` | Bandeja, posición, hotkey, minimizado, maximizado sin bordes |
 | `Core/Services/GlobalHotkeyService.cs` | Hook `WH_KEYBOARD_LL` (sin uso aún) |
