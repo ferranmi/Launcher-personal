@@ -221,12 +221,34 @@
             <TextBlock Text="MONITOR Y PROCESOS" x:Name="MonitorSection" Style="{StaticResource SectionTitle}" />
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Intervalo de refresco"
-                                    Tag="COMPARTIDO · Afecta a Monitor y Procesos. Auto usa 1 s en Monitor y 1,5 s en Procesos. Mas segundos = menos consumo.">
+                                    Tag="COMPARTIDO · Valor base para Monitor y Procesos. Cada modulo puede sobrescribirlo mas abajo.">
                 <StackPanel x:Name="RefreshPanel" Orientation="Horizontal">
                     <RadioButton Content="Auto" Tag="0" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                     <RadioButton Content="1 s" Tag="1" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                     <RadioButton Content="3 s" Tag="3" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                     <RadioButton Content="5 s" Tag="5" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl x:Name="MonitorOverrideRow" Style="{StaticResource SettingRow}"
+                                    Header="Intervalo propio de Monitor">
+                <StackPanel x:Name="MonitorOverridePanel" Orientation="Horizontal">
+                    <RadioButton Content="Heredar" Tag="inherit" GroupName="MonitorRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Auto" Tag="0" GroupName="MonitorRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="1 s" Tag="1" GroupName="MonitorRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="3 s" Tag="3" GroupName="MonitorRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="5 s" Tag="5" GroupName="MonitorRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl x:Name="ProcessesOverrideRow" Style="{StaticResource SettingRow}"
+                                    Header="Intervalo propio de Procesos">
+                <StackPanel x:Name="ProcessesOverridePanel" Orientation="Horizontal">
+                    <RadioButton Content="Heredar" Tag="inherit" GroupName="ProcessesRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="Auto" Tag="0" GroupName="ProcessesRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="1 s" Tag="1" GroupName="ProcessesRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="3 s" Tag="3" GroupName="ProcessesRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="5 s" Tag="5" GroupName="ProcessesRefreshOverride" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                 </StackPanel>
             </HeaderedContentControl>
 
