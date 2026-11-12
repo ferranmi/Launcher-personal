@@ -124,7 +124,7 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0">
+                <StackPanel x:Name="CategoryPanel" Grid.Row="0">
                     <TextBlock Text="CATEGORIAS" Style="{StaticResource SectionTitle}" Margin="2,4,0,12" />
                     <Button Content="Arranque" Tag="startup" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
                     <Button Content="Ventana" Tag="window" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
