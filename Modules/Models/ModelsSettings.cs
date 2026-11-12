@@ -118,17 +118,24 @@ public class ModelsSettings
         return new ModelsSettings();
     }
 
-    public void Save()
+    public void Save() => TrySave();
+
+    public bool TrySave()
     {
+        var tempPath = SettingsPath + ".tmp";
         try
         {
             Directory.CreateDirectory(AppSettingsService.AppFolder);
-            File.WriteAllText(SettingsPath,
+            File.WriteAllText(tempPath,
                 JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(tempPath, SettingsPath, true);
+            return true;
         }
         catch (Exception ex)
         {
+            try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
             LogService.Error("No se pudo guardar models.json", ex);
+            return false;
         }
     }
 }
