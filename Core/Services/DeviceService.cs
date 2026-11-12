@@ -1,6 +1,5 @@
 using System.IO;
 using System.Management;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Launcher.Core.Models;
@@ -13,13 +12,10 @@ namespace Launcher.Core.Services;
 /// Lista los dispositivos conectados (WMI) y, para Bluetooth, consulta el estado de
 /// conexion real con WinRT. Tambien resuelve la app del fabricante: tabla conocida
 /// (las rutas son las de instalacion habituales y pueden variar) mas una asignacion
-/// manual por fabricante guardada en device_apps.json, que tiene prioridad.
+/// manual por fabricante guardada en AppSettingsService, que tiene prioridad.
 /// </summary>
 public static class DeviceService
 {
-    private static readonly string OverridesPath = Path.Combine(AppSettingsService.AppFolder, "device_apps.json");
-    private static Dictionary<string, string>? _overrides;
-
     private static readonly Dictionary<string, (string Group, string? Settings)> Classes =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -53,6 +49,9 @@ public static class DeviceService
         ("nvidia", "NVIDIA App", new[] { @"%ProgramFiles%\NVIDIA Corporation\NVIDIA app\CEF\NVIDIA App.exe" }),
         ("hyperx", "HyperX NGENUITY", Array.Empty<string>()),
     };
+
+    public static IReadOnlyList<(string Keyword, string Label)> KnownVendors =>
+        Vendors.Select(v => (v.Keyword, v.Label)).ToArray();
 
     // ===================== Consulta =====================
 
@@ -300,7 +299,8 @@ public static class DeviceService
             device.VendorKeyword = keyword;
             device.VendorLabel = label;
 
-            if (LoadOverrides().TryGetValue(keyword, out var custom) && File.Exists(custom))
+            if (AppSettingsService.Instance.DeviceVendorApps.TryGetValue(keyword, out var custom) &&
+                !string.IsNullOrWhiteSpace(custom) && File.Exists(custom))
             {
                 device.VendorPath = custom;
             }
@@ -315,38 +315,5 @@ public static class DeviceService
         }
     }
 
-    public static void SetVendorApp(string keyword, string exePath)
-    {
-        var map = LoadOverrides();
-        map[keyword] = exePath;
 
-        try
-        {
-            Directory.CreateDirectory(AppSettingsService.AppFolder);
-            File.WriteAllText(OverridesPath, JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true }));
-        }
-        catch (Exception ex)
-        {
-            LogService.Error("No se pudo guardar device_apps.json", ex);
-        }
-    }
-
-    private static Dictionary<string, string> LoadOverrides()
-    {
-        if (_overrides != null) return _overrides;
-
-        try
-        {
-            if (File.Exists(OverridesPath))
-            {
-                _overrides = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(OverridesPath));
-            }
-        }
-        catch
-        {
-            // device_apps.json corrupto: empezamos sin asignaciones.
-        }
-
-        return _overrides ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    }
 }
