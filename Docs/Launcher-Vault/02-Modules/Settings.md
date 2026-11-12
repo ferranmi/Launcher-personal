@@ -3,189 +3,186 @@ title: Settings
 type: module-reference
 project: Launcher
 source_of_truth: feature/settings-centralized-management
-audit_ref: main @ tree 2c81caa430d49221a2e8cd7d5981e0aea688c0ef
 last_reviewed: 2026-11-12
-status: implementation-in-progress
-tags: [launcher, module, settings]
+status: implemented-unverified
+tags: [launcher, module, settings, configuration]
 ---
 
 # Settings
 
-## Responsabilidad actual
+## Responsabilidad
 
-Centralizar la configuracion y las preferencias de Launcher.
+Settings es el centro de administracion de la configuracion de Launcher y de los parametros que afectan al funcionamiento general de sus modulos.
 
-La implementacion actual ya agrupa buena parte de los ajustes en una vista vertical, pero no representa todavia el modelo de administracion centralizada acordado: no existe navegacion lateral por categorias ni una sesion de edicion con Guardar/Descartar.
+Los modulos consumen los valores confirmados. Las rutas, bibliotecas, accesos directos, elementos ignorados y otros datos de trabajo siguen perteneciendo al modulo que los utiliza.
 
-## Implementacion observada
+## Navegacion
 
-### Modulo y navegacion
+La vista usa una unica pagina vertical con scroll continuo y una barra lateral de categorias. La categoria activa se actualiza al desplazarse.
 
-- SettingsModule implementa IModule.
-- ID: settings.
-- Nombre visible: Configuracion.
-- Orden: 100.
-- Se registra explicitamente en MainWindow.xaml.cs.
-- SettingsView es una vista WPF con un unico ScrollViewer vertical.
-- No existe menu lateral interno con saltos a secciones.
+Secciones actuales:
 
-### Secciones actuales de SettingsView
+1. Arranque
+2. Ventana
+3. Monitor y procesos
+4. Fondo
+5. Juegos
+6. Dispositivos
+7. Multimedia
+8. Musica
+9. Red
+10. Imagenes IA
+11. Modelos
+12. Actualizaciones
+13. Dashboard
+14. Datos
+15. Acerca de
 
-1. Arranque.
-2. Ventana.
-3. Monitor y Procesos.
-4. Fondo.
-5. Juegos.
-6. Imagenes IA.
-7. Actualizaciones.
-8. Dashboard.
-9. Datos.
-10. Acerca de.
+Los modulos pueden abrir una categoria concreta mediante SettingsView.OpenSection(sectionId).
 
-### Comportamiento actual de edicion
+## Sesion de edicion
 
-- Los controles modifican directamente AppSettingsService.Instance.
-- Los eventos Toggle_Changed, Chip_Checked y BackgroundOpacity_ValueChanged llaman a Save().
-- Algunos cambios tambien aplican efectos inmediatamente: tema, ventana, bandeja y atajos.
-- No existe copia temporal, contador de cambios pendientes ni operaciones Guardar/Descartar.
-- Por tanto, la implementacion actual contradice el requisito de no guardar automaticamente.
+- Al abrir Settings se crean copias de trabajo de los valores actuales.
+- Los controles modifican las copias, no los servicios activos.
+- Guardar valida los campos, persiste los destinos y despues notifica a los modulos.
+- Descartar vuelve a copiar los valores activos.
+- Navegar entre categorias no guarda.
+- Al salir de Settings o cerrar Launcher con cambios pendientes se pregunta si guardar, descartar o seguir editando.
+- Los dialogos de Games e ImageGen reciben copias de trabajo cuando se abren desde Settings.
+- Los cambios del registro Run y la credencial Civitai se aplican dentro del proceso de guardado.
 
-## Fuentes de configuracion identificadas
+## Fuentes de configuracion y persistencia
 
-| Fuente | Archivo persistido | Ambito observado | Notas |
-|---|---|---|---|
-| AppSettingsService | config.json | Launcher y preferencias consumidas por modulos | Incluye ventana, inicio, tema, Dashboard, Monitor/Procesos, Juegos, musica y actualizaciones |
-| LibraryPathsService | settings.json | Juegos / bibliotecas | Rutas Steam/Epic y SteamApiKey/SteamId; la clave queda serializada en JSON |
-| ImageGenSettings | imagegen.json | ImageGen | URL, instalacion A1111, autoarranque, wildcards, carpetas y parametros anteriores |
-| ModelsSettings | models.json | Models | Carpetas, concurrencia, limite de velocidad, reintentos, categorias y preferencias de biblioteca |
-| Registro de Windows | Clave Run del usuario | Inicio con Windows | Se administra mediante StartupService, no se guarda en JSON |
+| Fuente | Destino | Responsabilidad |
+|---|---|---|
+| AppSettingsService | %AppData%/Launcher/config.json | Configuracion general, preferencias de modulos e intervalos centralizados |
+| LibraryPathsService | %AppData%/Launcher/settings.json | Rutas de bibliotecas Steam/Epic y datos de cuenta Steam |
+| ImageGenSettings | %AppData%/Launcher/imagegen.json | Configuracion de AUTOMATIC1111 y estado de generacion |
+| ModelsSettings | %AppData%/Launcher/models.json | Rutas, carpetas, descargas y estado operativo de Models |
+| StartupService | Registro HKCU Run | Inicio automatico con Windows |
+| CivitaiService | Administrador de credenciales de Windows | API Key de Civitai |
+| device_apps.json | Archivo legado | Se importa una sola vez a config.json; se conserva como respaldo |
 
-### Observaciones sobre parametros compartidos
+Los archivos JSON se escriben a un temporal y se reemplazan individualmente. El guardado coordinado incluye rollback compensatorio si se detecta un error, pero no es una transaccion atomica entre varios archivos ante un corte de energia.
 
-- RefreshSeconds esta presentado en Settings como intervalo compartido por Monitor y Processes.
-- ThresholdProfile, StatusIntervalSeconds, DashboardEffects, BootSequence y WindowsEventLog pertenecen a preferencias de Dashboard.
-- CardSize, SyncOnStartup y ConfirmDelete son preferencias de Games.
-- MusicFolder existe en AppSettingsService; su interfaz consumidora debe comprobarse antes de clasificar su propiedad definitiva.
-- Que dos propiedades tengan nombres o valores parecidos no demuestra que deban compartir una misma fuente.
+## Parametros por modulo
 
-## Acciones existentes que no son simples controles
+### Globales y compartidos
 
-SettingsView contiene botones para configurar bibliotecas de Steam/Epic, configurar cuenta de Steam, restaurar juegos ignorados, reparar portadas, configurar ImageGen, comprobar/aplicar actualizaciones, abrir carpetas de datos y logs y restablecer preferencias.
+- Arranque: iniciar minimizado y modulo inicial.
+- Ventana: siempre encima, cerrar a la bandeja, recordar tamano/posicion, atajo global y ancho de sidebar.
+- Tema: color de acento.
+- Fondo: modo, imagen e intensidad.
+- Monitor y Procesos: RefreshSeconds compartido, con overrides opcionales por modulo.
+- Actualizaciones: origen, comprobacion al iniciar y aplicacion automatica.
 
-Estas operaciones tienen efectos propios. No deben tratarse como valores de formulario sin decidir previamente si son acciones inmediatas o ediciones temporales.
+Los parametros compartidos y sus sobrescrituras muestran etiquetas que explican la herencia o el alcance.
 
-## Hallazgos de auditoria
+### Dashboard
 
-| ID | Hallazgo | Prioridad | Evidencia |
-|---|---|---:|---|
-| SET-001 | No hay sesion temporal de edicion | P1 | Los handlers escriben en el singleton y llaman a Save |
-| SET-002 | No existe navegacion lateral por categorias | P2 | SettingsView solo contiene ScrollViewer + StackPanel |
-| SET-003 | La configuracion esta repartida en varios JSON | P1 | config.json, settings.json, imagegen.json y models.json |
-| SET-004 | El inicio con Windows se modifica directamente en el registro | P1 | StartupService.SetEnabled se invoca desde Toggle_Changed |
-| SET-005 | Cambios visuales y operativos se aplican antes de guardar | P1 | ThemeService, ApplyToWindow, ApplyTray y ApplyHotkey se invocan durante la edicion |
-| SET-006 | AppSettingsService notifica Changed aunque falle la escritura | P1 | Save captura la excepcion y dispara Changed despues del catch |
-| SET-007 | Guardado JSON no atomico | P1 | File.WriteAllText directo en los servicios revisados |
-| SET-008 | Ajustes propios de ImageGen y Models no estan integrados en el formulario central | P1 | Modelos y servicios de configuracion independientes |
-| SET-009 | La clave de Steam se almacena junto a rutas en settings.json | P2 | LibraryPathsService serializa SteamApiKey |
+- ThresholdProfile.
+- StatusIntervalSeconds.
+- DashboardEffects.
+- BootSequence.
+- WindowsEventLog.
 
-## Riesgos y decisiones de implementacion
+El muestreo del sistema lo coordina SystemStatusHost. El Dashboard consume su estado y muestra accesos de Commands y Folders.
 
-1. Guardar/Descartar entre varios archivos: la sesion temporal debe incluir las fuentes de configuracion que se vayan migrando. No se debe simular una transaccion si parte de los ajustes ya se han escrito en disco.
-2. Efectos secundarios: cambios de tema, ventana, bandeja, atajos y registro deben aplicarse despues de validar y persistir los valores.
-3. Fallos parciales: guardar varios JSON no es atomico como conjunto. Hace falta una estrategia de validacion, escritura temporal y recuperacion ante fallo.
-4. Credenciales: no ampliar la exposicion de SteamApiKey. Su migracion a Credential Manager es un trabajo de seguridad separado.
-5. Acciones operativas: reparar portadas, restaurar ignorados y aplicar actualizaciones no son ajustes ordinarios y no deben quedar pendientes como si fueran simples valores.
+### Games
 
-## Objetivo funcional acordado
+- CardSize.
+- SyncOnStartup.
+- ConfirmDelete.
+- Rutas Steam/Epic, SteamID y SteamApiKey mediante dialogos que editan la copia de trabajo.
 
-- Una unica pagina vertical con scroll continuo.
-- Menu lateral de categorias y subcategorias con saltos a las secciones.
-- La categoria activa se refleja al desplazarse.
-- Settings administra preferencias globales y de los modulos.
-- Los modulos consumen su configuracion y ejecutan su funcionalidad; no duplican la interfaz de administracion.
-- Un parametro individual no necesita etiqueta.
-- Los parametros globales, compartidos o que sobrescriben un valor global muestran una advertencia visible que explica el alcance y los modulos afectados.
-- Un valor individual puede heredar el global o sobrescribirlo cuando proceda.
-- Los cambios se mantienen en una sesion temporal.
-- Botones Guardar y Descartar en la barra lateral.
-- Navegar entre categorias no guarda ni descarta.
-- Al salir con cambios pendientes se solicita una decision.
-- Los efectos sobre modulos solo se aplican tras guardar correctamente.
+La biblioteca de juegos no es configuracion: permanece en games.json. ignored-games.json conserva las claves de juegos Steam/Epic eliminados para que no reaparezcan al sincronizar.
 
-## Plan de implementacion propuesto
+Los botones de rutas en Games abren Settings > Juegos. Si se intenta sincronizar sin rutas configuradas, tambien se redirige a esa seccion.
 
-1. Completar el inventario de todos los parametros y sus consumidores.
-2. Definir los ambitos global, compartido, heredado y especifico.
-3. Implementar una sesion de edicion temporal sin efectos secundarios.
-4. Implementar persistencia segura y resultado de guardado verificable.
-5. Construir navegacion lateral y secciones ancladas.
-6. Integrar progresivamente configuraciones de Games, ImageGen y Models.
-7. Aplicar los cambios confirmados a los servicios y modulos afectados.
-8. Probar guardar, descartar, fallo de escritura, cierre con cambios pendientes y herencia.
-9. Actualizar version y README cuando cambie el comportamiento visible.
+### Devices
 
-## Estado de verificacion
+DeviceVendorApps contiene una ruta personalizada por fabricante (Logitech, Razer, Corsair, SteelSeries, NVIDIA e HyperX).
 
-Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas manuales en Windows. El entorno de esta sesion no dispone de acceso de red para clonar el repositorio ni de un entorno Windows para validar WPF.
-## Implementacion inicial en feature/settings-centralized-management
+Si una ruta esta vacia o no existe, DeviceService intenta las ubicaciones habituales conocidas. El boton de una tarjeta abre la aplicacion si se encuentra; si falta, lleva a Settings > Dispositivos.
 
-### Funcionalidad incorporada
+Migracion: al iniciar, AppSettingsService importa las asignaciones de device_apps.json una sola vez. La importacion se marca en config.json. El archivo antiguo no se borra. Restablecer preferencias limpia las asignaciones y marca la migracion como completada para impedir que reaparezcan.
 
-- Sidebar con saltos a las secciones y categoria activa segun el scroll.
-- Sesion de edicion temporal para preferencias generales.
-- Guardar y Descartar en la barra lateral.
-- Navegar entre categorias no persiste cambios.
-- Al cambiar de modulo o cerrar Launcher se ofrece guardar, descartar o continuar editando.
-- El registro de inicio con Windows se modifica al confirmar, no al mover el interruptor.
-- Se han incorporado a la sesion los destinos actuales: config.json, settings.json, imagegen.json y models.json, ademas del registro Run y la credencial de Civitai en el Administrador de credenciales.
-- Los dialogos de rutas de Games, cuenta de Steam e ImageGen reciben objetos de trabajo y no escriben en disco desde el dialogo.
-- Los ajustes de Models se han trasladado a la pagina central; la pestana Ajustes del modulo redirige a Settings > Modelos y no guarda directamente.
-- MusicFolder se administra desde Settings.
-- Las escrituras JSON usan archivo temporal y reemplazo; los servicios exponen TrySave para detectar errores.
-- Los cambios de AppSettings solo notifican a los modulos despues de completar los destinos persistentes.
+### Multimedia
 
-### Limites y deuda pendiente
+MediaRefreshSeconds controla el ciclo de actualizacion del estado de reproduccion y del mezclador de volumen. Valores permitidos: 1, 2 o 5 segundos. Valor por defecto: 1 segundo.
 
-1. **No existe atomicidad real entre varios destinos.** Cada archivo se reemplaza de forma atomica y el codigo intenta restaurar los valores anteriores si detecta un error. Un corte de energia entre reemplazos podria dejar archivos de versiones distintas.
-2. **Sobrescritura global implementada para el refresco.** Monitor y Procesos heredan por defecto el intervalo COMPARTIDO. Cada modulo puede elegir Auto o un intervalo propio; el indicador SOBRESCRIBE GLOBAL explica que deja de seguir el valor compartido. Otros parametros aun no tienen sobrescrituras.
-3. Los formularios de bibliotecas de Games e ImageGen siguen siendo dialogos abiertos desde Settings; los cambios quedan en borrador, pero no estan integrados visualmente como controles inline en el scroll.
-4. La vista/orden de la Biblioteca de Models se conserva como control operativo del modulo; no se trata como preferencia administrable desde Settings.
-5. SteamApiKey sigue persistida en texto JSON en settings.json. Civitai usa el Administrador de credenciales de Windows.
-6. Las acciones operativas (reparar portadas, restaurar ignorados, abrir carpetas, probar conexion y actualizar) siguen siendo acciones inmediatas, no cambios pendientes de la sesion.
-7. No se ha ejecutado build ni pruebas WPF en Windows. Es necesario validar compilacion, navegacion, guardado, descarte, fallo de escritura y cierre.
+MediaView usa NowPlayingService y AudioMixerService. No utiliza MediaAppsService.
 
-8. **Estado operativo separado de preferencias.** Models mantiene en su modulo `IgnoredReferences` y `PendingCorrections` porque son datos de trabajo; `LibraryView` y `LibrarySort` siguen como controles de uso de la biblioteca. En AppSettings, `LastModule`, coordenadas/tamano de ventana y `SidebarCollapsed` son estado de interfaz, no preferencias de modulo administradas por Settings. ImageGen conserva `LastParams` y las rutas descubiertas por el servidor como estado/runtime; el guardado central sincroniza esos valores para no sobrescribirlos con una copia antigua.
+### Music
 
-9. **Datos de los modulos no son preferencias.** `commands.json`, `folders.json`, `media_apps.json`, `games.json` e `ignored-games.json` contienen accesos directos, catalogos o estado de biblioteca. Se mantienen editables desde sus modulos; no se han convertido en preferencias globales. Si el requisito de centralizacion tambien incluye administrar esos registros, debe tratarse como un alcance distinto.
-10. **Acciones externas de ImageGen.** El boton que anade `--api` a `webui-user.bat` sigue siendo una accion inmediata con confirmacion y copia `.bak`; no forma parte del borrador JSON.
+MusicFolder define la carpeta de la biblioteca. Los metadatos musicales se leen y escriben en las etiquetas de los propios archivos de audio; no hay un catalogo JSON de canciones.
 
-### Archivos funcionales tocados
+### Red
+
+NetworkRefreshSeconds controla la consulta del estado de Tailscale. Valores permitidos: 5, 10 o 30 segundos. Valor por defecto: 10 segundos.
+
+La lista de dispositivos y la preparacion temporal de ficheros no se persisten como configuracion.
+
+### ImageGen
+
+Settings administra URL, instalacion A1111, ruta del script, autoarranque, wildcards y carpetas personalizadas.
+
+Los directorios que informa A1111 y LastParams son estado/runtime que el modulo conserva para poder recuperar la configuracion de trabajo. El modulo ya no ofrece un editor paralelo: Instalacion y carpetas abre Settings > Imagenes IA. Si no hay un script configurado, Iniciar servidor tambien redirige a Settings.
+
+La modificacion de webui-user.bat para anadir --api sigue siendo una accion inmediata, con confirmacion y copia .bak.
+
+### Models
+
+Settings administra instalacion, carpetas LoRA/Checkpoint/LyCORIS/Wildcards, concurrencia, limite de velocidad, reintentos, categorias y credencial Civitai.
+
+IgnoredReferences y PendingCorrections son estado operativo. LibraryView y LibrarySort son preferencias de presentacion de la biblioteca y permanecen en el modulo.
+
+La pestana Ajustes de Models redirige a Settings > Modelos.
+
+### Monitor y Procesos
+
+Ambos consumen RefreshSeconds. MonitorRefreshSecondsOverride y ProcessesRefreshSecondsOverride permiten heredar el valor compartido o sustituirlo localmente. ConfirmKillProcess controla la confirmacion antes de finalizar procesos.
+
+## Datos que permanecen en los modulos
+
+| Archivo | Contenido | Clasificacion |
+|---|---|---|
+| folders.json | Accesos directos a carpetas, incluidos los integrados y ocultos | Contenido del usuario |
+| commands.json | Accesos directos, argumentos, terminal, iconos y opciones por comando | Contenido del usuario |
+| games.json | Biblioteca, favoritos, ocultos, tiempo jugado y rutas | Contenido del usuario |
+| ignored-games.json | Juegos de tiendas eliminados para evitar su reaparicion | Estado operativo |
+| media_apps.json | Accesos a aplicaciones multimedia | Persistencia dormida: servicio/modelo existentes sin conexion con MediaView |
+
+media_apps.json no se migra ni se elimina. Si se reactiva la funcion de accesos multimedia, debe seguir tratandose como contenido del modulo, no como preferencia global.
+
+## Restablecer preferencias
+
+El boton Restablecer prepara valores por defecto de config.json y desactiva el inicio con Windows. Los cambios no se aplican hasta Guardar.
+
+No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai. La asignacion antigua device_apps.json no se elimina; la marca de migracion evita que las rutas antiguas se vuelvan a importar.
+
+## Riesgos y limitaciones conocidas
+
+1. SteamApiKey sigue almacenada en texto JSON en settings.json. Migrarla a Credential Manager requiere una tarea de seguridad separada.
+2. El guardado entre varios destinos no es atomico como conjunto.
+3. MediaAppsService y MediaAppShortcut mantienen media_apps.json, pero no existe una interfaz conectada a ellos en el modulo Multimedia activo.
+4. El panel de ajustes antiguo de Models permanece en XAML como contenido oculto; la pestana Ajustes redirige a Settings. Conviene retirar ese codigo muerto en una limpieza posterior, tras verificar referencias.
+5. La configuracion de ImageGen conserva LastParams y directorios detectados por el servidor en imagegen.json; no son preferencias puras, sino estado de trabajo.
+6. No se ha ejecutado dotnet build ni pruebas WPF en Windows. Esta rama no se considera validada hasta completar las comprobaciones.
+
+## Archivos principales
 
 - Modules/Settings/SettingsView.xaml
 - Modules/Settings/SettingsView.xaml.cs
 - Core/Services/AppSettingsService.cs
 - Core/Services/LibraryPathsService.cs
-- Core/Services/WindowBehaviorService.cs
-- Modules/Games/ConfigureSyncFoldersWindow.xaml
-- Modules/Games/ConfigureSyncFoldersWindow.xaml.cs
-- Modules/Games/SteamAccountWindow.xaml
-- Modules/Games/SteamAccountWindow.xaml.cs
-- Modules/ImageGen/ImageGenSettings.cs
-- Modules/ImageGen/ImageGenSettingsWindow.xaml
-- Modules/ImageGen/ImageGenSettingsWindow.xaml.cs
-- Modules/Models/ModelsSettings.cs
-- Modules/Models/ModelsView.xaml
-- Modules/Models/ModelsView.xaml.cs
-- Modules/Music/MusicView.xaml
-- Modules/Music/MusicView.xaml.cs
+- Core/Services/DeviceService.cs
+- Modules/Devices/DevicesView.xaml.cs
+- Modules/Media/MediaView.xaml.cs
+- Modules/Network/NetworkView.xaml.cs
+- Modules/Games/GamesView.xaml.cs
 - Modules/ImageGen/ImageGenView.xaml.cs
-- Modules/Monitor/MonitorView.xaml.cs
-- Modules/Processes/ProcessesView.xaml.cs
+- Modules/Models/ModelsView.xaml.cs
 - MainWindow.xaml.cs
 - Launcher.csproj
 - README.md
-- Docs/Launcher-Vault/02-Modules/Settings Implementation Plan.md
-
-### Version
-
-La version se ha incrementado de 0.1.53 a 0.1.54 por el cambio visible del flujo de configuracion.
