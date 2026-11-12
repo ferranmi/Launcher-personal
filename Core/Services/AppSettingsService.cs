@@ -110,13 +110,13 @@ public class AppSettingsService
     /// <summary>Si hay version nueva, la descarga e instala sin preguntar (reinicia la app).</summary>
     public bool AutoApplyUpdates { get; set; } = true;
 
-    /// <summary>Devuelve el intervalo elegido, o autoSeconds si esta en "automatico".</summary>
     /// <summary>Null = hereda el intervalo compartido; 0 = Auto del modulo; >0 = segundos.</summary>
     public double? MonitorRefreshSecondsOverride { get; set; }
 
     /// <summary>Null = hereda el intervalo compartido; 0 = Auto del modulo; >0 = segundos.</summary>
     public double? ProcessesRefreshSecondsOverride { get; set; }
 
+    /// <summary>Devuelve el intervalo global compartido, o autoSeconds si esta en automatico.</summary>
     public double GetRefreshSeconds(double autoSeconds) => RefreshSeconds > 0 ? RefreshSeconds : autoSeconds;
 
     public double GetMonitorRefreshSeconds(double autoSeconds) =>
