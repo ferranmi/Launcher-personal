@@ -40,6 +40,7 @@ public partial class SettingsView : UserControl
         InitializeModelsEditors();
         LoadFromState();
         MarkPending();
+        Loaded += (_, _) => UpdateActiveCategory();
     }
 
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
@@ -570,9 +571,17 @@ public partial class SettingsView : UserControl
         };
 
         var active = sections[0].Id;
-        var nearestTop = double.NegativeInfinity;
 
-        foreach (var section in sections)
+        if (SettingsScrollViewer.ScrollableHeight > 0 &&
+            SettingsScrollViewer.VerticalOffset >= SettingsScrollViewer.ScrollableHeight - 2)
+        {
+            active = sections[^1].Id;
+        }
+        else
+        {
+            var nearestTop = double.NegativeInfinity;
+
+            foreach (var section in sections)
         {
             try
             {
@@ -583,9 +592,10 @@ public partial class SettingsView : UserControl
                     active = section.Id;
                 }
             }
-            catch (InvalidOperationException)
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
             {
                 // El elemento aun no esta conectado al visor.
+            }
             }
         }
 
