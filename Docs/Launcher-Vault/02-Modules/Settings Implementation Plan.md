@@ -86,7 +86,7 @@ Inventario inicial de config.json, settings.json, imagegen.json, models.json y r
 - Scroll continuo con saltos.
 - Categoria activa segun posicion del scroll.
 - Contadores/estado de cambios pendientes y botones Guardar/Descartar.
-- Seccion Models incorporada y pestaña de configuracion local oculta.
+- Seccion Models incorporada y pestaña Ajustes del modulo redirigida a Settings > Modelos.
 - Los dialogos de Games e ImageGen siguen siendo modales, aunque editan borradores.
 
 ### Fase 3 — Ambitos y sobrescrituras
