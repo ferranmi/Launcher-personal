@@ -28,6 +28,7 @@ public partial class ImageGenView : UserControl
     private bool _startingServer;
     private bool _loadedOnce;
     private bool _autoStartTried;
+    private bool _pendingSettingsRefresh;
     private CancellationTokenSource? _genCts;
     private int _imageIndex;
     private int _imageTotal; // > 1 solo cuando se genera imagen a imagen (wildcards)
@@ -37,6 +38,7 @@ public partial class ImageGenView : UserControl
         InitializeComponent();
 
         GalleryList.ItemsSource = _gallery.Images;
+        _settings.Changed += ImageGenSettings_Changed;
 
         BuildExtensionPanels();
 
@@ -76,11 +78,29 @@ public partial class ImageGenView : UserControl
     private async void ImageGenView_Loaded(object sender, RoutedEventArgs e)
     {
         // Loaded se dispara cada vez que la vista vuelve al arbol visual: solo conectamos la primera.
-        if (_loadedOnce) return;
-        _loadedOnce = true;
+        if (_loadedOnce)
+        {
+            if (_pendingSettingsRefresh)
+            {
+                _pendingSettingsRefresh = false;
+                await ConnectAsync();
+            }
+            return;
+        }
 
+        _loadedOnce = true;
         if (_gallery.Images.Count > 0) GalleryList.SelectedIndex = 0;
         await ConnectAsync();
+        _pendingSettingsRefresh = false;
+    }
+
+    private void ImageGenSettings_Changed(object? sender, EventArgs e)
+    {
+        _pendingSettingsRefresh = true;
+        if (!IsLoaded || _generating || _startingServer) return;
+
+        _pendingSettingsRefresh = false;
+        _ = ConnectAsync();
     }
 
     // ===================== Conexion con A1111 =====================
@@ -162,7 +182,11 @@ public partial class ImageGenView : UserControl
         return true;
     }
 
-    private async void Connect_Click(object sender, RoutedEventArgs e) => await ConnectAsync();
+    private async void Connect_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingSettingsRefresh = false;
+        await ConnectAsync();
+    }
 
     private async void StartServer_Click(object sender, RoutedEventArgs e) => await StartServerAsync(askPath: true);
 
@@ -228,6 +252,11 @@ public partial class ImageGenView : UserControl
         {
             _startingServer = false;
             StartServerButton.IsEnabled = true;
+            if (_pendingSettingsRefresh && IsLoaded)
+            {
+                _pendingSettingsRefresh = false;
+                _ = ConnectAsync();
+            }
         }
     }
 
@@ -441,6 +470,11 @@ public partial class ImageGenView : UserControl
             _genCts?.Dispose();
             _genCts = null;
             SetGenerating(false);
+            if (_pendingSettingsRefresh && IsLoaded && !_startingServer)
+            {
+                _pendingSettingsRefresh = false;
+                _ = ConnectAsync();
+            }
         }
     }
 
