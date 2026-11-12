@@ -313,8 +313,9 @@ public partial class GamesView : UserControl
         // en vacio (lo cual solo confundiria: "sincronice y no aparecio nada").
         if (!settings.HasSteamPath && !settings.HasEpicPath)
         {
-            var configured = OpenFolderConfig();
-            if (!configured) return; // el usuario cancelo, no sincronizamos
+            // Las rutas se administran desde Settings; no abrimos un editor paralelo en Games.
+            Launcher.Modules.Settings.SettingsView.OpenSection("games");
+            return;
         }
 
         if (_syncing) return;
@@ -329,15 +330,8 @@ public partial class GamesView : UserControl
             MessageBoxImage.Information);
     }
 
-    private void ConfigureFolders_Click(object sender, RoutedEventArgs e) => OpenFolderConfig();
-
-    /// <summary>Abre el dialogo de carpetas de Steam/Epic. Devuelve true si el usuario guardo.</summary>
-    private bool OpenFolderConfig()
-    {
-        var dialog = new ConfigureSyncFoldersWindow { Owner = Window.GetWindow(this) };
-        dialog.ShowDialog();
-        return dialog.Saved;
-    }
+    private void ConfigureFolders_Click(object sender, RoutedEventArgs e) =>
+        Launcher.Modules.Settings.SettingsView.OpenSection("games");
 
     private void LaunchGame(Game game, bool asAdmin = false)
     {
