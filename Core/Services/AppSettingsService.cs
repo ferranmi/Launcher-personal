@@ -132,21 +132,41 @@ public class AppSettingsService
         return new AppSettingsService();
     }
 
-    public void Save()
+    public void Save() => TrySave();
+
+    /// <summary>Guarda mediante un archivo temporal. Devuelve false si no se pudo persistir.</summary>
+    public bool TrySave(bool notifyChanged = true)
     {
+        var tempPath = ConfigPath + ".tmp";
+
         try
         {
             Directory.CreateDirectory(AppFolder);
             var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ConfigPath, json);
-        }
-        catch
-        {
-            // No critico: en la proxima sesion se usaran los valores anteriores.
-        }
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, ConfigPath, true);
 
-        Changed?.Invoke(this, EventArgs.Empty);
+            if (notifyChanged) NotifyChanged();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+            }
+            catch
+            {
+                // La limpieza del temporal no debe ocultar el error original.
+            }
+
+            LogService.Error("No se pudo guardar config.json", ex);
+            return false;
+        }
     }
+
+    /// <summary>Notifica a los modulos despues de confirmar todos los destinos de configuracion.</summary>
+    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Vuelve a los valores por defecto y guarda.</summary>
     public void Reset()
