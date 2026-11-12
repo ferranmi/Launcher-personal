@@ -145,13 +145,16 @@ Todo bajo `%AppData%\Launcher\` salvo indicación contraria. No hay base de dato
 
 | Archivo / ubicación | Lo escribe | Contenido |
 |---|---|---|
-| `config.json` | `AppSettingsService` | Ajustes generales (arranque, ventana, atajo, tamaño de tarjetas, actualizaciones…) |
-| `settings.json` | `LibraryPathsService` | Rutas de Steam y de manifiestos de Epic (**nombre confuso: no es el mismo que `config.json`**) |
+| `config.json` | `AppSettingsService` | Ajustes de Launcher y modulos: ventana, Dashboard, Games, Music, Devices, intervalos de Media/Red y demas opciones centralizadas |
+| `settings.json` | `LibraryPathsService` | Rutas Steam/Epic, SteamID y SteamApiKey (esta ultima permanece en texto JSON) |
 | `games.json` | `GameLibraryService` | Biblioteca de juegos |
 | `ignored-games.json` | `GameLibraryService` | Claves `Steam:123` de juegos eliminados que no deben reaparecer al sincronizar |
 | `folders.json` | `FolderShortcutsService` | Accesos a carpetas (se siembran 6 por defecto) |
 | `commands.json` | `CommandsService` | Accesos de Comandos (se siembra Kunai) |
-| `media_apps.json` | `MediaAppsService` | Accesos a apps multimedia (**sin interfaz que lo use**, ver 4.3) |
+| `media_apps.json` | `MediaAppsService` | Persistencia de accesos multimedia; servicio/modelo sin conexion con la vista activa de Media. Se conserva, sin migracion automatica |
+| `imagegen.json` | `ImageGenSettings` | URL, instalacion A1111, carpetas, autoarranque y ultimo estado de generacion |
+| `models.json` | `ModelsSettings` | Rutas, carpetas, categorias y parametros de descarga; incluye estado operativo de referencias |
+| `device_apps.json` | Versiones anteriores de `DeviceService` | Archivo legado; se importa una vez a `config.json` y se conserva como respaldo |
 | `covers\` | `CoverArtService`, `IconExtractionService` | Portadas (`{id}.jpg` / `{id}.png`) |
 | `logs\launcher-AAAAMMDD.log` | `LogService` | Errores e información; se conservan 7 días |
 | Registro `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, valor `Launcher` | `StartupService` | Arranque con Windows; opcionalmente con `--minimized`. **Es la fuente de verdad** de "Iniciar con Windows" (no se guarda en `config.json`) |
@@ -368,22 +371,34 @@ Placeholder. **Decidido [M]:** una **única barra que busca todo junto** (Launch
 
 **Pendiente (anotado, de baja prioridad) [M]** prioridad (`PriorityClass`), afinidad de núcleos, "abrir ubicación del archivo", detalles ampliados (hilos, handles, hora de inicio, descripción), sparkline por proceso, recordar filtro/orden. Cabecera de la tabla con % y MB/GB junto al nombre de cada columna (pedido 2026-10-10) ⏳.
 
-### 4.9 Configuración (`Modules/Settings`) — ✅ / 🟡
+### 4.9 Configuracion (`Modules/Settings`) — implementada en la rama 0.1.55, pendiente de validacion en Windows
 
-**Hecho [C]** (persisten en `config.json`; excepción: Iniciar con Windows → registro)
-- Arranque: iniciar con Windows, iniciar minimizado (solo en arranque automático), módulo inicial (último usado u otro).
-- Ventana: siempre encima, cerrar a la bandeja, recordar tamaño/posición, **atajo global** (Ninguno, `Ctrl+Alt+L`, `Ctrl+Alt+Espacio`, `Ctrl+Shift+Espacio`).
-- Juegos: tamaño de tarjetas, sincronizar al abrir, confirmar al eliminar, restaurar juegos eliminados, carpetas de sincronización, portadas (abrir carpeta, reparar).
-- Actualizaciones: versión, buscar ahora / actualizar, buscar al abrir, carpeta de versiones.
-- Datos: carpeta de datos, registro de errores, restablecer ajustes.
-- Acerca de: versión y .NET.
+**Administracion central**
+- Pagina vertical con sidebar, saltos a secciones y categoria activa segun el scroll.
+- Sesion temporal: Guardar/Descartar; al abandonar Settings o cerrar Launcher se pregunta si guardar, descartar o seguir editando.
+- Los JSON se guardan mediante temporal y reemplazo individual; hay rollback compensatorio ante errores detectados, no atomicidad multiarchivo frente a corte de energia.
+- El inicio con Windows se modifica al confirmar mediante el registro Run. La credencial Civitai se guarda en Credential Manager.
 
-**Limitaciones / fallos**
-- 🔴 **Error de compilación probable** en `AppSettingsService.Reset()` (ver 6.1).
-- "Restablecer" llama a `Save()` **antes** de reasignar `UpdateSource`/`CheckUpdatesOnStartup`, por lo que esos dos no se persistirían [I].
-- La ayuda de la interfaz dice que `Alt+Espacio` "queda libre para el futuro asistente".
+**Parametros por modulo**
+- Dashboard: sensibilidad, intervalo, efectos, secuencia de arranque y eventos de Windows.
+- Games: tamano de tarjetas, sincronizacion al abrir y confirmacion al eliminar; rutas Steam/Epic y cuenta Steam en dialogos de borrador.
+- Devices: rutas personalizadas de ejecutables por fabricante. Las asignaciones `device_apps.json` se importan una vez a `config.json`; el archivo legado se conserva.
+- Multimedia: intervalo de lectura configurable (1, 2 o 5 s).
+- Music: carpeta de biblioteca.
+- Red: intervalo de consulta Tailscale configurable (5, 10 o 30 s).
+- Monitor y Procesos: intervalo compartido, herencia y sobrescritura por modulo; confirmacion al finalizar procesos.
+- ImageGen y Models: ajustes integrados en la sesion central, aunque algunos controles siguen en dialogos.
 
-**Pendiente [M]** ⏳ (decidido 2026-10-09 añadir, **no** la copia de seguridad): intervalo de refresco de Monitor/Procesos, confirmación de finalizar proceso, color de acento, ajuste "Actualizar automáticamente"; clave de Web API de Steam (para logros); ubicación del widget Tiempo; umbrales/intervalo/efectos del dashboard.
+**Otros datos que no son preferencias**
+- `folders.json`, `commands.json` y `games.json` contienen accesos o biblioteca editables desde sus modulos.
+- `ignored-games.json` contiene estado operativo para que juegos eliminados no reaparezcan al sincronizar.
+- `MediaAppsService` persiste `media_apps.json`, pero `MediaModule` crea `MediaView`, que no consume ese servicio; se considera persistencia dormida hasta que se conecte una interfaz.
+- Models conserva `IgnoredReferences` y `PendingCorrections` como estado operativo; `LibraryView` y `LibrarySort` son preferencias locales de la vista.
+
+**Pendiente / riesgos**
+- `SteamApiKey` sigue en texto JSON dentro de `settings.json`; su migracion a Credential Manager es una tarea separada.
+- Los archivos de configuracion no forman una transaccion atomica conjunta.
+- No se ha ejecutado `dotnet build` ni pruebas manuales en Windows/WPF. La implementacion no se considera validada hasta completar esas pruebas.
 
 ### 4.10 Asistente de IA local (`Modules/Assistant`) — 🟡 prototipo sin integrar
 
