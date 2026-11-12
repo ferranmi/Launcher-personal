@@ -499,8 +499,8 @@
                 <Button Content="Abrir" Style="{StaticResource ActionButton}" Click="OpenLogs_Click" />
             </HeaderedContentControl>
 
-            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer ajustes generales"
-                                    Tag="Restablece las preferencias generales de Launcher. No cambia las preferencias propias de los modulos ni sus datos.">
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer preferencias de Launcher"
+                                    Tag="Restablece config.json, incluidas las preferencias de Dashboard, Games y Monitor, y desactiva el inicio con Windows. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai.">
                 <Button Content="Restablecer" Style="{StaticResource ActionButton}" Click="Reset_Click" />
             </HeaderedContentControl>
 
