@@ -55,7 +55,7 @@ public partial class MonitorView : UserControl
     }
 
     private static TimeSpan CurrentInterval() =>
-        TimeSpan.FromSeconds(AppSettingsService.Instance.GetRefreshSeconds(AutoRefreshSeconds));
+        TimeSpan.FromSeconds(AppSettingsService.Instance.GetMonitorRefreshSeconds(AutoRefreshSeconds));
 
     private void ApplyInterval()
     {
