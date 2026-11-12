@@ -389,8 +389,8 @@
                 <Button Content="Abrir" Style="{StaticResource ActionButton}" Click="OpenLogs_Click" />
             </HeaderedContentControl>
 
-            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer ajustes"
-                                    Tag="Vuelve a los valores por defecto y quita el arranque con Windows. No toca tus juegos, carpetas ni comandos.">
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer ajustes generales"
+                                    Tag="Restablece las preferencias generales de Launcher. No cambia las preferencias propias de los modulos ni sus datos.">
                 <Button Content="Restablecer" Style="{StaticResource ActionButton}" Click="Reset_Click" />
             </HeaderedContentControl>
 
