@@ -432,13 +432,13 @@
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Buscar al abrir"
-                                    Tag="Comprueba si hay una version nueva al arrancar y cada 6 horas.">
+                                    Tag="GLOBAL · Comprueba si hay una version nueva al arrancar y cada 6 horas.">
                 <ToggleButton x:Name="CheckUpdatesToggle" Style="{StaticResource SwitchStyle}"
                               Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Actualizar automaticamente"
-                                    Tag="Si hay una version nueva, la instala sola y reinicia el launcher. Si lo desactivas, solo te avisa en la barra lateral.">
+                                    Tag="GLOBAL · Si hay una version nueva, la instala sola y reinicia el launcher. Si lo desactivas, solo te avisa en la barra lateral.">
                 <ToggleButton x:Name="AutoApplyUpdatesToggle" Style="{StaticResource SwitchStyle}"
                               Checked="Toggle_Changed" Unchecked="Toggle_Changed" />
             </HeaderedContentControl>
