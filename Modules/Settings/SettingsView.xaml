@@ -1,6 +1,7 @@
 <UserControl x:Class="Launcher.Modules.Settings.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:Launcher.Modules.Models">
 
     <UserControl.Resources>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
@@ -132,6 +133,7 @@
                     <Button Content="Fondo" Tag="background" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Juegos" Tag="games" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Imagenes IA" Tag="imagegen" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Modelos" Tag="models" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Actualizaciones" Tag="updates" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Dashboard" Tag="dashboard" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Datos" Tag="data" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
@@ -309,6 +311,72 @@
                 Header="Stable Diffusion (A1111)">
                 <Button Content="Configurar" Style="{StaticResource ActionButton}" Click="ConfigureImageGen_Click" />
             </HeaderedContentControl>
+
+            <!-- ===================== MODELOS ===================== -->
+            <TextBlock Text="MODELOS" x:Name="ModelsSection" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Carpetas, descargas y credenciales de Civitai. Los cambios se aplican al guardar desde la barra lateral."
+                       Style="{StaticResource RowDesc}" Margin="2,0,0,12" />
+
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Carpeta de AUTOMATIC1111"
+                                    Tag="Ruta base para modelos y wildcards. Las carpetas personalizadas pueden sustituirla.">
+                <Grid Width="330">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="ModelsInstallPathBox" Style="{StaticResource TextBoxStyle}"
+                             TextChanged="ModelsControl_Changed" Margin="0,0,8,0" />
+                    <Button Grid.Column="1" Content="..." Style="{StaticResource SecondaryButtonStyle}"
+                            Click="BrowseModelsInstall_Click" />
+                </Grid>
+            </HeaderedContentControl>
+
+            <TextBlock Text="CARPETAS PERSONALIZADAS" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Si una lista esta vacia, Models utiliza la ruta estandar de AUTOMATIC1111."
+                       Style="{StaticResource RowDesc}" Margin="2,0,0,10" />
+            <models:FolderListEditor x:Name="ModelsLoraEditor" />
+            <models:FolderListEditor x:Name="ModelsCheckpointEditor" />
+            <models:FolderListEditor x:Name="ModelsLyCorisEditor" />
+            <models:FolderListEditor x:Name="ModelsWildcardEditor" />
+
+            <TextBlock Text="DESCARGAS" Style="{StaticResource SectionTitle}" />
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Descargas simultaneas maximas"
+                                    Tag="Entre 1 y 8. Autoajuste nunca supera este maximo.">
+                <TextBox x:Name="ModelsMaxDownloadsBox" Width="70" Style="{StaticResource TextBoxStyle}"
+                         TextChanged="ModelsControl_Changed" />
+            </HeaderedContentControl>
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Ajustar concurrencia automaticamente"
+                                    Tag="Sube o baja las descargas simultaneas segun la velocidad conseguida.">
+                <CheckBox x:Name="ModelsAutoConcurrencyCheck" Checked="ModelsControl_Changed"
+                          Unchecked="ModelsControl_Changed" />
+            </HeaderedContentControl>
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Limite de velocidad (KB/s)"
+                                    Tag="0 = sin limite.">
+                <TextBox x:Name="ModelsSpeedLimitBox" Width="100" Style="{StaticResource TextBoxStyle}"
+                         TextChanged="ModelsControl_Changed" />
+            </HeaderedContentControl>
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Reintentos ante errores de red"
+                                    Tag="Entre 0 y 10.">
+                <TextBox x:Name="ModelsRetriesBox" Width="70" Style="{StaticResource TextBoxStyle}"
+                         TextChanged="ModelsControl_Changed" />
+            </HeaderedContentControl>
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Categorias de descargas"
+                                    Tag="Separadas por comas. Debe existir al menos una categoria.">
+                <TextBox x:Name="ModelsCategoriesBox" Width="330" Style="{StaticResource TextBoxStyle}"
+                         TextChanged="ModelsControl_Changed" />
+            </HeaderedContentControl>
+
+            <TextBlock Text="CIVITAI" Style="{StaticResource SectionTitle}" />
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Nueva API Key"
+                                    Tag="Se guarda en el Administrador de credenciales de Windows, nunca en JSON.">
+                <PasswordBox x:Name="ModelsApiKeyBox" Width="220" PasswordChanged="ModelsCredential_Changed" />
+            </HeaderedContentControl>
+            <CheckBox x:Name="ModelsClearApiKeyCheck" Content="Eliminar la API Key guardada al guardar"
+                      Checked="ModelsCredential_Changed" Unchecked="ModelsCredential_Changed"
+                      Foreground="{DynamicResource Brush.TextSecondary}" Margin="4,0,0,8" />
+            <TextBlock x:Name="ModelsApiKeyStatus" Style="{StaticResource RowDesc}" Margin="2,0,0,10" />
+            <Button Content="Probar credencial guardada" Style="{StaticResource SecondaryButtonStyle}"
+                    HorizontalAlignment="Left" Click="TestCivitai_Click" />
 
             <TextBlock Text="ACTUALIZACIONES" x:Name="UpdatesSection" Style="{StaticResource SectionTitle}" />
 
