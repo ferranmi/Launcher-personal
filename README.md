@@ -5,14 +5,14 @@
 > | Campo | Estado actual comprobado |
 > |---|---|
 > | Rama de implementacion | `feature/settings-centralized-management` |
-> | Commit de implementacion | `bf7f98fe53830d6dfc2a9a676859e6f0508fc278` |
+> | Commit de implementacion | `3304ba6ee2f50abe434e0acc57b0d97c0613d0a8` |
 > | Version | `0.1.54` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Modulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, version 1.2.161 |
 > | Build / pruebas | No ejecutados: el entorno de trabajo no dispone del SDK .NET ni de Windows/WPF |
 >
-> **Settings — implementacion inicial en la rama de trabajo:** pagina vertical con navegacion lateral, categoria activa al desplazar, sesion temporal y botones Guardar/Descartar. La sesion incluye `config.json`, `settings.json`, `imagegen.json`, `models.json`, el registro de inicio de Windows y la credencial de Civitai en el Administrador de credenciales. Los cambios se aplican a los modulos tras guardar. El intervalo compartido de Monitor/Procesos permite sobrescrituras individuales, identificadas en la interfaz.
+> **Settings — implementacion inicial en la rama de trabajo:** pagina vertical con navegacion lateral, categoria activa al desplazar, sesion temporal y botones Guardar/Descartar. La sesion incluye `config.json`, `settings.json`, `imagegen.json`, `models.json`, el registro de inicio de Windows y la credencial de Civitai en el Administrador de credenciales. Los cambios se aplican a los modulos tras guardar. El intervalo compartido de Monitor/Procesos permite sobrescrituras individuales, identificadas en la interfaz. Music y Models enlazan sus ajustes con la categoria correspondiente.
 >
 > **Limites pendientes de validar:** el guardado coordinado entre varios destinos usa escritura atomica por archivo y rollback compensatorio ante errores detectados; no es una transaccion atomica frente a un corte de energia durante el proceso. SteamApiKey sigue almacenada en `settings.json`. No se ha compilado ni probado visualmente en Windows. El intervalo de Monitor/Procesos ya permite heredar el valor compartido o sobrescribirlo por modulo.
 >
