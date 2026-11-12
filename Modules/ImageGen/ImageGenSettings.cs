@@ -25,6 +25,9 @@ public class ImageGenSettings
     private static ImageGenSettings? _instance;
     public static ImageGenSettings Instance => _instance ??= Load();
 
+    public event EventHandler? Changed;
+    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Direccion del servidor A1111 (por defecto el puerto estandar).</summary>
     public string Url { get; set; } = "http://127.0.0.1:7860";
 
