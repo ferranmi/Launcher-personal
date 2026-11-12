@@ -132,7 +132,10 @@
                     <Button Content="Monitor y procesos" Tag="monitor" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Fondo" Tag="background" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Juegos" Tag="games" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Dispositivos" Tag="devices" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Multimedia" Tag="media" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Musica" Tag="music" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Red" Tag="network" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Imagenes IA" Tag="imagegen" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Modelos" Tag="models" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Actualizaciones" Tag="updates" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
@@ -329,6 +332,23 @@
                 </StackPanel>
             </HeaderedContentControl>
 
+            <!-- ===================== DISPOSITIVOS ===================== -->
+            <TextBlock Text="DISPOSITIVOS" x:Name="DevicesSection" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Rutas de las aplicaciones de los fabricantes detectados. Si una ruta esta vacia, se intenta localizar la instalacion habitual."
+                       Style="{StaticResource RowDesc}" Margin="2,0,0,10" />
+            <StackPanel x:Name="DeviceVendorAppsPanel" />
+
+            <!-- ===================== MULTIMEDIA ===================== -->
+            <TextBlock Text="MULTIMEDIA" x:Name="MediaSection" Style="{StaticResource SectionTitle}" />
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Frecuencia de actualizacion"
+                                    Tag="Controla cada cuanto se actualizan la reproduccion y el mezclador de volumen. Un intervalo mayor reduce consultas al sistema.">
+                <StackPanel x:Name="MediaRefreshPanel" Orientation="Horizontal">
+                    <RadioButton Content="1 s" Tag="1" GroupName="MediaRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="2 s" Tag="2" GroupName="MediaRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="5 s" Tag="5" GroupName="MediaRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
+            </HeaderedContentControl>
+
             <TextBlock Text="MUSICA" x:Name="MusicSection" Style="{StaticResource SectionTitle}" />
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Carpeta de musica"
                                     Tag="Carpeta de la biblioteca musical que utiliza el modulo Musica.">
@@ -342,6 +362,17 @@
                     <Button Grid.Column="1" Content="..." Style="{StaticResource SecondaryButtonStyle}"
                             Click="BrowseMusicFolder_Click" />
                 </Grid>
+            </HeaderedContentControl>
+
+            <!-- ===================== RED ===================== -->
+            <TextBlock Text="RED" x:Name="NetworkSection" Style="{StaticResource SectionTitle}" />
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Frecuencia de actualizacion"
+                                    Tag="Controla cada cuanto se consulta el estado de los dispositivos de Tailscale. Un intervalo mayor reduce consultas.">
+                <StackPanel x:Name="NetworkRefreshPanel" Orientation="Horizontal">
+                    <RadioButton Content="5 s" Tag="5" GroupName="NetworkRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="10 s" Tag="10" GroupName="NetworkRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                    <RadioButton Content="30 s" Tag="30" GroupName="NetworkRefresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
+                </StackPanel>
             </HeaderedContentControl>
 
             <TextBlock Text="IMAGENES IA" x:Name="ImageGenSection" Style="{StaticResource SectionTitle}" />
@@ -500,7 +531,7 @@
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer preferencias de Launcher"
-                                    Tag="Restablece config.json, incluidas las preferencias de Dashboard, Games y Monitor, y desactiva el inicio con Windows. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai.">
+                                    Tag="Restablece las preferencias de Launcher y los ajustes de Dashboard, Games, Devices, Multimedia, Red, Monitor y Music. Tambien desactiva el inicio con Windows. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai.">
                 <Button Content="Restablecer" Style="{StaticResource ActionButton}" Click="Reset_Click" />
             </HeaderedContentControl>
 
