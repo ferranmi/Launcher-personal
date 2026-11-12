@@ -3,148 +3,179 @@ title: Settings Implementation Plan
 type: implementation-plan
 project: Launcher
 source_of_truth: feature/settings-centralized-management
-audit_ref: main @ tree 2c81caa430d49221a2e8cd7d5981e0aea688c0ef
 last_reviewed: 2026-11-12
-status: implementation-in-progress
-tags: [launcher, settings, implementation]
+status: implemented-unverified
+tags: [launcher, settings, implementation, audit]
 ---
 
 # Settings — Plan de implementacion
 
 ## Objetivo
 
-Convertir Settings en el centro unico de administracion de Launcher y sus modulos, conservando la arquitectura existente y evitando cambios automaticos en disco mientras el usuario edita.
+Settings es el centro unico de administracion de Launcher y de los parametros que afectan al funcionamiento general de sus modulos. Los modulos consumen la configuracion confirmada; el contenido y el estado operativo permanecen en su propietario.
 
-## Estructura visual
+Referencias:
 
-- Sidebar interno fijo con categorias y subcategorias.
+- [[Settings]] — comportamiento y estructura de la vista.
+- [[Settings Audit]] — inventario de los 13 modulos, persistencia y decisiones de clasificacion.
+
+## Modelo acordado
+
+Cada parametro se clasifica como:
+
+- **Global:** una fuente de verdad para Launcher.
+- **Compartido:** una fuente de verdad utilizada por varios modulos.
+- **Heredado:** el modulo utiliza el valor compartido mientras no tenga una sobrescritura.
+- **Especifico:** pertenece a un modulo y no necesita etiqueta visual.
+- **Sobrescritura:** valor especifico que sustituye el compartido para ese modulo.
+
+Los parametros compartidos y sus sobrescrituras explican el alcance mediante etiquetas visibles.
+
+No se trasladan a Settings bibliotecas, accesos directos, colecciones, archivos de trabajo ni estado operativo solo por estar guardados en JSON.
+
+## Estructura visual implementada
+
+- Sidebar interno fijo con categorias.
 - Panel de contenido con scroll vertical continuo.
-- Cada categoria/subcategoria apunta a una seccion del mismo scroll.
-- La categoria activa se actualiza al desplazarse.
-- Guardar y Descartar permanecen en la parte inferior de la barra lateral.
-- Indicador de cambios pendientes y numero de modificaciones.
+- Saltos a secciones dentro de la misma pagina.
+- Categoria activa segun la posicion del scroll.
+- Estado de cambios pendientes.
+- Botones Guardar y Descartar en la sidebar.
+- Secciones para Arranque, Ventana, Monitor/Procesos, Fondo, Games, Devices, Media, Music, Network, ImageGen, Models, Actualizaciones, Dashboard, Datos y Acerca de.
 
-## Modelo de configuracion
+## Sesion de edicion implementada
 
-Cada parametro debe clasificarse con uno de estos ambitos:
+1. Al abrir Settings se crean copias de trabajo.
+2. Los controles modifican los borradores.
+3. Cambiar de categoria no persiste cambios.
+4. Guardar valida, persiste y despues notifica a los modulos.
+5. Si una escritura falla, se intenta restaurar el estado persistido anterior y se conservan los cambios pendientes.
+6. Descartar recarga los valores activos.
+7. Al abandonar Settings o cerrar Launcher se pregunta si guardar, descartar o seguir editando.
+8. El registro Run y la credencial Civitai se aplican dentro del proceso de guardado.
 
-- Global: una fuente de verdad para Launcher.
-- Compartido: una fuente de verdad utilizada por varios modulos.
-- Heredado: el modulo utiliza el valor global mientras no tenga una sobrescritura.
-- Especifico: pertenece a un unico modulo y no necesita etiqueta visual.
-- Sobrescritura: valor especifico del modulo que sustituye el global para ese modulo.
+La persistencia temporal/reemplazo es individual por archivo. El rollback es compensatorio: no ofrece atomicidad de conjunto frente a un corte de energia.
 
-Las etiquetas GLOBAL, COMPARTIDO y SOBRESCRIBE GLOBAL deben explicar el alcance y enumerar los modulos afectados.
+## Integraciones implementadas
 
-## Sesion de edicion
+### Fuentes principales
 
-1. Al abrir Settings se crea una copia de trabajo de los valores persistidos.
-2. Los controles solo modifican esa copia.
-3. Cambiar de categoria no persiste nada.
-4. Guardar valida todos los valores, persiste y solo entonces aplica efectos.
-5. Si el guardado falla, la sesion de trabajo se conserva y los modulos siguen con el ultimo estado confirmado.
-6. Descartar recarga los valores persistidos.
-7. Al cerrar Settings o Launcher con cambios pendientes se pregunta si guardar, descartar o seguir editando.
+- AppSettingsService → config.json.
+- LibraryPathsService → settings.json.
+- ImageGenSettings → imagegen.json.
+- ModelsSettings → models.json.
+- StartupService → registro Run.
+- CivitaiService → Credential Manager.
+- DeviceService → ahora consume DeviceVendorApps desde AppSettingsService.
 
-## Persistencia y efectos
+### Parametros compartidos
 
-El estado actual esta repartido entre varios JSON y el registro de Windows. No debe implementarse una falsa transaccion que actualice algunos destinos y deje otros a medias.
+- RefreshSeconds es el intervalo compartido de Monitor y Processes.
+- MonitorRefreshSecondsOverride y ProcessesRefreshSecondsOverride permiten heredar o sobrescribir.
+- MediaRefreshSeconds controla Multimedia (1/2/5 s).
+- NetworkRefreshSeconds controla Red/Tailscale (5/10/30 s).
+- StatusIntervalSeconds controla la frecuencia de SystemStatusHost cuando Dashboard esta visible.
 
-Antes de conectar cada fuente: definir como se prepara una copia de trabajo; validar sin mutar el estado activo; guardar con escritura temporal y reemplazo seguro; comprobar el resultado; aplicar efectos secundarios solo tras guardar; conservar la copia de trabajo si falla una escritura.
+### Redireccion de ajustes desde modulos
 
-El registro de Windows y los cambios de atajo/ventana/tema requieren aplicar y revertir efectos de forma controlada. No se deben ejecutar al mover un control.
+- Games: las rutas Steam/Epic abren Settings > Juegos. La sincronizacion sin rutas configuradas redirige a Settings.
+- Devices: las rutas de aplicaciones de fabricantes se administran en Settings > Dispositivos.
+- ImageGen: Instalacion y carpetas abre Settings > Imagenes IA. Iniciar servidor redirige alli si falta el script.
+- Music: el acceso de ajustes abre Settings > Musica.
+- Models: la pestana Ajustes abre Settings > Modelos.
 
-## Acciones, no preferencias
+Los dialogos de Games e ImageGen abiertos desde Settings editan copias de trabajo.
 
-Acciones como reparar portadas, restaurar elementos ignorados, comprobar/aplicar actualizaciones o abrir carpetas son operaciones explicitas. No forman parte del ciclo Guardar/Descartar salvo que se transformen expresamente en un flujo de configuracion.
+## Migracion de rutas de fabricantes
 
-Los dialogos de configuracion de Steam, ImageGen y otras areas deben migrarse a secciones centrales cuando sus parametros y validaciones esten inventariados.
+Antes, DeviceService escribia las asignaciones manuales en device_apps.json directamente desde Devices.
 
-## Estado de ejecucion (2026-11-12)
+Cambio aplicado:
 
-### Fase 0 — Auditoria
-**Estado:** Completada estaticamente
+1. DeviceVendorApps pasa a AppSettingsService/config.json.
+2. AppSettingsService importa device_apps.json una sola vez.
+3. LegacyDeviceAppsMigrated impide volver a importar el archivo antiguo.
+4. device_apps.json no se borra y queda como respaldo.
+5. El reset limpia las rutas y marca la migracion como completada; no recupera las rutas antiguas en el siguiente arranque.
 
-Inventario inicial de config.json, settings.json, imagegen.json, models.json y registro Run.
+No se realiza ninguna eliminacion automatica de datos.
+
+## Restablecimiento
+
+El reset desde Settings prepara los valores por defecto de config.json y desactiva el inicio con Windows, pero los cambios no se aplican hasta Guardar.
+
+Se han incluido los campos que faltaban en el reset: ConfirmKillProcess, MusicFolder, DeviceVendorApps, MediaRefreshSeconds, NetworkRefreshSeconds y LastModule. El reset no modifica settings.json, imagegen.json, models.json ni la credencial Civitai.
+
+## Estado por fases
+
+### Fase 0 — Auditoria de los 13 modulos
+**Estado:** completada estaticamente.
+
+- Inventario de parametros y consumidores.
+- Clasificacion de configuracion, preferencia, contenido, estado operativo y acciones.
+- Identificacion de MediaAppsService/media_apps.json como persistencia existente sin consumidor en la vista activa.
+- Identificacion de device_apps.json como configuracion de Devices que debia centralizarse.
+
+Documento: [[Settings Audit]].
 
 ### Fase 1 — Sesion de edicion y persistencia
-**Estado:** Implementada en codigo; sin compilar
+**Estado:** implementada en codigo; sin validar en Windows.
 
-- Copias de trabajo para AppSettings, bibliotecas de Games, ImageGen y Models.
+- Borradores para AppSettings, LibraryPaths, ImageGen y Models.
 - Guardado coordinado de JSON, registro Run y credencial Civitai.
-- Escritura temporal y reemplazo por archivo.
-- Rollback compensatorio cuando se detecta un fallo.
-- Notificacion de AppSettings despues de guardar.
-- Inicio de Windows y atajo global aplicados al confirmar.
-- Guardar/Descartar y avisos al navegar o cerrar.
-- MusicFolder incorporado a la sesion.
+- Escritura temporal y reemplazo individual.
+- Rollback compensatorio ante errores detectados.
+- Notificacion de cambios despues del guardado.
+- Guardar/Descartar y confirmaciones al navegar/cerrar.
 
 ### Fase 2 — Navegacion e interfaz
-**Estado:** Primera version implementada; sin validacion visual
+**Estado:** implementada en codigo; sin validacion visual.
 
 - Sidebar de categorias.
-- Scroll continuo con saltos.
-- Categoria activa segun posicion del scroll.
-- Contadores/estado de cambios pendientes y botones Guardar/Descartar.
-- Seccion Models incorporada y pestaña Ajustes del modulo redirigida a Settings > Modelos.
-- Los dialogos de Games e ImageGen siguen siendo modales, aunque editan borradores.
-
-### Fase 3 — Ambitos y sobrescrituras
-**Estado:** Parcial
-
-- Se identifica el intervalo Monitor/Procesos como COMPARTIDO.
-- Los parametros globales principales se marcan como GLOBAL.
-- El intervalo COMPARTIDO de Monitor/Procesos admite herencia y sobrescritura individual; ambos modulos consumen el valor efectivo y actualizan el temporizador tras guardar.
-
-### Fase 4 — Validacion
-**Estado:** Pendiente
-
-No se ha ejecutado dotnet build ni pruebas manuales en Windows. No declarar terminado hasta validar guardado, descarte, fallos parciales, cierre, registro, credenciales y refresco de los modulos.
-
-## Secuencia incremental
-
-### Fase 0 — Auditoria (actual)
-- Identificar fuentes de configuracion.
-- Enumerar parametros y consumidores.
-- Distinguir preferencias de acciones.
-- Documentar riesgos de persistencia y efectos.
-
-### Fase 1 — Modelo de edicion
-- Introducir copia de trabajo y comparacion de cambios.
-- No modificar todavia los archivos de configuracion de modulos no auditados.
-- Validar Guardar/Descartar con preferencias de AppSettingsService.
-
-### Fase 2 — Interfaz y navegacion
-- Sidebar interno, scroll continuo, anclas y categoria activa.
-- Guardar/Descartar persistentes en sidebar.
-- Advertencias de alcance.
+- Scroll continuo y saltos a secciones.
+- Categoria activa segun scroll.
+- Indicador de cambios y botones Guardar/Descartar.
+- Secciones nuevas para Devices, Media y Network.
 
 ### Fase 3 — Integracion por modulo
-- Games y LibraryPathsService.
-- ImageGen.
-- Models.
-- Monitor/Processes y sus parametros compartidos.
-- Resto de modulos tras inspeccion.
+**Estado:** implementada parcialmente; auditoria estatica completada.
+
+- Games, Devices, ImageGen, Music y Models redirigen su acceso de configuracion a Settings.
+- Monitor/Processes consumen intervalo compartido y overrides.
+- Media y Network consumen intervalos configurables.
+- DeviceVendorApps se centraliza con importacion heredada.
+- El panel XAML antiguo de ajustes de Models sigue oculto y conserva handlers de guardado antiguos; queda pendiente retirarlo tras verificar todas sus referencias.
 
 ### Fase 4 — Validacion
-- Build Windows .NET 10.
-- Guardar y reiniciar.
-- Descartar y reiniciar.
-- Navegar con cambios pendientes.
-- Cierre con cambios pendientes.
-- Simular fallo de escritura.
-- Verificar que ningun modulo observa valores no confirmados.
-- Verificar herencia y sobrescritura.
+**Estado:** pendiente.
 
-## Riesgos abiertos
+No se ha ejecutado dotnet build ni pruebas manuales WPF en Windows. No considerar terminada/validada la implementacion hasta:
 
-- Varios archivos JSON no se pueden guardar atomicamente como una unica operacion.
-- El registro de Windows no participa en una transaccion de archivos.
-- Algunas vistas consumen propiedades singleton directamente.
-- Algunas opciones aplican efectos en tiempo real.
-- SteamApiKey se encuentra actualmente en settings.json; no debe exponerse en una nueva vista sin tratamiento de credenciales.
-- No se ha ejecutado build ni pruebas en esta auditoria.
+1. Ejecutar dotnet build en Windows con .NET 10 SDK.
+2. Corregir errores C#/XAML que aparezcan.
+3. Probar config.json ausente, incompleto y corrupto.
+4. Probar migracion de device_apps.json y reset sin reimportacion.
+5. Probar Guardar/Descartar y cierre con cambios pendientes.
+6. Probar fallo de escritura y rollback.
+7. Probar intervalos de Media, Red, Monitor y Processes.
+8. Probar rutas de Games y script de ImageGen desde Settings.
+9. Probar en ejecucion que cada modulo aplica el cambio despues de guardar.
 
-## Criterio de salida
+## Riesgos pendientes
 
-No considerar terminada la implementacion hasta que todas las configuraciones existentes tengan propietario, ambito, fuente de datos, validacion, politica de guardado y consumidor documentados.
+| Prioridad | Riesgo | Accion |
+|---|---|---|
+| Alta | SteamApiKey sigue en texto JSON | Separar como tarea de seguridad; no migrar sin revisar compatibilidad |
+| Alta | No hay atomicidad multiarchivo real | Mantener rollback y probar errores parciales |
+| Media | media_apps.json sin vista consumidora | Conservar datos; decidir reactivar o retirar en otra tarea |
+| Media | Panel de ajustes antiguo de Models oculto | Retirar despues de verificar referencias |
+| Media | LastParams y rutas runtime de ImageGen comparten imagegen.json con preferencias | Preservar estado runtime al guardar configuracion |
+
+## Version y rama
+
+- Version: 0.1.55.
+- Rama: feature/settings-centralized-management.
+- main no se ha modificado.
+- No se ha creado PR ni se ha fusionado.
+- No se han anadido dependencias.
+- El numero de commits ahead debe comprobarse antes de preparar squash/merge.
