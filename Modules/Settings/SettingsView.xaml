@@ -385,7 +385,11 @@
             <TextBlock Text="CIVITAI" Style="{StaticResource SectionTitle}" />
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Nueva API Key"
                                     Tag="Se guarda en el Administrador de credenciales de Windows, nunca en JSON.">
-                <PasswordBox x:Name="ModelsApiKeyBox" Width="220" PasswordChanged="ModelsCredential_Changed" />
+                <PasswordBox x:Name="ModelsApiKeyBox" Width="220" Padding="8,6"
+                         FontFamily="{DynamicResource Font.Mono}" FontSize="11"
+                         Background="{DynamicResource Brush.Surface}" Foreground="{DynamicResource Brush.TextPrimary}"
+                         BorderBrush="{DynamicResource Brush.Border}" CaretBrush="{DynamicResource Brush.Accent}"
+                         PasswordChanged="ModelsCredential_Changed" />
             </HeaderedContentControl>
             <CheckBox x:Name="ModelsClearApiKeyCheck" Content="Eliminar la API Key guardada al guardar"
                       Checked="ModelsCredential_Changed" Unchecked="ModelsCredential_Changed"
