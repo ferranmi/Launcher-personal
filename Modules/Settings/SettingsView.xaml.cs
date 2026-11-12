@@ -311,6 +311,26 @@ public partial class SettingsView : UserControl
         !string.IsNullOrEmpty(ModelsApiKeyBox.Password) ||
         ModelsClearApiKeyCheck.IsChecked == true;
 
+    private static string ModelsLibrarySignature(Launcher.Modules.Models.ModelsSettings settings) =>
+        JsonSerializer.Serialize(new
+        {
+            settings.InstallPath,
+            settings.LoraFolders,
+            settings.CheckpointFolders,
+            settings.LyCorisFolders,
+            settings.WildcardFolders
+        });
+
+    private static string ModelsDownloadSignature(Launcher.Modules.Models.ModelsSettings settings) =>
+        JsonSerializer.Serialize(new
+        {
+            settings.MaxConcurrentDownloads,
+            settings.AutoConcurrency,
+            settings.SpeedLimitKBps,
+            settings.DownloadRetries,
+            settings.Categories
+        });
+
     private static string ModelsConfigSignature(Launcher.Modules.Models.ModelsSettings settings) =>
         JsonSerializer.Serialize(new
         {
@@ -488,6 +508,8 @@ public partial class SettingsView : UserControl
         }
 
         var previousModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
+        var modelsLibraryChanged = ModelsLibrarySignature(previousModels) != ModelsLibrarySignature(_draftModels);
+        var modelsDownloadsChanged = ModelsDownloadSignature(previousModels) != ModelsDownloadSignature(_draftModels);
         var previousApp = CloneObject(_settings);
         var previousLibraries = CloneObject(LibraryPathsService.Instance);
         var previousImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
@@ -555,7 +577,8 @@ public partial class SettingsView : UserControl
         _draftStartupEnabled = StartupService.IsEnabled();
         _modelsControlsDirty = false;
         LoadFromState();
-        _ = RefreshModelsAfterSettingsAsync();
+        if (modelsLibraryChanged || modelsDownloadsChanged)
+            _ = RefreshModelsAfterSettingsAsync(modelsDownloadsChanged, modelsLibraryChanged);
         MarkPending();
     }
 
@@ -1043,12 +1066,15 @@ public partial class SettingsView : UserControl
         _draft.BackgroundOpacity = e.NewValue;
         MarkPending();
     }
-    private async Task RefreshModelsAfterSettingsAsync()
+    private async Task RefreshModelsAfterSettingsAsync(bool applyDownloadSettings, bool rescanLibrary)
     {
         try
         {
-            Launcher.Modules.Models.DownloadQueueService.Instance.ApplySettings();
-            await Launcher.Modules.Models.ModelCatalogService.Instance.ScanAsync();
+            if (applyDownloadSettings)
+                Launcher.Modules.Models.DownloadQueueService.Instance.ApplySettings();
+
+            if (rescanLibrary)
+                await Launcher.Modules.Models.ModelCatalogService.Instance.ScanAsync();
         }
         catch (Exception ex)
         {
