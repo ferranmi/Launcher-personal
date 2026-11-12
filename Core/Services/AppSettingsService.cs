@@ -111,7 +111,23 @@ public class AppSettingsService
     public bool AutoApplyUpdates { get; set; } = true;
 
     /// <summary>Devuelve el intervalo elegido, o autoSeconds si esta en "automatico".</summary>
+    /// <summary>Null = hereda el intervalo compartido; 0 = Auto del modulo; >0 = segundos.</summary>
+    public double? MonitorRefreshSecondsOverride { get; set; }
+
+    /// <summary>Null = hereda el intervalo compartido; 0 = Auto del modulo; >0 = segundos.</summary>
+    public double? ProcessesRefreshSecondsOverride { get; set; }
+
     public double GetRefreshSeconds(double autoSeconds) => RefreshSeconds > 0 ? RefreshSeconds : autoSeconds;
+
+    public double GetMonitorRefreshSeconds(double autoSeconds) =>
+        MonitorRefreshSecondsOverride is double value
+            ? value > 0 ? value : autoSeconds
+            : GetRefreshSeconds(autoSeconds);
+
+    public double GetProcessesRefreshSeconds(double autoSeconds) =>
+        ProcessesRefreshSecondsOverride is double value
+            ? value > 0 ? value : autoSeconds
+            : GetRefreshSeconds(autoSeconds);
 
     private static AppSettingsService Load()
     {
@@ -197,6 +213,8 @@ public class AppSettingsService
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
         RefreshSeconds = 0; // 0 = automatico
+        MonitorRefreshSecondsOverride = null;
+        ProcessesRefreshSecondsOverride = null;
         AutoApplyUpdates = true;
         ThresholdProfile = "normal";
         StatusIntervalSeconds = 1;
