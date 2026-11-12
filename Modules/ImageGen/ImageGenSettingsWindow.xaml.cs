@@ -30,14 +30,19 @@ public partial class ImageGenSettingsWindow : Window
     private static readonly Regex ArgsLine =
         new(@"^\s*set\s+COMMANDLINE_ARGS\s*=(.*)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private readonly ImageGenSettings _settings = ImageGenSettings.Instance;
+    private readonly ImageGenSettings _settings;
+    private readonly bool _deferSave;
     private readonly Dictionary<SdFolder, TextBox> _folderBoxes = new();
 
     /// <summary>True si el usuario guardo (para que quien abrio la ventana vuelva a conectar).</summary>
     public bool Saved { get; private set; }
 
-    public ImageGenSettingsWindow()
+    public ImageGenSettingsWindow() : this(ImageGenSettings.Instance, false) { }
+
+    public ImageGenSettingsWindow(ImageGenSettings settings, bool deferSave)
     {
+        _settings = settings;
+        _deferSave = deferSave;
         InitializeComponent();
 
         UrlBox.Text = _settings.Url;
@@ -456,15 +461,18 @@ public partial class ImageGenSettingsWindow : Window
             {
                 if (kind == SdFolder.Gallery)
                 {
-                    try
+                    if (!_deferSave)
                     {
-                        Directory.CreateDirectory(path);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(this, $"No se ha podido crear la carpeta de imagenes:\n{ex.Message}",
-                            "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
+                        try
+                        {
+                            Directory.CreateDirectory(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(this, $"No se ha podido crear la carpeta de imagenes:\n{ex.Message}",
+                                "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
                     }
                 }
                 else
@@ -496,7 +504,13 @@ public partial class ImageGenSettingsWindow : Window
             _settings.CkptDir = _settings.LoraDir = _settings.VaeDir = _settings.EmbeddingsDir = _settings.ControlNetDir = null;
         }
 
-        _settings.Save();
+        if (!_deferSave && !_settings.TrySave())
+        {
+            MessageBox.Show(this, "No se han podido guardar los ajustes de Imagenes IA.",
+                "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
         Saved = true;
         DialogResult = true;
     }
