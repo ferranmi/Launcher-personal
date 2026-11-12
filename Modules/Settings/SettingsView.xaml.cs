@@ -20,6 +20,8 @@ public partial class SettingsView : UserControl
     private AppSettingsService _draft = new();
     private Launcher.Core.Services.LibraryPathsService _draftLibraryPaths = new();
     private Launcher.Modules.ImageGen.ImageGenSettings _draftImageGen = new();
+    private Launcher.Modules.Models.ModelsSettings _draftModels = new();
+    private bool _modelsControlsDirty;
     private bool _draftStartupEnabled;
 
     // Evita que asignar IsChecked desde codigo dispare los handlers de usuario.
@@ -31,9 +33,11 @@ public partial class SettingsView : UserControl
         _draft = CloneObject(_settings);
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
         _draftStartupEnabled = StartupService.IsEnabled();
         BuildStartModuleChips();
         BuildAccentChips();
+        InitializeModelsEditors();
         LoadFromState();
         MarkPending();
     }
@@ -84,6 +88,7 @@ public partial class SettingsView : UserControl
         WindowsEventLogToggle.IsChecked = _draft.WindowsEventLog;
         SelectChip(ThresholdPanel, _draft.ThresholdProfile);
         SelectChip(IntervalPanel, _draft.StatusIntervalSeconds.ToString());
+        LoadModelsSettingsControls();
 
         _loading = false;
     }
@@ -199,6 +204,131 @@ public partial class SettingsView : UserControl
         return false;
     }
 
+    private void InitializeModelsEditors()
+    {
+        ModelsLoraEditor.Initialize("CARPETAS DE LORA", _draftModels.LoraFolders, ModelsFolders_Changed);
+        ModelsCheckpointEditor.Initialize("CARPETAS DE CHECKPOINTS", _draftModels.CheckpointFolders, ModelsFolders_Changed);
+        ModelsLyCorisEditor.Initialize("CARPETAS DE LYCORIS", _draftModels.LyCorisFolders, ModelsFolders_Changed);
+        ModelsWildcardEditor.Initialize("CARPETAS DE WILDCARDS", _draftModels.WildcardFolders, ModelsFolders_Changed);
+    }
+
+    private void LoadModelsSettingsControls()
+    {
+        ModelsInstallPathBox.Text = _draftModels.InstallPath ?? "";
+        ModelsMaxDownloadsBox.Text = _draftModels.MaxConcurrentDownloads.ToString(CultureInfo.InvariantCulture);
+        ModelsAutoConcurrencyCheck.IsChecked = _draftModels.AutoConcurrency;
+        ModelsSpeedLimitBox.Text = _draftModels.SpeedLimitKBps.ToString(CultureInfo.InvariantCulture);
+        ModelsRetriesBox.Text = _draftModels.DownloadRetries.ToString(CultureInfo.InvariantCulture);
+        ModelsCategoriesBox.Text = string.Join(", ", _draftModels.Categories);
+        ModelsApiKeyBox.Clear();
+        ModelsClearApiKeyCheck.IsChecked = false;
+        ModelsApiKeyStatus.Text = Launcher.Modules.Models.CivitaiService.Instance.HasApiKey
+            ? "Hay una clave guardada en el Administrador de credenciales."
+            : "No hay una clave guardada.";
+        _modelsControlsDirty = false;
+    }
+
+    private void ModelsFolders_Changed() => MarkPending();
+
+    private void ModelsControl_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _modelsControlsDirty = true;
+        MarkPending();
+    }
+
+    private void ModelsCredential_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        MarkPending();
+    }
+
+    private void BrowseModelsInstall_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Selecciona la carpeta de AUTOMATIC1111" };
+        if (Directory.Exists(ModelsInstallPathBox.Text)) dialog.InitialDirectory = ModelsInstallPathBox.Text;
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+
+        ModelsInstallPathBox.Text = dialog.FolderName;
+        _modelsControlsDirty = true;
+        MarkPending();
+    }
+
+    private bool TryReadModelsSettingsControls(out string error)
+    {
+        error = "";
+        var install = ModelsInstallPathBox.Text.Trim();
+        if (install.Length > 0 && !Directory.Exists(install))
+        {
+            error = "La carpeta de AUTOMATIC1111 no existe.";
+            return false;
+        }
+
+        if (!int.TryParse(ModelsMaxDownloadsBox.Text.Trim(), out var max) || max < 1 || max > 8 ||
+            !int.TryParse(ModelsSpeedLimitBox.Text.Trim(), out var speed) || speed < 0 ||
+            !int.TryParse(ModelsRetriesBox.Text.Trim(), out var retries) || retries < 0 || retries > 10)
+        {
+            error = "Revisa los numeros: descargas simultaneas entre 1 y 8, limite 0 o mas y reintentos entre 0 y 10.";
+            return false;
+        }
+
+        var categories = ModelsCategoriesBox.Text
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (categories.Count == 0)
+        {
+            error = "Debe haber al menos una categoria de descarga.";
+            return false;
+        }
+
+        _draftModels.InstallPath = install.Length == 0 ? null : install;
+        _draftModels.MaxConcurrentDownloads = max;
+        _draftModels.AutoConcurrency = ModelsAutoConcurrencyCheck.IsChecked == true;
+        _draftModels.SpeedLimitKBps = speed;
+        _draftModels.DownloadRetries = retries;
+        _draftModels.Categories = categories;
+        _modelsControlsDirty = false;
+        return true;
+    }
+
+    private bool ModelsControlsHavePendingChanges() =>
+        _modelsControlsDirty ||
+        !string.IsNullOrEmpty(ModelsApiKeyBox.Password) ||
+        ModelsClearApiKeyCheck.IsChecked == true;
+
+    private static string ModelsConfigSignature(Launcher.Modules.Models.ModelsSettings settings) =>
+        JsonSerializer.Serialize(new
+        {
+            settings.InstallPath,
+            settings.LoraFolders,
+            settings.CheckpointFolders,
+            settings.LyCorisFolders,
+            settings.WildcardFolders,
+            settings.MaxConcurrentDownloads,
+            settings.AutoConcurrency,
+            settings.SpeedLimitKBps,
+            settings.DownloadRetries,
+            settings.Categories
+        });
+
+    private static void CopyModelsConfig(
+        Launcher.Modules.Models.ModelsSettings source,
+        Launcher.Modules.Models.ModelsSettings target)
+    {
+        target.InstallPath = source.InstallPath;
+        target.LoraFolders = source.LoraFolders;
+        target.CheckpointFolders = source.CheckpointFolders;
+        target.LyCorisFolders = source.LyCorisFolders;
+        target.WildcardFolders = source.WildcardFolders;
+        target.MaxConcurrentDownloads = source.MaxConcurrentDownloads;
+        target.AutoConcurrency = source.AutoConcurrency;
+        target.SpeedLimitKBps = source.SpeedLimitKBps;
+        target.DownloadRetries = source.DownloadRetries;
+        target.Categories = source.Categories;
+    }
+
     private static string ImageGenConfigSignature(Launcher.Modules.ImageGen.ImageGenSettings settings) =>
         JsonSerializer.Serialize(new
         {
@@ -248,6 +378,8 @@ public partial class SettingsView : UserControl
         return !string.Equals(JsonSerializer.Serialize(_draft), JsonSerializer.Serialize(_settings), StringComparison.Ordinal) ||
                !string.Equals(JsonSerializer.Serialize(_draftLibraryPaths), JsonSerializer.Serialize(LibraryPathsService.Instance), StringComparison.Ordinal) ||
                !string.Equals(ImageGenConfigSignature(_draftImageGen), ImageGenConfigSignature(Launcher.Modules.ImageGen.ImageGenSettings.Instance), StringComparison.Ordinal) ||
+               !string.Equals(ModelsConfigSignature(_draftModels), ModelsConfigSignature(Launcher.Modules.Models.ModelsSettings.Instance), StringComparison.Ordinal) ||
+               ModelsControlsHavePendingChanges() ||
                _draftStartupEnabled != StartupService.IsEnabled();
     }
 
@@ -277,6 +409,8 @@ public partial class SettingsView : UserControl
         _draft = CloneObject(_settings);
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
+        LoadModelsSettingsControls();
         _draftStartupEnabled = StartupService.IsEnabled();
         LoadFromState();
         MarkPending();
@@ -286,6 +420,21 @@ public partial class SettingsView : UserControl
     {
         if (!HasPendingChanges()) return;
 
+        if (!TryReadModelsSettingsControls(out var modelsError))
+        {
+            MessageBox.Show(Window.GetWindow(this), modelsError, "Configuracion de Models",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(ModelsApiKeyBox.Password) && ModelsClearApiKeyCheck.IsChecked == true)
+        {
+            MessageBox.Show(Window.GetWindow(this), "No puedes guardar una clave nueva y eliminarla en la misma operacion.",
+                "Civitai", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var previousModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
         var previousApp = CloneObject(_settings);
         var previousLibraries = CloneObject(LibraryPathsService.Instance);
         var previousImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
@@ -295,12 +444,14 @@ public partial class SettingsView : UserControl
         CopyObject(_draftLibraryPaths, LibraryPathsService.Instance);
         SyncRuntimeImageGenState();
         CopyImageGenSettings(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        CopyModelsConfig(_draftModels, Launcher.Modules.Models.ModelsSettings.Instance);
 
         if (!_settings.TrySave(notifyChanged: false) ||
             !LibraryPathsService.Instance.TrySave() ||
-            !Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave())
+            !Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave() ||
+            !Launcher.Modules.Models.ModelsSettings.Instance.TrySave())
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido guardar uno de los archivos de configuracion. Los cambios siguen pendientes.",
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -310,7 +461,7 @@ public partial class SettingsView : UserControl
         var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         if (!hotkeyOk)
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
                 "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados.",
                 "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -319,10 +470,21 @@ public partial class SettingsView : UserControl
 
         if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousStartup);
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var apiKey = ModelsApiKeyBox.Password.Trim();
+        if ((apiKey.Length > 0 || ModelsClearApiKeyCheck.IsChecked == true) &&
+            !Launcher.Modules.Models.CivitaiService.Instance.SaveApiKey(ModelsClearApiKeyCheck.IsChecked == true ? "" : apiKey))
+        {
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            MessageBox.Show(Window.GetWindow(this),
+                "No se ha podido guardar la credencial de Civitai en el Administrador de credenciales de Windows.",
+                "Civitai", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
@@ -334,8 +496,11 @@ public partial class SettingsView : UserControl
         _draft = CloneObject(_settings);
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
         _draftStartupEnabled = StartupService.IsEnabled();
+        _modelsControlsDirty = false;
         LoadFromState();
+        _ = RefreshModelsAfterSettingsAsync();
         MarkPending();
     }
 
@@ -343,15 +508,18 @@ public partial class SettingsView : UserControl
         AppSettingsService previousApp,
         LibraryPathsService previousLibraries,
         Launcher.Modules.ImageGen.ImageGenSettings previousImageGen,
+        Launcher.Modules.Models.ModelsSettings previousModels,
         bool previousStartup)
     {
         CopyObject(previousApp, _settings);
         CopyObject(previousLibraries, LibraryPathsService.Instance);
         CopyImageGenSettings(previousImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        CopyModelsConfig(previousModels, Launcher.Modules.Models.ModelsSettings.Instance);
 
         _settings.TrySave(notifyChanged: false);
         LibraryPathsService.Instance.TrySave();
         Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave();
+        Launcher.Modules.Models.ModelsSettings.Instance.TrySave();
         StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
 
         WindowBehaviorService.Instance?.ApplyHotkey();
@@ -740,4 +908,40 @@ public partial class SettingsView : UserControl
         _draft.BackgroundOpacity = e.NewValue;
         MarkPending();
     }
+    private async Task RefreshModelsAfterSettingsAsync()
+    {
+        try
+        {
+            Launcher.Modules.Models.DownloadQueueService.Instance.ApplySettings();
+            await Launcher.Modules.Models.ModelCatalogService.Instance.ScanAsync();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo actualizar Models tras guardar su configuracion", ex);
+        }
+    }
+
+    private async void TestCivitai_Click(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(ModelsApiKeyBox.Password) || ModelsClearApiKeyCheck.IsChecked == true)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Guarda o descarta primero la nueva credencial antes de probar la conexion.",
+                "Civitai", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        ModelsApiKeyStatus.Text = "Probando conexion...";
+        try
+        {
+            var (ok, message) = await Launcher.Modules.Models.CivitaiService.Instance.TestConnectionAsync();
+            Launcher.Modules.Models.ModelsStats.SetConnection(ok, message);
+            ModelsApiKeyStatus.Text = message;
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("Fallo la prueba de conexion con Civitai", ex);
+            ModelsApiKeyStatus.Text = "No se pudo probar la conexion.";
+        }
+    }
+
 }
