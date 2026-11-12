@@ -159,7 +159,11 @@ public class ImageGenSettings
             if (File.Exists(SettingsPath))
             {
                 var loaded = JsonSerializer.Deserialize<ImageGenSettings>(File.ReadAllText(SettingsPath));
-                if (loaded != null) return loaded;
+                if (loaded != null)
+                {
+                    loaded.CustomFolders ??= new Dictionary<string, string>();
+                    return loaded;
+                }
             }
         }
         catch (Exception ex)
