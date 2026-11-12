@@ -39,7 +39,7 @@ public class DeviceInfo
     public bool HasVendor => VendorKeyword != null;
     public bool HasSettings => SettingsUri != null;
 
-    public string AppButtonText => VendorPath != null ? $"Abrir {VendorLabel}" : "Asignar app...";
+    public string AppButtonText => VendorPath != null ? $"Abrir {VendorLabel}" : "Configurar en Settings";
 
     /// <summary>Linea con marca y modelo (vacia si no se ha podido averiguar nada mas que el nombre).</summary>
     public string Summary
