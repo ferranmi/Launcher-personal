@@ -78,9 +78,8 @@
                 <ComboBoxItem Content="Ano" />
             </ComboBox>
 
-            <Button Grid.Column="2" Content="&#xE8B7;" ToolTip="Cambiar carpeta de la biblioteca"
-                    FontFamily="{DynamicResource Font.Icons}"
-                    Style="{StaticResource ToolButton}" Width="36"
+            <Button Grid.Column="2" Content="Ajustes" ToolTip="Configurar la carpeta de musica en Settings"
+                    Style="{StaticResource ToolButton}" Width="72"
                     Margin="0,0,10,0" Click="ChangeFolder_Click" />
 
             <Button Grid.Column="3" Content="Descargar" Style="{StaticResource ToolButton}"
