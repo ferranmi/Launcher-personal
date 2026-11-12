@@ -26,7 +26,17 @@ public class ImageGenSettings
     public static ImageGenSettings Instance => _instance ??= Load();
 
     public event EventHandler? Changed;
-    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+
+    public void NotifyChanged()
+    {
+        if (Changed == null) return;
+
+        foreach (EventHandler handler in Changed.GetInvocationList())
+        {
+            try { handler(this, EventArgs.Empty); }
+            catch (Exception ex) { LogService.Error("ImageGen no pudo aplicar los ajustes actualizados", ex); }
+        }
+    }
 
     /// <summary>Direccion del servidor A1111 (por defecto el puerto estandar).</summary>
     public string Url { get; set; } = "http://127.0.0.1:7860";
