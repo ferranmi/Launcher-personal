@@ -2,10 +2,10 @@
 title: Settings
 type: module-reference
 project: Launcher
-source_of_truth: GitHub main
+source_of_truth: feature/settings-centralized-management
 audit_ref: main @ tree 2c81caa430d49221a2e8cd7d5981e0aea688c0ef
 last_reviewed: 2026-11-12
-status: static-audit
+status: implementation-in-progress
 tags: [launcher, module, settings]
 ---
 
@@ -127,3 +127,49 @@ Estas operaciones tienen efectos propios. No deben tratarse como valores de form
 ## Estado de verificacion
 
 Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas manuales en Windows. El entorno de esta sesion no dispone de acceso de red para clonar el repositorio ni de un entorno Windows para validar WPF.
+## Implementacion inicial en feature/settings-centralized-management
+
+### Funcionalidad incorporada
+
+- Sidebar con saltos a las secciones y categoria activa segun el scroll.
+- Sesion de edicion temporal para preferencias generales.
+- Guardar y Descartar en la barra lateral.
+- Navegar entre categorias no persiste cambios.
+- Al cambiar de modulo o cerrar Launcher se ofrece guardar, descartar o continuar editando.
+- El registro de inicio con Windows se modifica al confirmar, no al mover el interruptor.
+- Se han incorporado a la sesion los destinos actuales: config.json, settings.json, imagegen.json y models.json, ademas del registro Run y la credencial de Civitai en el Administrador de credenciales.
+- Los dialogos de rutas de Games, cuenta de Steam e ImageGen reciben objetos de trabajo y no escriben en disco desde el dialogo.
+- Los ajustes de Models se han trasladado a la pagina central; la pestana de configuracion local del modulo queda oculta.
+- MusicFolder se administra desde Settings.
+- Las escrituras JSON usan archivo temporal y reemplazo; los servicios exponen TrySave para detectar errores.
+- Los cambios de AppSettings solo notifican a los modulos despues de completar los destinos persistentes.
+
+### Limites y deuda pendiente
+
+1. **No existe atomicidad real entre varios destinos.** Cada archivo se reemplaza de forma atomica y el codigo intenta restaurar los valores anteriores si detecta un error. Un corte de energia entre reemplazos podria dejar archivos de versiones distintas.
+2. **No se ha implementado todavia un parametro con sobrescritura de un valor global.** El intervalo Monitor/Procesos se marca como COMPARTIDO. La herencia y el indicador SOBRESCRIBE GLOBAL quedan pendientes de un caso real y de modificar sus consumidores.
+3. Los formularios de bibliotecas de Games e ImageGen siguen siendo dialogos abiertos desde Settings; los cambios quedan en borrador, pero no estan integrados visualmente como controles inline en el scroll.
+4. La vista/orden de la Biblioteca de Models se conserva como control operativo del modulo; no se trata como preferencia administrable desde Settings.
+5. SteamApiKey sigue persistida en texto JSON en settings.json. Civitai usa el Administrador de credenciales de Windows.
+6. Las acciones operativas (reparar portadas, restaurar ignorados, abrir carpetas, probar conexion y actualizar) siguen siendo acciones inmediatas, no cambios pendientes de la sesion.
+7. No se ha ejecutado build ni pruebas WPF en Windows. Es necesario validar compilacion, navegacion, guardado, descarte, fallo de escritura y cierre.
+
+### Archivos funcionales tocados
+
+- Modules/Settings/SettingsView.xaml
+- Modules/Settings/SettingsView.xaml.cs
+- Core/Services/AppSettingsService.cs
+- Core/Services/LibraryPathsService.cs
+- Core/Services/WindowBehaviorService.cs
+- Modules/Games/ConfigureSyncFoldersWindow.xaml.cs
+- Modules/Games/SteamAccountWindow.xaml.cs
+- Modules/ImageGen/ImageGenSettings.cs
+- Modules/ImageGen/ImageGenSettingsWindow.xaml.cs
+- Modules/Models/ModelsSettings.cs
+- Modules/Models/ModelsView.xaml
+- MainWindow.xaml.cs
+- Launcher.csproj
+
+### Version
+
+La version se ha incrementado de 0.1.53 a 0.1.54 por el cambio visible del flujo de configuracion.
