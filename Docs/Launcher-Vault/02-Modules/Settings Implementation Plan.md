@@ -94,7 +94,7 @@ Inventario inicial de config.json, settings.json, imagegen.json, models.json y r
 
 - Se identifica el intervalo Monitor/Procesos como COMPARTIDO.
 - Los parametros globales principales se marcan como GLOBAL.
-- No se ha creado aun un ejemplo de sobrescritura por modulo ni la resolucion de herencia global/individual.
+- El intervalo COMPARTIDO de Monitor/Procesos admite herencia y sobrescritura individual; ambos modulos consumen el valor efectivo y actualizan el temporizador tras guardar.
 
 ### Fase 4 — Validacion
 **Estado:** Pendiente
