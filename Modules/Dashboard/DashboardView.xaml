@@ -396,13 +396,20 @@
                           ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
                           ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
                           Title="[ CPU ]" ShowHeader="False" ContentPadding="10,8">
-                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <StackPanel MinWidth="96">
-                        <TextBlock Text="CPU" Style="{StaticResource TileLabel}" />
-                        <TextBlock x:Name="CpuText" Text="0%" Style="{StaticResource TileNumber}" />
-                        <TextBlock x:Name="CpuDetail" Text="" Style="{StaticResource TileDetail}" />
-                    </StackPanel>
-                </Viewbox>
+                <Grid VerticalAlignment="Center" ClipToBounds="True">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="CPU" Style="{StaticResource TileLabel}" />
+                    <TextBlock Grid.Row="1" x:Name="CpuText" Text="0%"
+                               Style="{StaticResource TileNumber}" FontSize="22"
+                               TextTrimming="None" />
+                    <TextBlock Grid.Row="2" x:Name="CpuDetail" Text=""
+                               Style="{StaticResource TileDetail}" FontSize="9"
+                               TextWrapping="Wrap" MaxHeight="30" />
+                </Grid>
             </ctl:BoardBox>
 
             <ctl:BoardBox ctl:DashboardBoard.Key="ram" ctl:DashboardBoard.Col="4" ctl:DashboardBoard.Row="0"
@@ -422,13 +429,20 @@
                           ctl:DashboardBoard.ColSpan="4" ctl:DashboardBoard.RowSpan="3"
                           ctl:DashboardBoard.MinCols="2" ctl:DashboardBoard.MinRows="2"
                           Title="[ GPU ]" ShowHeader="False" ContentPadding="10,8">
-                <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <StackPanel MinWidth="96">
-                        <TextBlock Text="GPU" Style="{StaticResource TileLabel}" />
-                        <TextBlock x:Name="GpuText" Text="0%" Style="{StaticResource TileNumber}" />
-                        <TextBlock x:Name="GpuDetail" Text="" Style="{StaticResource TileDetail}" />
-                    </StackPanel>
-                </Viewbox>
+                <Grid VerticalAlignment="Center" ClipToBounds="True">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="GPU" Style="{StaticResource TileLabel}" />
+                    <TextBlock Grid.Row="1" x:Name="GpuText" Text="0%"
+                               Style="{StaticResource TileNumber}" FontSize="22"
+                               TextTrimming="None" />
+                    <TextBlock Grid.Row="2" x:Name="GpuDetail" Text=""
+                               Style="{StaticResource TileDetail}" FontSize="9"
+                               TextWrapping="Wrap" MaxHeight="30" />
+                </Grid>
             </ctl:BoardBox>
 
             <ctl:BoardBox ctl:DashboardBoard.Key="vram" ctl:DashboardBoard.Col="12" ctl:DashboardBoard.Row="0"
