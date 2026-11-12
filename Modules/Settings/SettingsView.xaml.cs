@@ -449,6 +449,29 @@ public partial class SettingsView : UserControl
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(_draft.MusicFolder) && !Directory.Exists(_draft.MusicFolder))
+        {
+            MessageBox.Show(Window.GetWindow(this), "La carpeta de musica no existe.",
+                "Configuracion de Musica", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (_draftImageGen.CustomFolders.TryGetValue("Gallery", out var galleryFolder) &&
+            !string.IsNullOrWhiteSpace(galleryFolder) && !Directory.Exists(galleryFolder))
+        {
+            try
+            {
+                Directory.CreateDirectory(galleryFolder);
+            }
+            catch (Exception ex)
+            {
+                LogService.Error("No se pudo crear la carpeta de galeria de ImageGen", ex);
+                MessageBox.Show(Window.GetWindow(this), "No se ha podido crear la carpeta de la galeria de Imagenes IA.",
+                    "Imagenes IA", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
         if (!string.IsNullOrEmpty(ModelsApiKeyBox.Password) && ModelsClearApiKeyCheck.IsChecked == true)
         {
             MessageBox.Show(Window.GetWindow(this), "No puedes guardar una clave nueva y eliminarla en la misma operacion.",
