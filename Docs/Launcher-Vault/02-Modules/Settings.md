@@ -154,6 +154,8 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 6. Las acciones operativas (reparar portadas, restaurar ignorados, abrir carpetas, probar conexion y actualizar) siguen siendo acciones inmediatas, no cambios pendientes de la sesion.
 7. No se ha ejecutado build ni pruebas WPF en Windows. Es necesario validar compilacion, navegacion, guardado, descarte, fallo de escritura y cierre.
 
+8. **Estado operativo separado de preferencias.** Models mantiene en su modulo `IgnoredReferences` y `PendingCorrections` porque son datos de trabajo; `LibraryView` y `LibrarySort` siguen como controles de uso de la biblioteca. En AppSettings, `LastModule`, coordenadas/tamano de ventana y `SidebarCollapsed` son estado de interfaz, no preferencias de modulo administradas por Settings. ImageGen conserva `LastParams` y las rutas descubiertas por el servidor como estado/runtime; el guardado central sincroniza esos valores para no sobrescribirlos con una copia antigua.
+
 ### Archivos funcionales tocados
 
 - Modules/Settings/SettingsView.xaml
