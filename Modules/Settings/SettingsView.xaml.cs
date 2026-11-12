@@ -82,7 +82,7 @@ public partial class SettingsView : UserControl
         SelectChip(ProcessesOverridePanel, _draft.ProcessesRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
         BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
-        BackgroundImageRow.Tag = $"GLOBAL · {(_draft.BackgroundImagePath ?? "Sin imagen seleccionada")}";
+        BackgroundImageRow.Tag = "GLOBAL · " + (_draft.BackgroundImagePath ?? "Sin imagen seleccionada");
         MusicFolderBox.Text = _draft.MusicFolder;
 
 
