@@ -147,7 +147,7 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 ### Limites y deuda pendiente
 
 1. **No existe atomicidad real entre varios destinos.** Cada archivo se reemplaza de forma atomica y el codigo intenta restaurar los valores anteriores si detecta un error. Un corte de energia entre reemplazos podria dejar archivos de versiones distintas.
-2. **No se ha implementado todavia un parametro con sobrescritura de un valor global.** El intervalo Monitor/Procesos se marca como COMPARTIDO. La herencia y el indicador SOBRESCRIBE GLOBAL quedan pendientes de un caso real y de modificar sus consumidores.
+2. **Sobrescritura global implementada para el refresco.** Monitor y Procesos heredan por defecto el intervalo COMPARTIDO. Cada modulo puede elegir Auto o un intervalo propio; el indicador SOBRESCRIBE GLOBAL explica que deja de seguir el valor compartido. Otros parametros aun no tienen sobrescrituras.
 3. Los formularios de bibliotecas de Games e ImageGen siguen siendo dialogos abiertos desde Settings; los cambios quedan en borrador, pero no estan integrados visualmente como controles inline en el scroll.
 4. La vista/orden de la Biblioteca de Models se conserva como control operativo del modulo; no se trata como preferencia administrable desde Settings.
 5. SteamApiKey sigue persistida en texto JSON en settings.json. Civitai usa el Administrador de credenciales de Windows.
