@@ -402,7 +402,7 @@ public partial class SettingsView : UserControl
     }
 
     private static string FormatOverrideValue(double seconds) =>
-        seconds <= 0 ? "Auto" : $"{seconds.ToString("0.##", CultureInfo.InvariantCulture)} s";
+        seconds <= 0 ? "Auto" : seconds.ToString("0.##", CultureInfo.InvariantCulture) + " s";
 
     private void MarkPending()
     {
