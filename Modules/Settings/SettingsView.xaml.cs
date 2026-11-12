@@ -481,7 +481,7 @@ public partial class SettingsView : UserControl
         MarkPending();
     }
 
-        private void UpdateDataSummaries()
+    private void UpdateDataSummaries()
     {
         var covers = FormatSize(GetCoversSize());
         DataRow.Tag = AppSettingsService.AppFolder;
@@ -601,7 +601,7 @@ public partial class SettingsView : UserControl
         RefreshUpdateRow();
     }
 
-        private void ChooseBackgroundImage_Click(object sender, RoutedEventArgs e)
+    private void ChooseBackgroundImage_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -616,12 +616,10 @@ public partial class SettingsView : UserControl
         MarkPending();
     }
 
-        private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_loading) return;
         _draft.BackgroundOpacity = e.NewValue;
         MarkPending();
-    }
-
     }
 }
