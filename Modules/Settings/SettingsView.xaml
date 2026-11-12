@@ -126,16 +126,16 @@
 
                 <StackPanel x:Name="CategoryPanel" Grid.Row="0">
                     <TextBlock Text="CATEGORIAS" Style="{StaticResource SectionTitle}" Margin="2,4,0,12" />
-                    <Button Content="Arranque" Tag="startup" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Ventana" Tag="window" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Monitor y procesos" Tag="monitor" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Fondo" Tag="background" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Juegos" Tag="games" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Imagenes IA" Tag="imagegen" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Actualizaciones" Tag="updates" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Dashboard" Tag="dashboard" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Datos" Tag="data" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
-                    <Button Content="Acerca de" Tag="about" Style="{StaticResource GhostButton}" Click="NavigateSection_Click" />
+                    <Button Content="Arranque" Tag="startup" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Ventana" Tag="window" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Monitor y procesos" Tag="monitor" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Fondo" Tag="background" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Juegos" Tag="games" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Imagenes IA" Tag="imagegen" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Actualizaciones" Tag="updates" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Dashboard" Tag="dashboard" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Datos" Tag="data" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Acerca de" Tag="about" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Margin="0,12,0,0">
@@ -146,7 +146,7 @@
                             Style="{StaticResource ActionButton}" Click="SaveChanges_Click"
                             IsEnabled="False" Margin="0,0,0,8" />
                     <Button x:Name="DiscardChangesButton" Content="Descartar"
-                            Style="{StaticResource GhostButton}" Click="DiscardChanges_Click"
+                            Style="{StaticResource SecondaryButtonStyle}" Click="DiscardChanges_Click"
                             IsEnabled="False" />
                 </StackPanel>
             </Grid>
