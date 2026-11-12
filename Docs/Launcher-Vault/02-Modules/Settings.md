@@ -139,7 +139,7 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 - El registro de inicio con Windows se modifica al confirmar, no al mover el interruptor.
 - Se han incorporado a la sesion los destinos actuales: config.json, settings.json, imagegen.json y models.json, ademas del registro Run y la credencial de Civitai en el Administrador de credenciales.
 - Los dialogos de rutas de Games, cuenta de Steam e ImageGen reciben objetos de trabajo y no escriben en disco desde el dialogo.
-- Los ajustes de Models se han trasladado a la pagina central; la pestana de configuracion local del modulo queda oculta.
+- Los ajustes de Models se han trasladado a la pagina central; la pestana Ajustes del modulo redirige a Settings > Modelos y no guarda directamente.
 - MusicFolder se administra desde Settings.
 - Las escrituras JSON usan archivo temporal y reemplazo; los servicios exponen TrySave para detectar errores.
 - Los cambios de AppSettings solo notifican a los modulos despues de completar los destinos persistentes.
