@@ -16,6 +16,14 @@ namespace Launcher.Modules.Settings;
 
 public partial class SettingsView : UserControl
 {
+    private static string? _pendingSection;
+
+    public static void OpenSection(string sectionId)
+    {
+        _pendingSection = sectionId;
+        Navigator.GoTo("settings");
+    }
+
     private readonly AppSettingsService _settings = AppSettingsService.Instance;
     private AppSettingsService _draft = new();
     private Launcher.Core.Services.LibraryPathsService _draftLibraryPaths = new();
@@ -40,7 +48,7 @@ public partial class SettingsView : UserControl
         InitializeModelsEditors();
         LoadFromState();
         MarkPending();
-        Loaded += (_, _) => UpdateActiveCategory();
+        Loaded += SettingsView_Loaded;
     }
 
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
@@ -574,9 +582,21 @@ public partial class SettingsView : UserControl
         ThemeService.ApplyAccent(_settings.AccentColor);
     }
 
-    private void NavigateSection_Click(object sender, RoutedEventArgs e)
+    private void SettingsView_Loaded(object sender, RoutedEventArgs e)
     {
-        var id = (string?)((Button)sender).Tag;
+        UpdateActiveCategory();
+        if (string.IsNullOrWhiteSpace(_pendingSection)) return;
+
+        var section = _pendingSection;
+        _pendingSection = null;
+        ScrollToSection(section);
+    }
+
+    private void NavigateSection_Click(object sender, RoutedEventArgs e) =>
+        ScrollToSection((string?)((Button)sender).Tag ?? "");
+
+    private void ScrollToSection(string id)
+    {
         FrameworkElement? target = id switch
         {
             "startup" => StartupSection,
