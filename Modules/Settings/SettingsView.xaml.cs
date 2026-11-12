@@ -410,6 +410,7 @@ public partial class SettingsView : UserControl
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
+        InitializeModelsEditors();
         LoadModelsSettingsControls();
         _draftStartupEnabled = StartupService.IsEnabled();
         LoadFromState();
@@ -497,6 +498,7 @@ public partial class SettingsView : UserControl
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
+        InitializeModelsEditors();
         _draftStartupEnabled = StartupService.IsEnabled();
         _modelsControlsDirty = false;
         LoadFromState();
@@ -539,6 +541,7 @@ public partial class SettingsView : UserControl
             "background" => BackgroundSection,
             "games" => GamesSection,
             "imagegen" => ImageGenSection,
+            "models" => ModelsSection,
             "updates" => UpdatesSection,
             "dashboard" => DashboardSection,
             "data" => DataSection,
@@ -561,7 +564,7 @@ public partial class SettingsView : UserControl
         {
             ("startup", StartupSection), ("window", WindowSection), ("monitor", MonitorSection),
             ("background", BackgroundSection), ("games", GamesSection), ("imagegen", ImageGenSection),
-            ("updates", UpdatesSection), ("dashboard", DashboardSection), ("data", DataSection),
+            ("models", ModelsSection), ("updates", UpdatesSection), ("dashboard", DashboardSection), ("data", DataSection),
             ("about", AboutSection)
         };
 
@@ -753,9 +756,32 @@ public partial class SettingsView : UserControl
 
         if (result != MessageBoxResult.Yes) return;
 
+        var modelsInput = new
+        {
+            InstallPath = ModelsInstallPathBox.Text,
+            MaxDownloads = ModelsMaxDownloadsBox.Text,
+            AutoConcurrency = ModelsAutoConcurrencyCheck.IsChecked,
+            SpeedLimit = ModelsSpeedLimitBox.Text,
+            Retries = ModelsRetriesBox.Text,
+            Categories = ModelsCategoriesBox.Text,
+            ApiKey = ModelsApiKeyBox.Password,
+            ClearApiKey = ModelsClearApiKeyCheck.IsChecked
+        };
+        var modelsControlsDirty = _modelsControlsDirty;
+
         _draft = new AppSettingsService();
         _draftStartupEnabled = false;
         LoadFromState();
+
+        ModelsInstallPathBox.Text = modelsInput.InstallPath;
+        ModelsMaxDownloadsBox.Text = modelsInput.MaxDownloads;
+        ModelsAutoConcurrencyCheck.IsChecked = modelsInput.AutoConcurrency;
+        ModelsSpeedLimitBox.Text = modelsInput.SpeedLimit;
+        ModelsRetriesBox.Text = modelsInput.Retries;
+        ModelsCategoriesBox.Text = modelsInput.Categories;
+        ModelsApiKeyBox.Password = modelsInput.ApiKey;
+        ModelsClearApiKeyCheck.IsChecked = modelsInput.ClearApiKey;
+        _modelsControlsDirty = modelsControlsDirty;
         MarkPending();
     }
 
@@ -898,7 +924,10 @@ public partial class SettingsView : UserControl
 
         _draft.BackgroundImagePath = dialog.FileName;
         _draft.BackgroundMode = "image";
-        LoadFromState();
+        _loading = true;
+        SelectChip(BackgroundPanel, _draft.BackgroundMode);
+        BackgroundImageRow.Tag = _draft.BackgroundImagePath;
+        _loading = false;
         MarkPending();
     }
 
