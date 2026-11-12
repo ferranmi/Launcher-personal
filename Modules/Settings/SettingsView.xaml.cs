@@ -72,6 +72,7 @@ public partial class SettingsView : UserControl
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
         BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
         BackgroundImageRow.Tag = _draft.BackgroundImagePath ?? "Sin imagen seleccionada";
+        MusicFolderBox.Text = _draft.MusicFolder;
 
 
         UpdateSyncFoldersSummary();
@@ -540,6 +541,7 @@ public partial class SettingsView : UserControl
             "monitor" => MonitorSection,
             "background" => BackgroundSection,
             "games" => GamesSection,
+            "music" => MusicSection,
             "imagegen" => ImageGenSection,
             "models" => ModelsSection,
             "updates" => UpdatesSection,
@@ -563,7 +565,7 @@ public partial class SettingsView : UserControl
         var sections = new (string Id, FrameworkElement Element)[]
         {
             ("startup", StartupSection), ("window", WindowSection), ("monitor", MonitorSection),
-            ("background", BackgroundSection), ("games", GamesSection), ("imagegen", ImageGenSection),
+            ("background", BackgroundSection), ("games", GamesSection), ("music", MusicSection), ("imagegen", ImageGenSection),
             ("models", ModelsSection), ("updates", UpdatesSection), ("dashboard", DashboardSection), ("data", DataSection),
             ("about", AboutSection)
         };
@@ -851,6 +853,25 @@ public partial class SettingsView : UserControl
             i++;
         }
         return $"{size:0.#} {units[i]}";
+    }
+
+    private void MusicFolder_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_loading) return;
+        _draft.MusicFolder = MusicFolderBox.Text.Trim();
+        MarkPending();
+    }
+
+    private void BrowseMusicFolder_Click(object sender, RoutedEventArgs e)
+    {
+        using var dialog = new WinForms.FolderBrowserDialog
+        {
+            Description = "Selecciona la carpeta de la biblioteca musical",
+            SelectedPath = _draft.MusicFolder
+        };
+
+        if (dialog.ShowDialog() != WinForms.DialogResult.OK) return;
+        MusicFolderBox.Text = dialog.SelectedPath;
     }
 
     private void ConfigureImageGen_Click(object sender, RoutedEventArgs e)
