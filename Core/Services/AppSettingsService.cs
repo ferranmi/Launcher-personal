@@ -199,8 +199,9 @@ public class AppSettingsService
     {
         if (Changed == null) return;
 
-        foreach (EventHandler handler in Changed.GetInvocationList())
+        foreach (var callback in Changed.GetInvocationList())
         {
+            if (callback is not EventHandler handler) continue;
             try { handler(this, EventArgs.Empty); }
             catch (Exception ex) { LogService.Error("Un modulo no pudo aplicar la configuracion actualizada", ex); }
         }
