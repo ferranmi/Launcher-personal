@@ -221,7 +221,7 @@
             <TextBlock Text="MONITOR Y PROCESOS" x:Name="MonitorSection" Style="{StaticResource SectionTitle}" />
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Intervalo de refresco"
-                                    Tag="COMPARTIDO · Afecta a Monitor y Processes. Auto usa 1 s en Monitor y 1,5 s en Processes. Mas segundos = menos consumo.">
+                                    Tag="COMPARTIDO · Afecta a Monitor y Procesos. Auto usa 1 s en Monitor y 1,5 s en Procesos. Mas segundos = menos consumo.">
                 <StackPanel x:Name="RefreshPanel" Orientation="Horizontal">
                     <RadioButton Content="Auto" Tag="0" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
                     <RadioButton Content="1 s" Tag="1" GroupName="Refresh" Style="{StaticResource ChipStyle}" Checked="Chip_Checked" />
