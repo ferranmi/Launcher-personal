@@ -5,7 +5,6 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using Launcher.Core.Models;
 using Launcher.Core.Services;
-using Microsoft.Win32;
 
 namespace Launcher.Modules.Devices;
 
@@ -79,7 +78,7 @@ public partial class DevicesView : UserControl
         if (((FrameworkElement)sender).DataContext is DeviceInfo { SettingsUri: { } uri }) Open(uri);
     }
 
-    private async void AppButton_Click(object sender, RoutedEventArgs e)
+    private void AppButton_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).DataContext is not DeviceInfo device || device.VendorKeyword == null) return;
 
@@ -89,17 +88,8 @@ public partial class DevicesView : UserControl
             return;
         }
 
-        // No esta en la ruta habitual: que el usuario indique donde esta y se recuerda.
-        var dialog = new OpenFileDialog
-        {
-            Title = $"Selecciona el ejecutable de {device.VendorLabel}",
-            Filter = "Ejecutables (*.exe)|*.exe|Todos los archivos (*.*)|*.*"
-        };
-
-        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
-
-        DeviceService.SetVendorApp(device.VendorKeyword, dialog.FileName);
-        await RefreshAsync();
+        // Las rutas personalizadas se administran desde la configuracion central.
+        Launcher.Modules.Settings.SettingsView.OpenSection("devices");
     }
 
     private static void Open(string target)
