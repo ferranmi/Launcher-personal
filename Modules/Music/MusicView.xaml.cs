@@ -19,6 +19,8 @@ public partial class MusicView : UserControl
 
     private string _search = "";
     private bool _loadedOnce;
+    private bool _reloadFolderPending;
+    private string _loadedFolder = "";
 
     public MusicView()
     {
@@ -32,6 +34,8 @@ public partial class MusicView : UserControl
         _library.Tracks.CollectionChanged += (_, _) => UpdateState();
 
         UpdateState();
+        _loadedFolder = AppSettingsService.Instance.MusicFolder;
+        AppSettingsService.Instance.Changed += AppSettings_Changed;
         Loaded += MusicView_Loaded;
     }
 
@@ -39,11 +43,46 @@ public partial class MusicView : UserControl
     {
         // Loaded se dispara cada vez que la vista vuelve al arbol visual: solo
         // leemos la carpeta la primera vez.
-        if (_loadedOnce) return;
-        _loadedOnce = true;
+        if (_loadedOnce)
+        {
+            if (_reloadFolderPending)
+            {
+                _reloadFolderPending = false;
+                await ReloadLibraryAsync();
+            }
+            return;
+        }
 
+        _loadedOnce = true;
+        _loadedFolder = AppSettingsService.Instance.MusicFolder;
         await _library.LoadAsync();
         UpdateState();
+    }
+
+    private void AppSettings_Changed(object? sender, EventArgs e)
+    {
+        var folder = AppSettingsService.Instance.MusicFolder;
+        if (string.Equals(folder, _loadedFolder, StringComparison.OrdinalIgnoreCase)) return;
+
+        _loadedFolder = folder;
+        _reloadFolderPending = true;
+        if (!IsLoaded || !_loadedOnce) return;
+
+        _reloadFolderPending = false;
+        _ = ReloadLibraryAsync();
+    }
+
+    private async Task ReloadLibraryAsync()
+    {
+        try
+        {
+            await _library.LoadAsync();
+            UpdateState();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("No se pudo recargar la biblioteca musical tras cambiar su carpeta", ex);
+        }
     }
 
     // ===================== Filtro / busqueda / orden =====================
