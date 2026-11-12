@@ -15,6 +15,7 @@ public class AppSettingsService
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Launcher");
 
     private static readonly string ConfigPath = Path.Combine(AppFolder, "config.json");
+    private static readonly string LegacyDeviceAppsPath = Path.Combine(AppFolder, "device_apps.json");
 
     /// <summary>Color de acento por defecto (el verde fosforo del tema).</summary>
     public const string DefaultAccent = "#3ECF7E";
@@ -85,6 +86,12 @@ public class AppSettingsService
     /// 1,5 s en Procesos). Usa GetRefreshSeconds para leerlo con el valor automatico.</summary>
     public double RefreshSeconds { get; set; }
 
+    /// <summary>Intervalo de lectura de Multimedia, en segundos (1-5).</summary>
+    public int MediaRefreshSeconds { get; set; } = 1;
+
+    /// <summary>Intervalo de lectura de Red, en segundos (5-30).</summary>
+    public int NetworkRefreshSeconds { get; set; } = 10;
+
     /// <summary>Pedir confirmacion antes de finalizar un proceso o un grupo.</summary>
     public bool ConfirmKillProcess { get; set; } = true;
 
@@ -98,6 +105,13 @@ public class AppSettingsService
 
     /// <summary>"small", "medium" o "large".</summary>
     public string CardSize { get; set; } = "medium";
+
+    // ----- Dispositivos -----
+    /// <summary>Ruta elegida para la aplicacion de cada fabricante (clave = keyword).</summary>
+    public Dictionary<string, string> DeviceVendorApps { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Evita volver a importar device_apps.json despues de la migracion inicial.</summary>
+    public bool LegacyDeviceAppsMigrated { get; set; }
 
     // ----- Actualizaciones -----
 
@@ -149,6 +163,11 @@ public class AppSettingsService
                     loaded.CardSize ??= "medium";
                     loaded.UpdateSource ??= DefaultUpdateSource;
                     loaded.Layouts ??= new Dictionary<string, double[]>();
+                    loaded.DeviceVendorApps = new Dictionary<string, string>(
+                        loaded.DeviceVendorApps ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
+                    loaded.MediaRefreshSeconds = Math.Clamp(loaded.MediaRefreshSeconds, 1, 5);
+                    loaded.NetworkRefreshSeconds = Math.Clamp(loaded.NetworkRefreshSeconds, 5, 30);
+                    ImportLegacyDeviceApps(loaded);
                     return loaded;
                 }
             }
@@ -158,7 +177,43 @@ public class AppSettingsService
             // config.json corrupto: seguimos con valores por defecto en vez de reventar.
         }
 
-        return new AppSettingsService();
+        var defaults = new AppSettingsService();
+        ImportLegacyDeviceApps(defaults);
+        return defaults;
+    }
+
+    /// <summary>Importa una sola vez las rutas de fabricante del antiguo device_apps.json.
+    /// El archivo antiguo no se borra: queda como respaldo hasta que el usuario decida limpiarlo.</summary>
+    private static void ImportLegacyDeviceApps(AppSettingsService settings)
+    {
+        if (settings.LegacyDeviceAppsMigrated) return;
+
+        if (!File.Exists(LegacyDeviceAppsPath))
+        {
+            settings.LegacyDeviceAppsMigrated = true;
+            return;
+        }
+
+        try
+        {
+            var legacy = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(LegacyDeviceAppsPath));
+            if (legacy != null)
+            {
+                foreach (var pair in legacy)
+                {
+                    if (string.IsNullOrWhiteSpace(pair.Key) || string.IsNullOrWhiteSpace(pair.Value)) continue;
+                    if (!settings.DeviceVendorApps.ContainsKey(pair.Key))
+                        settings.DeviceVendorApps[pair.Key] = pair.Value;
+                }
+            }
+
+            settings.LegacyDeviceAppsMigrated = true;
+        }
+        catch (Exception ex)
+        {
+            // El archivo antiguo se conserva y la migracion se reintentara en el siguiente arranque.
+            LogService.Error("No se pudo importar device_apps.json", ex);
+        }
     }
 
     public void Save() => TrySave();
@@ -220,6 +275,13 @@ public class AppSettingsService
         SyncOnStartup = false;
         ConfirmDelete = true;
         CardSize = "medium";
+        ConfirmKillProcess = true;
+        MusicFolder = "";
+        DeviceVendorApps.Clear();
+        LegacyDeviceAppsMigrated = true;
+        MediaRefreshSeconds = 1;
+        NetworkRefreshSeconds = 10;
+        LastModule = null;
         UpdateSource = DefaultUpdateSource;
         CheckUpdatesOnStartup = true;
         RefreshSeconds = 0; // 0 = automatico
