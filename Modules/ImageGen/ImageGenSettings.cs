@@ -31,8 +31,9 @@ public class ImageGenSettings
     {
         if (Changed == null) return;
 
-        foreach (EventHandler handler in Changed.GetInvocationList())
+        foreach (var callback in Changed.GetInvocationList())
         {
+            if (callback is not EventHandler handler) continue;
             try { handler(this, EventArgs.Empty); }
             catch (Exception ex) { LogService.Error("ImageGen no pudo aplicar los ajustes actualizados", ex); }
         }
