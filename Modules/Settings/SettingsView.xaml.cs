@@ -199,11 +199,55 @@ public partial class SettingsView : UserControl
         return false;
     }
 
+    private static string ImageGenConfigSignature(Launcher.Modules.ImageGen.ImageGenSettings settings) =>
+        JsonSerializer.Serialize(new
+        {
+            settings.Url,
+            settings.InstallPath,
+            settings.ServerBatPath,
+            settings.AutoStartServer,
+            settings.WildcardsFolder,
+            settings.CustomFolders
+        });
+
+    private void SyncRuntimeImageGenState()
+    {
+        var live = Launcher.Modules.ImageGen.ImageGenSettings.Instance;
+        if (string.Equals(_draftImageGen.InstallPath, live.InstallPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _draftImageGen.CkptDir = live.CkptDir;
+            _draftImageGen.LoraDir = live.LoraDir;
+            _draftImageGen.VaeDir = live.VaeDir;
+            _draftImageGen.EmbeddingsDir = live.EmbeddingsDir;
+            _draftImageGen.ControlNetDir = live.ControlNetDir;
+        }
+
+        _draftImageGen.LastParams = live.LastParams;
+    }
+
+    private static void CopyImageGenSettings(
+        Launcher.Modules.ImageGen.ImageGenSettings source,
+        Launcher.Modules.ImageGen.ImageGenSettings target)
+    {
+        target.Url = source.Url;
+        target.InstallPath = source.InstallPath;
+        target.ServerBatPath = source.ServerBatPath;
+        target.AutoStartServer = source.AutoStartServer;
+        target.WildcardsFolder = source.WildcardsFolder;
+        target.CustomFolders = source.CustomFolders;
+        target.CkptDir = source.CkptDir;
+        target.LoraDir = source.LoraDir;
+        target.VaeDir = source.VaeDir;
+        target.EmbeddingsDir = source.EmbeddingsDir;
+        target.ControlNetDir = source.ControlNetDir;
+        target.LastParams = source.LastParams;
+    }
+
     private bool HasPendingChanges()
     {
         return !string.Equals(JsonSerializer.Serialize(_draft), JsonSerializer.Serialize(_settings), StringComparison.Ordinal) ||
                !string.Equals(JsonSerializer.Serialize(_draftLibraryPaths), JsonSerializer.Serialize(LibraryPathsService.Instance), StringComparison.Ordinal) ||
-               !string.Equals(JsonSerializer.Serialize(_draftImageGen), JsonSerializer.Serialize(Launcher.Modules.ImageGen.ImageGenSettings.Instance), StringComparison.Ordinal) ||
+               !string.Equals(ImageGenConfigSignature(_draftImageGen), ImageGenConfigSignature(Launcher.Modules.ImageGen.ImageGenSettings.Instance), StringComparison.Ordinal) ||
                _draftStartupEnabled != StartupService.IsEnabled();
     }
 
@@ -249,7 +293,8 @@ public partial class SettingsView : UserControl
 
         CopyObject(_draft, _settings);
         CopyObject(_draftLibraryPaths, LibraryPathsService.Instance);
-        CopyObject(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        SyncRuntimeImageGenState();
+        CopyImageGenSettings(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
 
         if (!_settings.TrySave(notifyChanged: false) ||
             !LibraryPathsService.Instance.TrySave() ||
@@ -302,7 +347,7 @@ public partial class SettingsView : UserControl
     {
         CopyObject(previousApp, _settings);
         CopyObject(previousLibraries, LibraryPathsService.Instance);
-        CopyObject(previousImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        CopyImageGenSettings(previousImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
 
         _settings.TrySave(notifyChanged: false);
         LibraryPathsService.Instance.TrySave();
