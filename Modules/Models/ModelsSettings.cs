@@ -107,7 +107,17 @@ public class ModelsSettings
             if (File.Exists(SettingsPath))
             {
                 var loaded = JsonSerializer.Deserialize<ModelsSettings>(File.ReadAllText(SettingsPath));
-                if (loaded != null) return loaded;
+                if (loaded != null)
+                {
+                    loaded.LoraFolders ??= new List<string>();
+                    loaded.CheckpointFolders ??= new List<string>();
+                    loaded.LyCorisFolders ??= new List<string>();
+                    loaded.WildcardFolders ??= new List<string>();
+                    loaded.Categories ??= new List<string> { "Personajes", "Poses", "Acciones", "Ropa", "Estilos", "Otros" };
+                    loaded.IgnoredReferences ??= new List<string>();
+                    loaded.PendingCorrections ??= new List<PendingCorrection>();
+                    return loaded;
+                }
             }
         }
         catch (Exception ex)
