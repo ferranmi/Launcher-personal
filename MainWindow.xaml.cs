@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -23,6 +24,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Closing += OnClosingWithPendingSettings;
 
         // Bandeja, atajo global, tamano/posicion recordados y arranque minimizado.
         WindowBehaviorService.Attach(this);
@@ -128,6 +130,16 @@ public partial class MainWindow : Window
 
     private void NavigateTo(IModule module)
     {
+        if (module.Id != "settings" &&
+            ContentArea.Content is Launcher.Modules.Settings.SettingsView settingsView &&
+            !settingsView.ConfirmPendingChanges("cambiar de modulo"))
+        {
+            var settingsButton = NavPanel.Children.OfType<NavButton>()
+                .FirstOrDefault(b => (string?)b.Tag == "settings");
+            if (settingsButton != null) settingsButton.IsChecked = true;
+            return;
+        }
+
         if (!_viewCache.TryGetValue(module.Id, out var view))
         {
             view = module.CreateView();
@@ -143,6 +155,16 @@ public partial class MainWindow : Window
         {
             settings.LastModule = module.Id;
             settings.Save();
+        }
+    }
+
+    private void OnClosingWithPendingSettings(object? sender, CancelEventArgs e)
+    {
+        if (_viewCache.TryGetValue("settings", out var view) &&
+            view is Launcher.Modules.Settings.SettingsView settingsView &&
+            !settingsView.ConfirmPendingChanges("cerrar Launcher"))
+        {
+            e.Cancel = true;
         }
     }
 
