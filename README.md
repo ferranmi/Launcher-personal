@@ -5,15 +5,15 @@
 > | Campo | Estado actual comprobado |
 > |---|---|
 > | Rama de implementacion | `feature/settings-centralized-management` |
->> | Version | `0.1.54` |
+>> | Version | `0.1.55` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Modulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, version 1.2.161 |
 > | Build / pruebas | No ejecutados: el entorno de trabajo no dispone del SDK .NET ni de Windows/WPF |
 >
-> **Settings — implementacion inicial en la rama de trabajo:** pagina vertical con navegacion lateral, categoria activa al desplazar, sesion temporal y botones Guardar/Descartar. La sesion incluye `config.json`, `settings.json`, `imagegen.json`, `models.json`, el registro de inicio de Windows y la credencial de Civitai en el Administrador de credenciales. Los cambios se aplican a los modulos tras guardar. El intervalo compartido de Monitor/Procesos permite sobrescrituras individuales, identificadas en la interfaz. Music y Models enlazan sus ajustes con la categoria correspondiente.
+> **Settings — implementacion 0.1.55 en la rama de trabajo:** pagina vertical con categorias, sesion temporal y botones Guardar/Descartar. Incluye configuracion de Launcher y modulos, rutas de fabricantes de Devices, intervalos de Media y Red, Games, Music, ImageGen y Models; tambien conserva el intervalo compartido y las sobrescrituras de Monitor/Procesos. Las asignaciones antiguas de `device_apps.json` se importan una vez a `config.json`; el archivo antiguo no se borra.
 >
-> **Limites pendientes de validar:** el guardado coordinado entre varios destinos usa escritura atomica por archivo y rollback compensatorio ante errores detectados; no es una transaccion atomica frente a un corte de energia durante el proceso. SteamApiKey sigue almacenada en `settings.json`. No se ha compilado ni probado visualmente en Windows. El intervalo de Monitor/Procesos ya permite heredar el valor compartido o sobrescribirlo por modulo.
+> **Limites pendientes de validar:** el guardado coordinado entre varios destinos usa escritura temporal/reemplazo por archivo y rollback compensatorio ante errores detectados; no es una transaccion atomica frente a un corte de energia. `SteamApiKey` sigue en texto JSON en `settings.json`. `MediaAppsService` y `media_apps.json` existen, pero no estan conectados a la vista activa de Multimedia. No se ha compilado ni probado visualmente en Windows.
 >
 > **Módulos registrados:** Dashboard, Games, Folders, Media, Music, Network, ImageGen, Models, Commands, Devices, Monitor, Processes y Settings.
 >
