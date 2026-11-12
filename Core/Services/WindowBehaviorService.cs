@@ -161,6 +161,9 @@ public sealed class WindowBehaviorService
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        // Otro componente puede haber cancelado el cierre para evitar perder cambios.
+        if (e.Cancel) return;
+
         SaveBounds();
 
         if (_settings.CloseToTray && !_exiting)
