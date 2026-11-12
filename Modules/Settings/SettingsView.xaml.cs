@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text.Json;
+using System.Windows.Media;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -15,6 +17,8 @@ namespace Launcher.Modules.Settings;
 public partial class SettingsView : UserControl
 {
     private readonly AppSettingsService _settings = AppSettingsService.Instance;
+    private AppSettingsService _draft = new();
+    private bool _draftStartupEnabled;
 
     // Evita que asignar IsChecked desde codigo dispare los handlers de usuario.
     private bool _loading = true;
@@ -22,9 +26,12 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        _draft = CloneSettings(_settings);
+        _draftStartupEnabled = StartupService.IsEnabled();
         BuildStartModuleChips();
         BuildAccentChips();
         LoadFromState();
+        MarkPending();
     }
 
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
@@ -33,30 +40,30 @@ public partial class SettingsView : UserControl
         // Antes de tocar ningun control: asignar IsChecked dispara Toggle_Changed.
         _loading = true;
 
-        CheckUpdatesToggle.IsChecked = _settings.CheckUpdatesOnStartup;
-        AutoApplyUpdatesToggle.IsChecked = _settings.AutoApplyUpdates;
+        CheckUpdatesToggle.IsChecked = _draft.CheckUpdatesOnStartup;
+        AutoApplyUpdatesToggle.IsChecked = _draft.AutoApplyUpdates;
         RefreshUpdateRow();
 
-        var startup = StartupService.IsEnabled();
+        var startup = _draftStartupEnabled;
         StartWithWindowsToggle.IsChecked = startup;
-        StartMinimizedToggle.IsChecked = _settings.StartMinimized;
+        StartMinimizedToggle.IsChecked = _draft.StartMinimized;
         StartMinimizedToggle.IsEnabled = startup;
 
-        AlwaysOnTopToggle.IsChecked = _settings.AlwaysOnTop;
-        CloseToTrayToggle.IsChecked = _settings.CloseToTray;
-        RememberBoundsToggle.IsChecked = _settings.RememberWindowBounds;
-        ConfirmKillToggle.IsChecked = _settings.ConfirmKillProcess;
-        SyncOnStartupToggle.IsChecked = _settings.SyncOnStartup;
-        ConfirmDeleteToggle.IsChecked = _settings.ConfirmDelete;
+        AlwaysOnTopToggle.IsChecked = _draft.AlwaysOnTop;
+        CloseToTrayToggle.IsChecked = _draft.CloseToTray;
+        RememberBoundsToggle.IsChecked = _draft.RememberWindowBounds;
+        ConfirmKillToggle.IsChecked = _draft.ConfirmKillProcess;
+        SyncOnStartupToggle.IsChecked = _draft.SyncOnStartup;
+        ConfirmDeleteToggle.IsChecked = _draft.ConfirmDelete;
 
-        SelectChip(HotkeyPanel, _settings.Hotkey);
-        SelectChip(CardSizePanel, _settings.CardSize);
-        SelectChip(StartModulePanel, _settings.StartModule);
-        SelectChip(AccentPanel, _settings.AccentColor);
-        SelectChip(RefreshPanel, _settings.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
-        SelectChip(BackgroundPanel, _settings.BackgroundMode);
-        BackgroundOpacitySlider.Value = _settings.BackgroundOpacity;
-        BackgroundImageRow.Tag = _settings.BackgroundImagePath ?? "Sin imagen seleccionada";
+        SelectChip(HotkeyPanel, _draft.Hotkey);
+        SelectChip(CardSizePanel, _draft.CardSize);
+        SelectChip(StartModulePanel, _draft.StartModule);
+        SelectChip(AccentPanel, _draft.AccentColor);
+        SelectChip(RefreshPanel, _draft.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
+        SelectChip(BackgroundPanel, _draft.BackgroundMode);
+        BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
+        BackgroundImageRow.Tag = _draft.BackgroundImagePath ?? "Sin imagen seleccionada";
 
 
         UpdateSyncFoldersSummary();
@@ -67,11 +74,11 @@ public partial class SettingsView : UserControl
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         AboutRow.Tag = $"v{version?.ToString(3) ?? "0.1.0"}  ·  .NET {Environment.Version.Major}";
 
-        DashboardEffectsToggle.IsChecked = _settings.DashboardEffects;
-        BootSequenceToggle.IsChecked = _settings.BootSequence;
-        WindowsEventLogToggle.IsChecked = _settings.WindowsEventLog;
-        SelectChip(ThresholdPanel, _settings.ThresholdProfile);
-        SelectChip(IntervalPanel, _settings.StatusIntervalSeconds.ToString());
+        DashboardEffectsToggle.IsChecked = _draft.DashboardEffects;
+        BootSequenceToggle.IsChecked = _draft.BootSequence;
+        WindowsEventLogToggle.IsChecked = _draft.WindowsEventLog;
+        SelectChip(ThresholdPanel, _draft.ThresholdProfile);
+        SelectChip(IntervalPanel, _draft.StatusIntervalSeconds.ToString());
 
         _loading = false;
     }
@@ -146,6 +153,183 @@ public partial class SettingsView : UserControl
         }
     }
 
+    private static AppSettingsService CloneSettings(AppSettingsService source)
+    {
+        var json = JsonSerializer.Serialize(source);
+        return JsonSerializer.Deserialize<AppSettingsService>(json) ?? new AppSettingsService();
+    }
+
+    private static void CopySettings(AppSettingsService source, AppSettingsService target)
+    {
+        foreach (var property in typeof(AppSettingsService).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (property.CanRead && property.CanWrite)
+                property.SetValue(target, property.GetValue(source));
+        }
+    }
+
+    private bool HasPendingChanges()
+    {
+        var draftJson = JsonSerializer.Serialize(_draft);
+        var savedJson = JsonSerializer.Serialize(_settings);
+        return !string.Equals(draftJson, savedJson, StringComparison.Ordinal) ||
+               _draftStartupEnabled != StartupService.IsEnabled();
+    }
+
+    private void MarkPending()
+    {
+        var pending = HasPendingChanges();
+        PendingStatusText.Text = pending ? "Hay cambios sin guardar" : "Sin cambios pendientes";
+        PendingStatusText.Foreground = (Brush)FindResource(pending ? "Brush.Accent" : "Brush.TextDim");
+        SaveChangesButton.IsEnabled = pending;
+        DiscardChangesButton.IsEnabled = pending;
+    }
+
+    private void DiscardChanges_Click(object sender, RoutedEventArgs e)
+    {
+        if (HasPendingChanges())
+        {
+            var result = MessageBox.Show(Window.GetWindow(this),
+                "Se perderan todos los cambios pendientes. Continuar?",
+                "Descartar cambios", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+        }
+
+        _draft = CloneSettings(_settings);
+        _draftStartupEnabled = StartupService.IsEnabled();
+        LoadFromState();
+        MarkPending();
+    }
+
+    private void SaveChanges_Click(object sender, RoutedEventArgs e)
+    {
+        if (!HasPendingChanges()) return;
+
+        var previous = CloneSettings(_settings);
+        var previousStartup = StartupService.IsEnabled();
+
+        CopySettings(_draft, _settings);
+
+        if (!_settings.TrySave(notifyChanged: false))
+        {
+            CopySettings(previous, _settings);
+            MessageBox.Show(Window.GetWindow(this),
+                "No se ha podido guardar config.json. Los cambios siguen pendientes.",
+                "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
+        if (!hotkeyOk)
+        {
+            CopySettings(previous, _settings);
+            _settings.TrySave(notifyChanged: false);
+            WindowBehaviorService.Instance?.ApplyHotkey();
+            MessageBox.Show(Window.GetWindow(this),
+                "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados.",
+                "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
+        {
+            CopySettings(previous, _settings);
+            _settings.TrySave(notifyChanged: false);
+            StartupService.SetEnabled(previousStartup, previous.StartMinimized);
+            WindowBehaviorService.Instance?.ApplyHotkey();
+            MessageBox.Show(Window.GetWindow(this),
+                "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
+                "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        _settings.NotifyChanged();
+        _settings.ApplyToWindow(Window.GetWindow(this)!);
+        WindowBehaviorService.Instance?.ApplyTray();
+        ThemeService.ApplyAccent(_settings.AccentColor);
+
+        _draft = CloneSettings(_settings);
+        _draftStartupEnabled = StartupService.IsEnabled();
+        LoadFromState();
+        MarkPending();
+    }
+
+    private void NavigateSection_Click(object sender, RoutedEventArgs e)
+    {
+        var id = (string?)((Button)sender).Tag;
+        FrameworkElement? target = id switch
+        {
+            "startup" => StartupSection,
+            "window" => WindowSection,
+            "monitor" => MonitorSection,
+            "background" => BackgroundSection,
+            "games" => GamesSection,
+            "imagegen" => ImageGenSection,
+            "updates" => UpdatesSection,
+            "dashboard" => DashboardSection,
+            "data" => DataSection,
+            "about" => AboutSection,
+            _ => null
+        };
+
+        target?.BringIntoView();
+        UpdateActiveCategory();
+    }
+
+    private void SettingsScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) =>
+        UpdateActiveCategory();
+
+    private void UpdateActiveCategory()
+    {
+        if (!IsLoaded) return;
+
+        var sections = new (string Id, FrameworkElement Element)[]
+        {
+            ("startup", StartupSection), ("window", WindowSection), ("monitor", MonitorSection),
+            ("background", BackgroundSection), ("games", GamesSection), ("imagegen", ImageGenSection),
+            ("updates", UpdatesSection), ("dashboard", DashboardSection), ("data", DataSection),
+            ("about", AboutSection)
+        };
+
+        var active = sections[0].Id;
+        var nearestTop = double.NegativeInfinity;
+
+        foreach (var section in sections)
+        {
+            try
+            {
+                var y = section.Element.TransformToAncestor(SettingsScrollViewer).Transform(new Point(0, 0)).Y;
+                if (y <= 130 && y > nearestTop)
+                {
+                    nearestTop = y;
+                    active = section.Id;
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // El elemento aun no esta conectado al visor.
+            }
+        }
+
+        foreach (var button in FindCategoryButtons())
+        {
+            var selected = string.Equals((string?)button.Tag, active, StringComparison.Ordinal);
+            button.Background = selected
+                ? (Brush)FindResource("Brush.AccentDim")
+                : Brushes.Transparent;
+            button.Foreground = selected
+                ? (Brush)FindResource("Brush.Accent")
+                : (Brush)FindResource("Brush.TextSecondary");
+        }
+    }
+
+    private IEnumerable<Button> FindCategoryButtons()
+    {
+        if (CategoryPanel == null) yield break;
+        foreach (var button in CategoryPanel.Children.OfType<Button>())
+            yield return button;
+    }
+
     // ===================== Interruptores =====================
 
     private void Toggle_Changed(object sender, RoutedEventArgs e)
@@ -156,80 +340,26 @@ public partial class SettingsView : UserControl
 
         if (sender == StartWithWindowsToggle)
         {
-            if (!StartupService.SetEnabled(on, _settings.StartMinimized))
-            {
-                MessageBox.Show(Window.GetWindow(this),
-                    "No se ha podido modificar el arranque con Windows.",
-                    "Configuracion", MessageBoxButton.OK, MessageBoxImage.Warning);
-                LoadFromState(); // volver al estado real
-                return;
-            }
-
+            _draftStartupEnabled = on;
             StartMinimizedToggle.IsEnabled = on;
-            return; // vive en el registro, no en config.json
         }
+        else if (sender == StartMinimizedToggle) _draft.StartMinimized = on;
+        else if (sender == AlwaysOnTopToggle) _draft.AlwaysOnTop = on;
+        else if (sender == CloseToTrayToggle) _draft.CloseToTray = on;
+        else if (sender == RememberBoundsToggle) _draft.RememberWindowBounds = on;
+        else if (sender == ConfirmKillToggle) _draft.ConfirmKillProcess = on;
+        else if (sender == SyncOnStartupToggle) _draft.SyncOnStartup = on;
+        else if (sender == ConfirmDeleteToggle) _draft.ConfirmDelete = on;
+        else if (sender == CheckUpdatesToggle) _draft.CheckUpdatesOnStartup = on;
+        else if (sender == AutoApplyUpdatesToggle) _draft.AutoApplyUpdates = on;
+        else if (sender == DashboardEffectsToggle) _draft.DashboardEffects = on;
+        else if (sender == BootSequenceToggle) _draft.BootSequence = on;
+        else if (sender == WindowsEventLogToggle) _draft.WindowsEventLog = on;
 
-        if (sender == StartMinimizedToggle)
-        {
-            _settings.StartMinimized = on;
-
-            // El argumento --minimized vive en el comando del registro: reescribirlo.
-            if (StartupService.IsEnabled()) StartupService.SetEnabled(true, on);
-        }
-        else if (sender == AlwaysOnTopToggle)
-        {
-            _settings.AlwaysOnTop = on;
-            var window = Window.GetWindow(this);
-            if (window != null) _settings.ApplyToWindow(window);
-        }
-        else if (sender == CloseToTrayToggle)
-        {
-            _settings.CloseToTray = on;
-            _settings.Save();
-            WindowBehaviorService.Instance?.ApplyTray();
-            return;
-        }
-        else if (sender == RememberBoundsToggle)
-        {
-            _settings.RememberWindowBounds = on;
-        }
-        else if (sender == ConfirmKillToggle)
-        {
-            _settings.ConfirmKillProcess = on;
-        }
-        else if (sender == SyncOnStartupToggle)
-        {
-            _settings.SyncOnStartup = on;
-        }
-        else if (sender == ConfirmDeleteToggle)
-        {
-            _settings.ConfirmDelete = on;
-        }
-        else if (sender == CheckUpdatesToggle)
-        {
-            _settings.CheckUpdatesOnStartup = on;
-        }
-        else if (sender == AutoApplyUpdatesToggle)
-        {
-            _settings.AutoApplyUpdates = on;
-        }
-        else if (sender == DashboardEffectsToggle)
-        {
-            _settings.DashboardEffects = on;
-        }
-        else if (sender == BootSequenceToggle)
-        {
-            _settings.BootSequence = on;
-        }
-        else if (sender == WindowsEventLogToggle)
-        {
-            _settings.WindowsEventLog = on;
-        }
-
-        _settings.Save();
+        MarkPending();
     }
 
-    // ===================== Chips (atajo, tamano de tarjetas, modulo, acento, refresco) =====================
+        // ===================== Chips (atajo, tamano de tarjetas, modulo, acento, refresco) =====================
 
     private void Chip_Checked(object sender, RoutedEventArgs e)
     {
@@ -238,61 +368,22 @@ public partial class SettingsView : UserControl
         var chip = (RadioButton)sender;
         var value = (string)chip.Tag;
 
-        if (chip.GroupName == "Hotkey")
-        {
-            var previous = _settings.Hotkey;
-            _settings.Hotkey = value;
+        if (chip.GroupName == "Hotkey") _draft.Hotkey = value;
+        else if (chip.GroupName == "CardSize") _draft.CardSize = value;
+        else if (chip.GroupName == "StartModule") _draft.StartModule = value;
+        else if (chip.GroupName == "Accent") _draft.AccentColor = value;
+        else if (chip.GroupName == "Refresh" &&
+                 double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+            _draft.RefreshSeconds = seconds;
+        else if (chip.GroupName == "ThresholdProfile") _draft.ThresholdProfile = value;
+        else if (chip.GroupName == "StatusInterval" && int.TryParse(value, out var interval))
+            _draft.StatusIntervalSeconds = interval;
+        else if (chip.GroupName == "Background") _draft.BackgroundMode = value;
 
-            var ok = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
-            if (!ok)
-            {
-                MessageBox.Show(Window.GetWindow(this),
-                    "Ese atajo ya lo esta usando otra aplicacion. Prueba con otro.",
-                    "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
-
-                _settings.Hotkey = previous;
-                WindowBehaviorService.Instance?.ApplyHotkey();
-                LoadFromState();
-                return;
-            }
-        }
-        else if (chip.GroupName == "CardSize")
-        {
-            _settings.CardSize = value;
-        }
-        else if (chip.GroupName == "StartModule")
-        {
-            _settings.StartModule = value;
-        }
-        else if (chip.GroupName == "Accent")
-        {
-            _settings.AccentColor = value;
-            ThemeService.ApplyAccent(value);
-        }
-        else if (chip.GroupName == "Refresh")
-        {
-            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
-            {
-                _settings.RefreshSeconds = seconds;
-            }
-        }
-        else if (chip.GroupName == "ThresholdProfile")
-        {
-            _settings.ThresholdProfile = value;
-        }
-        else if (chip.GroupName == "StatusInterval" && int.TryParse(value, out var seconds))
-        {
-            _settings.StatusIntervalSeconds = seconds;
-        }
-        else if (chip.GroupName == "Background")
-        {
-            _settings.BackgroundMode = value;
-        }
-
-        _settings.Save();
+        MarkPending();
     }
 
-    // ===================== Juegos =====================
+        // ===================== Juegos =====================
 
     private void ConfigureFolders_Click(object sender, RoutedEventArgs e)
     {
@@ -379,20 +470,18 @@ public partial class SettingsView : UserControl
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show(Window.GetWindow(this),
-            "Se restableceran los ajustes y se quitara el arranque con Windows. Tus juegos, carpetas y comandos no se tocan.",
+            "Se prepararan los valores por defecto. Los cambios no se aplicaran hasta pulsar Guardar.",
             "Restablecer ajustes", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
         if (result != MessageBoxResult.Yes) return;
 
-        _settings.Reset();
-        StartupService.SetEnabled(false, false);
-        WindowBehaviorService.Instance?.ApplyAll();
-        ThemeService.ApplyAccent(_settings.AccentColor);
-
+        _draft = new AppSettingsService();
+        _draftStartupEnabled = false;
         LoadFromState();
+        MarkPending();
     }
 
-    private void UpdateDataSummaries()
+        private void UpdateDataSummaries()
     {
         var covers = FormatSize(GetCoversSize());
         DataRow.Tag = AppSettingsService.AppFolder;
@@ -488,7 +577,7 @@ public partial class SettingsView : UserControl
         ApplyUpdateButton.Visibility = update.Status == UpdateStatus.Available ? Visibility.Visible : Visibility.Collapsed;
         ApplyUpdateButton.IsEnabled = !update.IsBusy;
         CheckUpdateButton.IsEnabled = !update.IsBusy;
-        UpdateSourceRow.Tag = _settings.UpdateSource;
+        UpdateSourceRow.Tag = _draft.UpdateSource;
     }
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e) =>
@@ -502,17 +591,17 @@ public partial class SettingsView : UserControl
         using var dialog = new WinForms.FolderBrowserDialog
         {
             Description = "Selecciona la carpeta donde se publican las versiones (la salida de publish.ps1)",
-            SelectedPath = _settings.UpdateSource
+            SelectedPath = _draft.UpdateSource
         };
 
         if (dialog.ShowDialog() != WinForms.DialogResult.OK) return;
 
-        _settings.UpdateSource = dialog.SelectedPath;
-        _settings.Save();
+        _draft.UpdateSource = dialog.SelectedPath;
+        MarkPending();
         RefreshUpdateRow();
     }
 
-    private void ChooseBackgroundImage_Click(object sender, RoutedEventArgs e)
+        private void ChooseBackgroundImage_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -521,16 +610,18 @@ public partial class SettingsView : UserControl
         };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
 
-        _settings.BackgroundImagePath = dialog.FileName;
-        _settings.BackgroundMode = "image";
-        _settings.Save();
+        _draft.BackgroundImagePath = dialog.FileName;
+        _draft.BackgroundMode = "image";
         LoadFromState();
+        MarkPending();
     }
 
-    private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_loading) return;
-        _settings.BackgroundOpacity = e.NewValue;
-        _settings.Save();
+        _draft.BackgroundOpacity = e.NewValue;
+        MarkPending();
+    }
+
     }
 }
