@@ -1,24 +1,28 @@
-> **ESTADO ACTUALIZADO — 2026-11-11**
+> **ESTADO ACTUALIZADO — 2026-11-12**
 >
-> La parte principal de este README conserva un análisis histórico de 2026-11-06 para no perder decisiones, contexto y pruebas propuestas. Sus estados por módulo, versiones y afirmaciones sobre dependencias no representan necesariamente el estado actual. Para el estado contrastado con código, prevalece este bloque.
+> La parte principal de este README conserva un analisis historico de 2026-11-06 para no perder decisiones, contexto y pruebas propuestas. Sus estados por modulo y afirmaciones sobre dependencias no representan necesariamente el estado actual. Para el estado contrastado con codigo, prevalece este bloque.
 >
 > | Campo | Estado actual comprobado |
 > |---|---|
-> | Rama de referencia | `main` |
-> | Commit de código auditado | `5c621accde912fc8dda48873fb44d4d93857901a` |
-> | Versión | `0.1.53` |
+> | Rama de implementacion | `feature/settings-centralized-management` |
+> | Commit de implementacion | `1074ceeb28c7cb6ca2bb455500d992a84c73017d` |
+> | Version | `0.1.54` |
 > | Framework | `net10.0-windows10.0.19041.0` |
-> | Módulos registrados | 13 |
-> | Velopack | Declarado en Launcher.csproj, versión 1.2.161 |
-> | Build / pruebas | No ejecutados en esta auditoría |
+> | Modulos registrados | 13 |
+> | Velopack | Declarado en Launcher.csproj, version 1.2.161 |
+> | Build / pruebas | No ejecutados: el entorno de trabajo no dispone del SDK .NET ni de Windows/WPF |
+>
+> **Settings — implementacion inicial en la rama de trabajo:** pagina vertical con navegacion lateral, categoria activa al desplazar, sesion temporal y botones Guardar/Descartar. La sesion incluye `config.json`, `settings.json`, `imagegen.json`, `models.json`, el registro de inicio de Windows y la credencial de Civitai en el Administrador de credenciales. Los cambios se aplican a los modulos tras guardar.
+>
+> **Limites pendientes de validar:** el guardado coordinado entre varios destinos usa escritura atomica por archivo y rollback compensatorio ante errores detectados; no es una transaccion atomica frente a un corte de energia durante el proceso. SteamApiKey sigue almacenada en `settings.json`. No se ha compilado ni probado visualmente en Windows. Los valores compartidos ya muestran su alcance; no hay todavia parametros con sobrescrituras globales implementadas.
 >
 > **Módulos registrados:** Dashboard, Games, Folders, Media, Music, Network, ImageGen, Models, Commands, Devices, Monitor, Processes y Settings.
 >
 > **Elementos no registrados:** SearchModule implementa IModule pero no se registra en MainWindow. AssistantWindow existe como ventana independiente, sin AssistantModule.
 >
-> **Hallazgos estáticos prioritarios:** SteamApiKey en JSON; autologin web que permite HTTP y no fija el origen tras redirecciones; LocalSend acepta certificados sin validación; persistencia JSON heterogénea; sesiones Playwright sin cierre explícito visible; recursos CoreAudio sin liberación explícita; comparación de rutas por prefijo en la biblioteca musical; muestreo de sistema potencialmente duplicado/síncrono. Ver `Docs/Launcher-Vault/03-Audit/Findings.md`.
+> **Hallazgos estáticos prioritarios:** SteamApiKey en JSON; autologin web que permite HTTP y no fija el origen tras redirecciones; LocalSend acepta certificados sin validacion; persistencia JSON heterogenea; sesiones Playwright sin cierre explicito visible; recursos CoreAudio sin liberacion explicita; comparacion de rutas por prefijo en la biblioteca musical; muestreo de sistema potencialmente duplicado/sincrono. Ver `Docs/Launcher-Vault/03-Audit/Findings.md`.
 >
-> El análisis histórico que sigue es contexto, no una especificación vigente. Cuando contradiga el bloque actual o el código del commit auditado, se considera superado y debe revalidarse antes de implementar.
+> El analisis historico que sigue es contexto, no una especificacion vigente. Cuando contradiga el bloque actual o el codigo de la rama de implementacion, se considera superado y debe revalidarse antes de implementar.
 
 ---
 
