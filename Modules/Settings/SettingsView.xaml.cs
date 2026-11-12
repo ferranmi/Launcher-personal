@@ -173,6 +173,32 @@ public partial class SettingsView : UserControl
         }
     }
 
+    public bool HasUnsavedChanges => HasPendingChanges();
+
+    public bool ConfirmPendingChanges(string context)
+    {
+        if (!HasPendingChanges()) return true;
+
+        var result = MessageBox.Show(Window.GetWindow(this),
+            $"Hay cambios sin guardar en Configuracion. Quieres guardarlos antes de {context}?\n\n" +
+            "Si eliges No, se descartaran. Si eliges Cancelar, continuaras editando.",
+            "Cambios pendientes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            SaveChanges_Click(this, new RoutedEventArgs());
+            return !HasPendingChanges();
+        }
+
+        if (result == MessageBoxResult.No)
+        {
+            DiscardPendingChanges();
+            return true;
+        }
+
+        return false;
+    }
+
     private bool HasPendingChanges()
     {
         return !string.Equals(JsonSerializer.Serialize(_draft), JsonSerializer.Serialize(_settings), StringComparison.Ordinal) ||
@@ -192,14 +218,18 @@ public partial class SettingsView : UserControl
 
     private void DiscardChanges_Click(object sender, RoutedEventArgs e)
     {
-        if (HasPendingChanges())
-        {
-            var result = MessageBox.Show(Window.GetWindow(this),
-                "Se perderan todos los cambios pendientes. Continuar?",
-                "Descartar cambios", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (result != MessageBoxResult.Yes) return;
-        }
+        if (!HasPendingChanges()) return;
 
+        var result = MessageBox.Show(Window.GetWindow(this),
+            "Se perderan todos los cambios pendientes. Continuar?",
+            "Descartar cambios", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        DiscardPendingChanges();
+    }
+
+    private void DiscardPendingChanges()
+    {
         _draft = CloneObject(_settings);
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
