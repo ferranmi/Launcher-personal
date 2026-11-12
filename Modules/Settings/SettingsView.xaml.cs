@@ -412,7 +412,6 @@ public partial class SettingsView : UserControl
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         _draftModels = CloneObject(Launcher.Modules.Models.ModelsSettings.Instance);
         InitializeModelsEditors();
-        LoadModelsSettingsControls();
         _draftStartupEnabled = StartupService.IsEnabled();
         LoadFromState();
         MarkPending();
