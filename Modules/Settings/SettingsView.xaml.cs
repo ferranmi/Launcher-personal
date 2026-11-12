@@ -937,6 +937,7 @@ public partial class SettingsView : UserControl
         var modelsControlsDirty = _modelsControlsDirty;
 
         _draft = new AppSettingsService();
+        _draft.LegacyDeviceAppsMigrated = true; // El reset no debe reimportar rutas del archivo legado.
         _draftStartupEnabled = false;
         LoadFromState();
 
