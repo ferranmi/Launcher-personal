@@ -113,6 +113,12 @@ public partial class ModelsView : UserControl
         }
     }
 
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        TabDashboard.IsChecked = true;
+        Launcher.Modules.Settings.SettingsView.OpenSection("models");
+    }
+
     // ===================== Pestanas =====================
 
     private void Tab_Checked(object sender, RoutedEventArgs e)
