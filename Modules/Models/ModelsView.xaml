@@ -63,7 +63,7 @@
             <RadioButton Content="Wildcards" Tag="wildcards" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton x:Name="TabReferences" Content="Referencias" Tag="references" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
             <RadioButton Content="Parejas y trios" Tag="combos" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" />
-            <RadioButton Content="Configuracion" Tag="settings" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="Tab_Checked" Visibility="Collapsed" />
+            <RadioButton Content="Ajustes" Tag="settings" GroupName="ModelsTabs" Style="{StaticResource ChipStyle}" Checked="OpenSettings_Click" />
         </WrapPanel>
 
         <!-- ===================== CONTENIDO ===================== -->
