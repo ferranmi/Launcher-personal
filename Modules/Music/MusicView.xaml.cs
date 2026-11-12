@@ -55,6 +55,7 @@ public partial class MusicView : UserControl
 
         _loadedOnce = true;
         _loadedFolder = AppSettingsService.Instance.MusicFolder;
+        _reloadFolderPending = false;
         await _library.LoadAsync();
         UpdateState();
     }
