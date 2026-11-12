@@ -32,8 +32,10 @@ public partial class MediaView : UserControl
         _mixer.Sessions.CollectionChanged += (_, _) => UpdateMixerEmptyState();
         _mixer.PropertyChanged += Mixer_PropertyChanged;
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettingsService.Instance.MediaRefreshSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
+        AppSettingsService.Instance.Changed += (_, _) =>
+            _timer.Interval = TimeSpan.FromSeconds(Math.Clamp(AppSettingsService.Instance.MediaRefreshSeconds, 1, 5));
 
         Loaded += MediaView_Loaded;
         Unloaded += MediaView_Unloaded;
