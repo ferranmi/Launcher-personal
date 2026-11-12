@@ -6,7 +6,7 @@
 > |---|---|
 > | Rama de referencia | `feature/dashboard-cpu-gpu-thermal` (trabajo en curso; basada en `main`) |
 > | Commit de código auditado | `5c621accde912fc8dda48873fb44d4d93857901a` |
-> | Versión | `0.1.56` |
+> | Versión | `0.1.57` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Módulos registrados | 13 |
 > | Velopack | Declarado en Launcher.csproj, versión 1.2.161 |
@@ -33,6 +33,14 @@
 > - No se ha ejecutado build ni pruebas en este entorno.
 
 
+> **AJUSTE VISUAL — CPU/GPU en Dashboard (0.1.57)**
+>
+> - CPU y GPU muestran rendimiento y temperatura en una misma linea.
+> - La segunda linea queda reservada al modelo; CPU anade nucleos/hilos en formato compacto (4C / 8T).
+> - Los nombres de CPU y GPU se simplifican para evitar informacion redundante.
+> - RAM y VRAM permanecen sin cambios.
+> - **Pendiente de verificacion:** compilacion y prueba visual en Windows con tarjetas pequenas y nombres de hardware reales.
+>
 > **AMPLIACION — Identificacion de hardware en Dashboard (0.1.56)**
 >
 > - CPU: se anaden modelo, nucleos e hilos al detalle existente; se conservan uso y temperatura.
