@@ -125,7 +125,7 @@ public partial class ImageGenView : UserControl
             if (state == SdServerState.Offline && _settings.AutoStartServer && !_autoStartTried)
             {
                 _autoStartTried = true;
-                _ = StartServerAsync(askPath: false);
+                _ = StartServerAsync();
             }
             return false;
         }
