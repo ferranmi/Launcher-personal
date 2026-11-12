@@ -5,7 +5,7 @@
 > | Campo | Estado actual comprobado |
 > |---|---|
 > | Rama de implementacion | `feature/settings-centralized-management` |
-> | Commit de implementacion | `9764c760846964e9ede7080e6d7c1e3cb6351784` |
+> | Commit de implementacion | `dea75bd58870c5f282a64cd4b39313056d127c92` |
 > | Version | `0.1.54` |
 > | Framework | `net10.0-windows10.0.19041.0` |
 > | Modulos registrados | 13 |
