@@ -1041,7 +1041,7 @@ public partial class SettingsView : UserControl
 
     private void DeviceVendorPath_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_loading || sender is not TextBox { Tag: string keyword } box) return;
+        if (_loading || sender is not TextBox box || box.Tag is not string keyword) return;
 
         var path = box.Text.Trim();
         if (path.Length == 0) _draft.DeviceVendorApps.Remove(keyword);
