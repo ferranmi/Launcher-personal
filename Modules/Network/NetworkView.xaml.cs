@@ -29,8 +29,10 @@ public partial class NetworkView : UserControl
         _staged.CollectionChanged += (_, _) => UpdateStagingSummary();
 
         // "tailscale status --json" es barato: 10 s basta para ver quien se conecta o desconecta.
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AppSettingsService.Instance.NetworkRefreshSeconds) };
         _timer.Tick += async (_, _) => await RefreshAsync();
+        AppSettingsService.Instance.Changed += (_, _) =>
+            _timer.Interval = TimeSpan.FromSeconds(Math.Clamp(AppSettingsService.Instance.NetworkRefreshSeconds, 5, 30));
 
         Loaded += async (_, _) =>
         {
