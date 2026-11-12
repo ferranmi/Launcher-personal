@@ -64,7 +64,7 @@ public partial class ProcessesView : UserControl
     }
 
     private static TimeSpan CurrentInterval() =>
-        TimeSpan.FromSeconds(AppSettingsService.Instance.GetRefreshSeconds(AutoRefreshSeconds));
+        TimeSpan.FromSeconds(AppSettingsService.Instance.GetProcessesRefreshSeconds(AutoRefreshSeconds));
 
     private void ApplyInterval()
     {
