@@ -82,7 +82,7 @@ public partial class SettingsView : UserControl
         SelectChip(ProcessesOverridePanel, _draft.ProcessesRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
         BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
-        BackgroundImageRow.Tag = _draft.BackgroundImagePath ?? "Sin imagen seleccionada";
+        BackgroundImageRow.Tag = $"GLOBAL · {(_draft.BackgroundImagePath ?? "Sin imagen seleccionada")}";
         MusicFolderBox.Text = _draft.MusicFolder;
 
 
@@ -1018,7 +1018,7 @@ public partial class SettingsView : UserControl
         ApplyUpdateButton.Visibility = update.Status == UpdateStatus.Available ? Visibility.Visible : Visibility.Collapsed;
         ApplyUpdateButton.IsEnabled = !update.IsBusy;
         CheckUpdateButton.IsEnabled = !update.IsBusy;
-        UpdateSourceRow.Tag = _draft.UpdateSource;
+        UpdateSourceRow.Tag = $"GLOBAL · {_draft.UpdateSource}";
     }
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e) =>
@@ -1055,7 +1055,7 @@ public partial class SettingsView : UserControl
         _draft.BackgroundMode = "image";
         _loading = true;
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
-        BackgroundImageRow.Tag = _draft.BackgroundImagePath;
+        BackgroundImageRow.Tag = $"GLOBAL · {_draft.BackgroundImagePath}";
         _loading = false;
         MarkPending();
     }
