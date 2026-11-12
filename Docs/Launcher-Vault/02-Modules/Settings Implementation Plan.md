@@ -63,12 +63,12 @@ Los dialogos de configuracion de Steam, ImageGen y otras areas deben migrarse a 
 ## Estado de ejecucion (2026-11-12)
 
 ### Fase 0 — Auditoria
-<badge>Completada estaticamente</badge>
+**Estado:** Completada estaticamente
 
 Inventario inicial de config.json, settings.json, imagegen.json, models.json y registro Run.
 
 ### Fase 1 — Sesion de edicion y persistencia
-<badge color="success">Implementada en codigo; sin compilar</badge>
+**Estado:** Implementada en codigo; sin compilar
 
 - Copias de trabajo para AppSettings, bibliotecas de Games, ImageGen y Models.
 - Guardado coordinado de JSON, registro Run y credencial Civitai.
@@ -80,7 +80,7 @@ Inventario inicial de config.json, settings.json, imagegen.json, models.json y r
 - MusicFolder incorporado a la sesion.
 
 ### Fase 2 — Navegacion e interfaz
-<badge color="success">Primera version implementada; sin validacion visual</badge>
+**Estado:** Primera version implementada; sin validacion visual
 
 - Sidebar de categorias.
 - Scroll continuo con saltos.
@@ -90,14 +90,14 @@ Inventario inicial de config.json, settings.json, imagegen.json, models.json y r
 - Los dialogos de Games e ImageGen siguen siendo modales, aunque editan borradores.
 
 ### Fase 3 — Ambitos y sobrescrituras
-<badge color="warning">Parcial</badge>
+**Estado:** Parcial
 
 - Se identifica el intervalo Monitor/Procesos como COMPARTIDO.
 - Los parametros globales principales se marcan como GLOBAL.
 - No se ha creado aun un ejemplo de sobrescritura por modulo ni la resolucion de herencia global/individual.
 
 ### Fase 4 — Validacion
-<badge color="warning">Pendiente</badge>
+**Estado:** Pendiente
 
 No se ha ejecutado dotnet build ni pruebas manuales en Windows. No declarar terminado hasta validar guardado, descarte, fallos parciales, cierre, registro, credenciales y refresco de los modulos.
 
