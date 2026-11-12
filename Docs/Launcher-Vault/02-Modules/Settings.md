@@ -166,9 +166,12 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 - Core/Services/AppSettingsService.cs
 - Core/Services/LibraryPathsService.cs
 - Core/Services/WindowBehaviorService.cs
+- Modules/Games/ConfigureSyncFoldersWindow.xaml
 - Modules/Games/ConfigureSyncFoldersWindow.xaml.cs
+- Modules/Games/SteamAccountWindow.xaml
 - Modules/Games/SteamAccountWindow.xaml.cs
 - Modules/ImageGen/ImageGenSettings.cs
+- Modules/ImageGen/ImageGenSettingsWindow.xaml
 - Modules/ImageGen/ImageGenSettingsWindow.xaml.cs
 - Modules/Models/ModelsSettings.cs
 - Modules/Models/ModelsView.xaml
@@ -180,6 +183,8 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 - Modules/Processes/ProcessesView.xaml.cs
 - MainWindow.xaml.cs
 - Launcher.csproj
+- README.md
+- Docs/Launcher-Vault/02-Modules/Settings Implementation Plan.md
 
 ### Version
 
