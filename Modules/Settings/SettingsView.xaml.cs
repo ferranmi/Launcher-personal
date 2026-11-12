@@ -29,6 +29,7 @@ public partial class SettingsView : UserControl
     private Launcher.Core.Services.LibraryPathsService _draftLibraryPaths = new();
     private Launcher.Modules.ImageGen.ImageGenSettings _draftImageGen = new();
     private Launcher.Modules.Models.ModelsSettings _draftModels = new();
+    private readonly Dictionary<string, TextBox> _deviceVendorPathBoxes = new(StringComparer.OrdinalIgnoreCase);
     private bool _modelsControlsDirty;
     private bool _draftStartupEnabled;
 
@@ -38,6 +39,7 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        BuildDeviceVendorEditors();
         _draft = CloneObject(_settings);
         _draftLibraryPaths = CloneObject(LibraryPathsService.Instance);
         _draftImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
@@ -49,6 +51,49 @@ public partial class SettingsView : UserControl
         LoadFromState();
         MarkPending();
         Loaded += SettingsView_Loaded;
+    }
+
+    private void BuildDeviceVendorEditors()
+    {
+        var rowStyle = (Style)FindResource("SettingRow");
+        var textBoxStyle = (Style)FindResource("TextBoxStyle");
+        var buttonStyle = (Style)FindResource("SecondaryButtonStyle");
+
+        foreach (var vendor in DeviceService.KnownVendors)
+        {
+            var pathBox = new TextBox
+            {
+                Style = textBoxStyle,
+                Tag = vendor.Keyword,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            pathBox.TextChanged += DeviceVendorPath_TextChanged;
+
+            var browseButton = new Button
+            {
+                Content = "...",
+                Style = buttonStyle,
+                Tag = pathBox
+            };
+            browseButton.Click += BrowseDeviceVendorApp_Click;
+
+            var grid = new Grid { Width = 330 };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.Children.Add(pathBox);
+            Grid.SetColumn(browseButton, 1);
+            grid.Children.Add(browseButton);
+
+            DeviceVendorAppsPanel.Children.Add(new HeaderedContentControl
+            {
+                Style = rowStyle,
+                Header = vendor.Label,
+                Tag = "Ruta del ejecutable. Vacia = deteccion automatica.",
+                Content = grid
+            });
+
+            _deviceVendorPathBoxes[vendor.Keyword] = pathBox;
+        }
     }
 
     /// <summary>Refleja el estado real (registro + config.json) en los controles.</summary>
@@ -78,12 +123,16 @@ public partial class SettingsView : UserControl
         SelectChip(StartModulePanel, _draft.StartModule);
         SelectChip(AccentPanel, _draft.AccentColor);
         SelectChip(RefreshPanel, _draft.RefreshSeconds.ToString(CultureInfo.InvariantCulture));
+        SelectChip(MediaRefreshPanel, _draft.MediaRefreshSeconds.ToString(CultureInfo.InvariantCulture));
+        SelectChip(NetworkRefreshPanel, _draft.NetworkRefreshSeconds.ToString(CultureInfo.InvariantCulture));
         SelectChip(MonitorOverridePanel, _draft.MonitorRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
         SelectChip(ProcessesOverridePanel, _draft.ProcessesRefreshSecondsOverride?.ToString(CultureInfo.InvariantCulture) ?? "inherit");
         SelectChip(BackgroundPanel, _draft.BackgroundMode);
         BackgroundOpacitySlider.Value = _draft.BackgroundOpacity;
         BackgroundImageRow.Tag = "GLOBAL · " + (_draft.BackgroundImagePath ?? "Sin imagen seleccionada");
         MusicFolderBox.Text = _draft.MusicFolder;
+        foreach (var (keyword, box) in _deviceVendorPathBoxes)
+            box.Text = _draft.DeviceVendorApps.TryGetValue(keyword, out var path) ? path : "";
 
 
         UpdateSyncFoldersSummary();
@@ -628,7 +677,10 @@ public partial class SettingsView : UserControl
             "monitor" => MonitorSection,
             "background" => BackgroundSection,
             "games" => GamesSection,
+            "devices" => DevicesSection,
+            "media" => MediaSection,
             "music" => MusicSection,
+            "network" => NetworkSection,
             "imagegen" => ImageGenSection,
             "models" => ModelsSection,
             "updates" => UpdatesSection,
@@ -652,7 +704,8 @@ public partial class SettingsView : UserControl
         var sections = new (string Id, FrameworkElement Element)[]
         {
             ("startup", StartupSection), ("window", WindowSection), ("monitor", MonitorSection),
-            ("background", BackgroundSection), ("games", GamesSection), ("music", MusicSection), ("imagegen", ImageGenSection),
+            ("background", BackgroundSection), ("games", GamesSection), ("devices", DevicesSection),
+            ("media", MediaSection), ("music", MusicSection), ("network", NetworkSection), ("imagegen", ImageGenSection),
             ("models", ModelsSection), ("updates", UpdatesSection), ("dashboard", DashboardSection), ("data", DataSection),
             ("about", AboutSection)
         };
@@ -750,6 +803,10 @@ public partial class SettingsView : UserControl
         else if (chip.GroupName == "Refresh" &&
                  double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
             _draft.RefreshSeconds = seconds;
+        else if (chip.GroupName == "MediaRefresh" && int.TryParse(value, out var mediaSeconds))
+            _draft.MediaRefreshSeconds = mediaSeconds;
+        else if (chip.GroupName == "NetworkRefresh" && int.TryParse(value, out var networkSeconds))
+            _draft.NetworkRefreshSeconds = networkSeconds;
         else if (chip.GroupName == "MonitorRefreshOverride")
             _draft.MonitorRefreshSecondsOverride = value == "inherit"
                 ? null
@@ -980,6 +1037,32 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() != WinForms.DialogResult.OK) return;
         MusicFolderBox.Text = dialog.SelectedPath;
+    }
+
+    private void DeviceVendorPath_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_loading || sender is not TextBox { Tag: string keyword } box) return;
+
+        var path = box.Text.Trim();
+        if (path.Length == 0) _draft.DeviceVendorApps.Remove(keyword);
+        else _draft.DeviceVendorApps[keyword] = path;
+
+        MarkPending();
+    }
+
+    private void BrowseDeviceVendorApp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not TextBox box) return;
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Selecciona el ejecutable de la aplicacion",
+            Filter = "Ejecutables (*.exe)|*.exe|Todos los archivos (*.*)|*.*"
+        };
+
+        if (File.Exists(box.Text)) dialog.InitialDirectory = Path.GetDirectoryName(box.Text);
+        if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            box.Text = dialog.FileName;
     }
 
     private void ConfigureImageGen_Click(object sender, RoutedEventArgs e)
