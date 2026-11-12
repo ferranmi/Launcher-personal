@@ -132,6 +132,7 @@
                     <Button Content="Monitor y procesos" Tag="monitor" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Fondo" Tag="background" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Juegos" Tag="games" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
+                    <Button Content="Musica" Tag="music" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Imagenes IA" Tag="imagegen" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Modelos" Tag="models" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
                     <Button Content="Actualizaciones" Tag="updates" Style="{StaticResource SecondaryButtonStyle}" Click="NavigateSection_Click" />
@@ -304,6 +305,21 @@
                     <Button x:Name="RepairCoversButton" Content="Reparar faltantes" Style="{StaticResource ActionButton}"
                             Click="RepairCovers_Click" />
                 </StackPanel>
+            </HeaderedContentControl>
+
+            <TextBlock Text="MUSICA" x:Name="MusicSection" Style="{StaticResource SectionTitle}" />
+            <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Carpeta de musica"
+                                    Tag="Carpeta de la biblioteca musical que utiliza el modulo Musica.">
+                <Grid Width="330">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="MusicFolderBox" Style="{StaticResource TextBoxStyle}"
+                             TextChanged="MusicFolder_TextChanged" Margin="0,0,8,0" />
+                    <Button Grid.Column="1" Content="..." Style="{StaticResource SecondaryButtonStyle}"
+                            Click="BrowseMusicFolder_Click" />
+                </Grid>
             </HeaderedContentControl>
 
             <TextBlock Text="IMAGENES IA" x:Name="ImageGenSection" Style="{StaticResource SectionTitle}" />
