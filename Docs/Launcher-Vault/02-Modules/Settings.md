@@ -156,6 +156,9 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 
 8. **Estado operativo separado de preferencias.** Models mantiene en su modulo `IgnoredReferences` y `PendingCorrections` porque son datos de trabajo; `LibraryView` y `LibrarySort` siguen como controles de uso de la biblioteca. En AppSettings, `LastModule`, coordenadas/tamano de ventana y `SidebarCollapsed` son estado de interfaz, no preferencias de modulo administradas por Settings. ImageGen conserva `LastParams` y las rutas descubiertas por el servidor como estado/runtime; el guardado central sincroniza esos valores para no sobrescribirlos con una copia antigua.
 
+9. **Datos de los modulos no son preferencias.** `commands.json`, `folders.json`, `media_apps.json`, `games.json` e `ignored-games.json` contienen accesos directos, catalogos o estado de biblioteca. Se mantienen editables desde sus modulos; no se han convertido en preferencias globales. Si el requisito de centralizacion tambien incluye administrar esos registros, debe tratarse como un alcance distinto.
+10. **Acciones externas de ImageGen.** El boton que anade `--api` a `webui-user.bat` sigue siendo una accion inmediata con confirmacion y copia `.bak`; no forma parte del borrador JSON.
+
 ### Archivos funcionales tocados
 
 - Modules/Settings/SettingsView.xaml
@@ -169,6 +172,12 @@ Auditoria estatica sobre main. No se ha ejecutado dotnet build, WPF ni pruebas m
 - Modules/ImageGen/ImageGenSettingsWindow.xaml.cs
 - Modules/Models/ModelsSettings.cs
 - Modules/Models/ModelsView.xaml
+- Modules/Models/ModelsView.xaml.cs
+- Modules/Music/MusicView.xaml
+- Modules/Music/MusicView.xaml.cs
+- Modules/ImageGen/ImageGenView.xaml.cs
+- Modules/Monitor/MonitorView.xaml.cs
+- Modules/Processes/ProcessesView.xaml.cs
 - MainWindow.xaml.cs
 - Launcher.csproj
 
