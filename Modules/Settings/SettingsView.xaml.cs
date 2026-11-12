@@ -817,7 +817,7 @@ public partial class SettingsView : UserControl
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show(Window.GetWindow(this),
-            "Se prepararan los valores por defecto. Los cambios no se aplicaran hasta pulsar Guardar.",
+            "Se prepararan los valores por defecto de config.json y se desactivara el inicio con Windows. Los cambios no se aplicaran hasta pulsar Guardar.",
             "Restablecer ajustes", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
         if (result != MessageBoxResult.Yes) return;
