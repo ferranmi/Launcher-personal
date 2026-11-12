@@ -567,14 +567,8 @@ public partial class ImageGenView : UserControl
 
     private void Library_Click(object sender, RoutedEventArgs e) => Library.Visibility = Visibility.Visible;
 
-    private async void InstallSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ImageGenSettingsWindow { Owner = Window.GetWindow(this) };
-        dialog.ShowDialog();
-
-        // La URL o la instalacion pueden haber cambiado: volvemos a conectar.
-        if (dialog.Saved) await ConnectAsync();
-    }
+    private void InstallSettings_Click(object sender, RoutedEventArgs e) =>
+        Launcher.Modules.Settings.SettingsView.OpenSection("imagegen");
 
     // ===================== Preview / galeria =====================
 
