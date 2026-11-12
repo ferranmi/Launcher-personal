@@ -470,7 +470,7 @@ public partial class SettingsView : UserControl
     {
         if (!HasPendingChanges()) return;
 
-        if (!TryReadModelsSettingsControls(out var modelsError))
+        if (_modelsControlsDirty && !TryReadModelsSettingsControls(out var modelsError))
         {
             MessageBox.Show(Window.GetWindow(this), modelsError, "Configuracion de Models",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
