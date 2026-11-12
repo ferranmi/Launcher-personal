@@ -519,7 +519,7 @@ Los siguientes puntos pertenecian a un snapshot anterior y no deben usarse como 
 |---|---|---|
 | B1 | AppSettingsService.Reset contenia declaraciones de miembros dentro del metodo | Superado: el metodo actual contiene asignaciones y persiste al final. Ademas se ampliaron los valores restablecidos en 0.1.55. |
 | B2 | Faltaba la referencia NuGet de Velopack | Superado: Launcher.csproj declara Velopack 1.2.161. |
-| B3 | README contenia marcadores de conflicto | No se ha confirmado su ausencia; revisar antes de merge. |
+| B3 | README contenia marcadores de conflicto | No se observan marcadores de conflicto en el archivo actual. |
 
 Esto no equivale a una compilacion satisfactoria. Sigue pendiente ejecutar dotnet build en Windows con .NET 10 SDK.
 
