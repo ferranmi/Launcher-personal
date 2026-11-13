@@ -601,7 +601,7 @@ public partial class SettingsView : UserControl
             !_draftImageGen.TrySave() ||
             !_draftModels.TrySave())
         {
-            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup, restoreStartup: false);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido guardar uno de los archivos de configuracion. Los cambios siguen pendientes." +
                 (restored ? "" : "\nATENCION: tampoco se ha podido restaurar completamente el estado anterior. Revisa los archivos de configuracion."),
@@ -609,10 +609,13 @@ public partial class SettingsView : UserControl
             return;
         }
 
-        // El registro de Windows tambien forma parte del guardado confirmado.
-        if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
+        // El registro solo se toca si realmente cambia el estado de inicio o el argumento minimizado.
+        // Un fallo de permisos en el registro no debe bloquear cambios ajenos al arranque.
+        var startupChanged = previousStartup != _draftStartupEnabled ||
+                             (_draftStartupEnabled && previousApp.StartMinimized != _draft.StartMinimized);
+        if (startupChanged && !StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
         {
-            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup, restoreStartup: true);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes." +
                 (restored ? "" : "\nATENCION: tampoco se ha podido restaurar completamente el estado anterior. Revisa los archivos de configuracion."),
@@ -629,7 +632,7 @@ public partial class SettingsView : UserControl
         var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         if (!hotkeyOk)
         {
-            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup, startupChanged);
             MessageBox.Show(Window.GetWindow(this),
                 "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados." +
                 (restored ? "" : "\nATENCION: la restauracion no se ha completado por completo."),
@@ -641,7 +644,7 @@ public partial class SettingsView : UserControl
         if ((apiKey.Length > 0 || ModelsClearApiKeyCheck.IsChecked == true) &&
             !Launcher.Modules.Models.CivitaiService.Instance.SaveApiKey(ModelsClearApiKeyCheck.IsChecked == true ? "" : apiKey))
         {
-            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup, startupChanged);
             MessageBox.Show(Window.GetWindow(this),
                 "No se ha podido guardar la credencial de Civitai en el Administrador de credenciales de Windows." +
                 (restored ? "" : "\nATENCION: la restauracion no se ha completado por completo."),
@@ -673,7 +676,8 @@ public partial class SettingsView : UserControl
         LibraryPathsService previousLibraries,
         Launcher.Modules.ImageGen.ImageGenSettings previousImageGen,
         Launcher.Modules.Models.ModelsSettings previousModels,
-        bool previousStartup)
+        bool previousStartup,
+        bool restoreStartup)
     {
         // Intentar restaurar todos los archivos, aunque uno falle.
         var restored = true;
@@ -681,7 +685,8 @@ public partial class SettingsView : UserControl
         restored &= previousLibraries.TrySave();
         restored &= previousImageGen.TrySave();
         restored &= previousModels.TrySave();
-        restored &= StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
+        if (restoreStartup)
+            restored &= StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
 
         CopyObject(previousApp, _settings);
         CopyObject(previousLibraries, LibraryPathsService.Instance);
