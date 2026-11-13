@@ -3,7 +3,7 @@ title: Settings
 type: module-reference
 project: Launcher
 source_of_truth: feature/settings-centralized-management
-last_reviewed: 2026-11-12
+last_reviewed: 2026-11-13
 status: implemented-unverified
 tags: [launcher, module, settings, configuration]
 ---
@@ -44,7 +44,9 @@ Los modulos pueden abrir una categoria concreta mediante SettingsView.OpenSectio
 
 - Al abrir Settings se crean copias de trabajo de los valores actuales.
 - Los controles modifican las copias, no los servicios activos.
-- Guardar valida los campos, persiste los destinos y despues notifica a los modulos.
+- Guardar valida los campos y escribe primero los borradores en sus destinos, sin modificar los servicios activos durante la persistencia.
+- Solo cuando terminan los archivos y el registro, publica los valores en memoria y notifica a los modulos.
+- Si falla un destino, intenta restaurar todos los destinos anteriores y conserva los cambios pendientes; informa si la restauracion tampoco se completa.
 - Descartar vuelve a copiar los valores activos.
 - Navegar entre categorias no guarda.
 - Al salir de Settings o cerrar Launcher con cambios pendientes se pregunta si guardar, descartar o seguir editando.
@@ -63,14 +65,15 @@ Los modulos pueden abrir una categoria concreta mediante SettingsView.OpenSectio
 | CivitaiService | Administrador de credenciales de Windows | API Key de Civitai |
 | device_apps.json | Archivo legado | Se importa una sola vez a config.json; se conserva como respaldo |
 
-Los archivos JSON se escriben a un temporal y se reemplazan individualmente. El guardado coordinado incluye rollback compensatorio si se detecta un error, pero no es una transaccion atomica entre varios archivos ante un corte de energia.
+Los archivos JSON se escriben a un temporal y se reemplazan individualmente. Los objetos de borrador se persisten antes de publicar los valores en memoria. El guardado coordinado incluye rollback compensatorio si se detecta un error, pero no es una transaccion atomica entre varios archivos y el registro ante un corte de energia.
 
 ## Parametros por modulo
 
 ### Globales y compartidos
 
 - Arranque: iniciar minimizado y modulo inicial.
-- Ventana: siempre encima, cerrar a la bandeja, recordar tamano/posicion, atajo global y ancho de sidebar.
+- Ventana: siempre encima, cerrar a la bandeja, recordar tamano/posicion y atajo global.
+- El ancho del sidebar y los layouts se conservan como preferencias de interfaz/runtime; no se editan desde Settings.
 - Tema: color de acento.
 - Fondo: modo, imagen e intensidad.
 - Monitor y Procesos: RefreshSeconds compartido, con overrides opcionales por modulo.
