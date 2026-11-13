@@ -3,7 +3,7 @@ title: Settings Implementation Plan
 type: implementation-plan
 project: Launcher
 source_of_truth: feature/settings-centralized-management
-last_reviewed: 2026-11-12
+last_reviewed: 2026-11-13
 status: implemented-unverified
 tags: [launcher, settings, implementation, audit]
 ---
@@ -48,13 +48,13 @@ No se trasladan a Settings bibliotecas, accesos directos, colecciones, archivos 
 1. Al abrir Settings se crean copias de trabajo.
 2. Los controles modifican los borradores.
 3. Cambiar de categoria no persiste cambios.
-4. Guardar valida, persiste y despues notifica a los modulos.
-5. Si una escritura falla, se intenta restaurar el estado persistido anterior y se conservan los cambios pendientes.
+4. Guardar valida y escribe primero los borradores en disco sin modificar los servicios activos; solo despues publica los valores en memoria y notifica a los modulos.
+5. Si una escritura falla, se intenta restaurar todos los destinos anteriores; se informa si el rollback no se completa y se conservan los cambios pendientes.
 6. Descartar recarga los valores activos.
 7. Al abandonar Settings o cerrar Launcher se pregunta si guardar, descartar o seguir editando.
 8. El registro Run y la credencial Civitai se aplican dentro del proceso de guardado.
 
-La persistencia temporal/reemplazo es individual por archivo. El rollback es compensatorio: no ofrece atomicidad de conjunto frente a un corte de energia.
+La persistencia temporal/reemplazo es individual por archivo. El rollback es compensatorio: no ofrece atomicidad de conjunto frente a un corte de energia. Los borradores se escriben antes de publicar los nuevos valores en memoria, para que los modulos sigan leyendo la configuracion confirmada durante la fase de persistencia.
 
 ## Integraciones implementadas
 
@@ -123,6 +123,8 @@ Documento: [[Settings Audit]].
 
 - Borradores para AppSettings, LibraryPaths, ImageGen y Models.
 - Guardado coordinado de JSON, registro Run y credencial Civitai.
+- Escritura inicial desde los objetos de borrador, sin mutar los servicios activos hasta completar los archivos y el registro.
+- Comparacion y sincronizacion separada de estado runtime de ventana, navegacion y layouts para evitar sobrescribir cambios externos.
 - Escritura temporal y reemplazo individual.
 - Rollback compensatorio ante errores detectados.
 - Notificacion de cambios despues del guardado.
@@ -173,7 +175,7 @@ No se ha ejecutado dotnet build ni pruebas manuales WPF en Windows. No considera
 
 ## Version y rama
 
-- Version: 0.1.55.
+- Version: 0.1.56.
 - Rama: feature/settings-centralized-management.
 - main no se ha modificado.
 - No se ha creado PR ni se ha fusionado.
