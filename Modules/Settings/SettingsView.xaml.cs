@@ -564,16 +564,15 @@ public partial class SettingsView : UserControl
         var previousImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         var previousStartup = StartupService.IsEnabled();
 
-        CopyObject(_draft, _settings);
-        CopyObject(_draftLibraryPaths, LibraryPathsService.Instance);
+        // Conserva los datos que ImageGen aprende del servidor mientras Settings esta abierto.
         SyncRuntimeImageGenState();
-        CopyImageGenSettings(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
-        CopyModelsConfig(_draftModels, Launcher.Modules.Models.ModelsSettings.Instance);
 
-        if (!_settings.TrySave(notifyChanged: false) ||
-            !LibraryPathsService.Instance.TrySave() ||
-            !Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave() ||
-            !Launcher.Modules.Models.ModelsSettings.Instance.TrySave())
+        // Primero se escriben los borradores. Los servicios activos siguen usando los valores
+        // confirmados hasta que todos los destinos persistentes han terminado correctamente.
+        if (!_draft.TrySave(notifyChanged: false) ||
+            !_draftLibraryPaths.TrySave() ||
+            !_draftImageGen.TrySave() ||
+            !_draftModels.TrySave())
         {
             RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
@@ -582,6 +581,22 @@ public partial class SettingsView : UserControl
             return;
         }
 
+        // El registro de Windows tambien forma parte del guardado confirmado.
+        if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
+        {
+            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            MessageBox.Show(Window.GetWindow(this),
+                "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
+                "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // Solo despues de persistir todos los destinos se publican los valores en memoria.
+        CopyObject(_draft, _settings);
+        CopyObject(_draftLibraryPaths, LibraryPathsService.Instance);
+        CopyImageGenSettings(_draftImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
+        CopyModelsConfig(_draftModels, Launcher.Modules.Models.ModelsSettings.Instance);
+
         var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         if (!hotkeyOk)
         {
@@ -589,15 +604,6 @@ public partial class SettingsView : UserControl
             MessageBox.Show(Window.GetWindow(this),
                 "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados.",
                 "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
-        {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
-            MessageBox.Show(Window.GetWindow(this),
-                "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
-                "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
