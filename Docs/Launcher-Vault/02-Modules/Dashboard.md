@@ -2,74 +2,51 @@
 title: "Dashboard"
 type: module-reference
 project: Launcher
-source_of_truth: GitHub main
-audit_commit: 5c621accde912fc8dda48873fb44d4d93857901a
-last_reviewed: 2026-11-11
-status: reconciled-static
-tags: [launcher, module]
+source_of_truth: feature/dashboard-cpu-gpu-thermal
+last_reviewed: 2026-11-13
+status: implemented-unverified
+tags: [launcher, module, dashboard, monitoring]
 ---
 
 # Dashboard
 
 ## Responsabilidad
 
-Proporcionar una pantalla principal con información resumida y elementos configurables del sistema.
+Mostrar de un vistazo el estado del sistema, métricas, procesos, juegos, accesos rápidos, eventos, UPLINK y multimedia. El usuario puede mover y redimensionar las tarjetas existentes; el diseño se guarda con la configuración del tablero.
 
-## Funcionalidades que investigar
+## Monitorización y estados
 
-- Página de inicio.
-- Widgets.
-- Paneles configurables.
-- Distribución de elementos.
-- Información de sistema.
-- Accesos rápidos.
-- Persistencia de distribución.
+- `SystemStatusHost` es el único propietario del muestreo de sistema, procesos, UPLINK, evaluación de estados y eventos de Windows.
+- Dashboard consume la última muestra. Cuando está visible, el intervalo usa `StatusIntervalSeconds`; al mostrar otro módulo baja a 3 s y con Launcher oculto o minimizado a 10 s.
+- `StatusEvaluator` mantiene estados por métrica y un estado global: `ONLINE`, `WARNING` o `DEFCON`. Los perfiles `relaxed`, `normal` y `strict` cambian sus umbrales.
+- Un dispositivo UPLINK con estado de problema eleva el global a `WARNING`. Una desconexión normal queda en el registro como evento informativo.
+- El indicador global usa color y texto; pulsa en `WARNING` y con mayor rapidez en `DEFCON`. No depende solo del color.
 
-## Componentes documentados históricamente
+## Métricas visibles
 
-- `DashboardView`.
-- `DashboardBoard`.
-- `BoardBox`.
-- `IWidget`.
-- `WidgetCatalog`.
+- CPU y GPU muestran porcentaje y temperatura en la primera línea; la segunda muestra el modelo. CPU añade núcleos e hilos en formato compacto.
+- Las temperaturas se leen con LibreHardwareMonitor. Si el sensor no está disponible, se muestra `--°C` y el Dashboard sigue funcionando.
+- RAM y VRAM conservan su presentación actual.
+- Las tarjetas, sus claves y sus posiciones por defecto se mantienen.
 
-La documentación advierte que estos elementos no aparecían en el snapshot anterior. No se considera verificada su existencia actual.
+## Efectos visuales
 
-## Dependencias que investigar
+La opción `DashboardEffects` de Settings controla la rejilla, el resplandor superior, la viñeta y las scanlines del Dashboard. Si se desactiva, oculta esas capas; no cambia los datos ni la distribución.
 
-- Monitor.
-- Games.
-- Processes.
-- Network.
-- Devices.
-- Sistema de widgets.
-- Persistencia.
+La opción D de fondos sigue pendiente: fondos incluidos, imágenes propias, asociación automática con el tema y selección manual. Las capas vectoriales actuales no constituyen esa galería de fondos.
 
-## Auditoría
+## Validación pendiente
 
-- [ ] Localizar vista actual.
-- [ ] Verificar registro.
-- [ ] Localizar sistema de widgets.
-- [ ] Revisar configuración del tablero.
-- [ ] Analizar persistencia.
-- [ ] Revisar actualización de datos.
-- [ ] Analizar rendimiento.
-- [ ] Identificar dependencias entre widgets.
+La rama está revisada estáticamente, pero sigue pendiente de compilar y probar en Windows:
 
-## Riesgos
-
-- Actualizaciones frecuentes de datos.
-- Widgets que mantienen recursos activos.
-- Dependencias circulares.
-- Acoplamiento entre presentación y módulos.
+- Verificar lecturas térmicas con sensores disponibles y no disponibles.
+- Comprobar el refresco y las alertas de métricas, UPLINK y eventos de Windows.
+- Probar los tamaños pequeños de CPU/GPU y confirmar que el porcentaje sigue legible.
+- Cambiar `DashboardEffects` desde Settings y confirmar que las cuatro capas se muestran u ocultan tras Guardar.
 
 ## Documentación relacionada
 
-- [[MODULES]]
 - [[MONITOR]]
 - [[GAMES]]
 - [[PROCESSES]]
-
-## Estado contrastado con código — 2026-11-11
-
-Registrado como DashboardModule (Order -1). DashboardView usa DispatcherTimer de 1 s y realiza muestreo de sistema/procesos y refresco de Now Playing. El timer se detiene en Unloaded; la vista se mantiene cacheada por MainWindow. El impacto de muestreo síncrono y posible duplicación con SystemStatusHost se documenta en [[../03-Audit/Findings|Findings]].
+- [[Settings]]
