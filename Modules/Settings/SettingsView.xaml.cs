@@ -574,9 +574,10 @@ public partial class SettingsView : UserControl
             !_draftImageGen.TrySave() ||
             !_draftModels.TrySave())
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
-                "No se ha podido guardar uno de los archivos de configuracion. Los cambios siguen pendientes.",
+                "No se ha podido guardar uno de los archivos de configuracion. Los cambios siguen pendientes." +
+                (restored ? "" : "\nATENCION: tampoco se ha podido restaurar completamente el estado anterior. Revisa los archivos de configuracion."),
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -584,9 +585,10 @@ public partial class SettingsView : UserControl
         // El registro de Windows tambien forma parte del guardado confirmado.
         if (!StartupService.SetEnabled(_draftStartupEnabled, _draft.StartMinimized))
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
-                "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes.",
+                "No se ha podido modificar el inicio con Windows. Los cambios siguen pendientes." +
+                (restored ? "" : "\nATENCION: tampoco se ha podido restaurar completamente el estado anterior. Revisa los archivos de configuracion."),
                 "Guardar configuracion", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -600,9 +602,10 @@ public partial class SettingsView : UserControl
         var hotkeyOk = WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         if (!hotkeyOk)
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
-                "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados.",
+                "Ese atajo ya lo esta usando otra aplicacion. Se han restaurado los valores guardados." +
+                (restored ? "" : "\nATENCION: la restauracion no se ha completado por completo."),
                 "Atajo global", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -611,9 +614,10 @@ public partial class SettingsView : UserControl
         if ((apiKey.Length > 0 || ModelsClearApiKeyCheck.IsChecked == true) &&
             !Launcher.Modules.Models.CivitaiService.Instance.SaveApiKey(ModelsClearApiKeyCheck.IsChecked == true ? "" : apiKey))
         {
-            RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
+            var restored = RestorePreviousConfiguration(previousApp, previousLibraries, previousImageGen, previousModels, previousStartup);
             MessageBox.Show(Window.GetWindow(this),
-                "No se ha podido guardar la credencial de Civitai en el Administrador de credenciales de Windows.",
+                "No se ha podido guardar la credencial de Civitai en el Administrador de credenciales de Windows." +
+                (restored ? "" : "\nATENCION: la restauracion no se ha completado por completo."),
                 "Civitai", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -637,28 +641,35 @@ public partial class SettingsView : UserControl
         MarkPending();
     }
 
-    private void RestorePreviousConfiguration(
+    private bool RestorePreviousConfiguration(
         AppSettingsService previousApp,
         LibraryPathsService previousLibraries,
         Launcher.Modules.ImageGen.ImageGenSettings previousImageGen,
         Launcher.Modules.Models.ModelsSettings previousModels,
         bool previousStartup)
     {
+        // Intentar restaurar todos los archivos, aunque uno falle.
+        var restored = true;
+        restored &= previousApp.TrySave(notifyChanged: false);
+        restored &= previousLibraries.TrySave();
+        restored &= previousImageGen.TrySave();
+        restored &= previousModels.TrySave();
+        restored &= StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
+
         CopyObject(previousApp, _settings);
         CopyObject(previousLibraries, LibraryPathsService.Instance);
         CopyImageGenSettings(previousImageGen, Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         CopyModelsConfig(previousModels, Launcher.Modules.Models.ModelsSettings.Instance);
 
-        _settings.TrySave(notifyChanged: false);
-        LibraryPathsService.Instance.TrySave();
-        Launcher.Modules.ImageGen.ImageGenSettings.Instance.TrySave();
-        Launcher.Modules.Models.ModelsSettings.Instance.TrySave();
-        StartupService.SetEnabled(previousStartup, previousApp.StartMinimized);
-
-        WindowBehaviorService.Instance?.ApplyHotkey();
+        restored &= WindowBehaviorService.Instance?.ApplyHotkey() ?? true;
         _settings.ApplyToWindow(Window.GetWindow(this)!);
         WindowBehaviorService.Instance?.ApplyTray();
         ThemeService.ApplyAccent(_settings.AccentColor);
+
+        if (!restored)
+            LogService.Error("La restauracion de configuracion tras un fallo de guardado no se completo.");
+
+        return restored;
     }
 
     private void SettingsView_Loaded(object sender, RoutedEventArgs e)
