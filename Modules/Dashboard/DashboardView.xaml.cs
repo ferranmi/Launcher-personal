@@ -76,6 +76,7 @@ public partial class DashboardView : UserControl
     private readonly NowPlayingService _nowPlaying = new();
     private readonly NowPlayingInfo _info;
     private readonly DispatcherTimer _timer;
+    private readonly AppSettingsService _settings = AppSettingsService.Instance;
 
     private CommandsService _commands = new();
     private FolderShortcutsService _folders = new();
@@ -92,6 +93,8 @@ public partial class DashboardView : UserControl
     public DashboardView()
     {
         InitializeComponent();
+        ApplyDashboardEffects();
+        _settings.Changed += Settings_Changed;
 
         _info = _nowPlaying.Info;
         PlayerPanel.DataContext = _info;
@@ -120,6 +123,17 @@ public partial class DashboardView : UserControl
             _timer.Stop();
             if (CenterBoard.IsEditing) SetEditing(false); // al cambiar de modulo no se queda a medias
         };
+    }
+
+    private void Settings_Changed(object? sender, EventArgs e) => ApplyDashboardEffects();
+
+    private void ApplyDashboardEffects()
+    {
+        var visibility = _settings.DashboardEffects ? Visibility.Visible : Visibility.Collapsed;
+        DashboardGridEffect.Visibility = visibility;
+        DashboardGlowEffect.Visibility = visibility;
+        DashboardVignetteEffect.Visibility = visibility;
+        DashboardScanlinesEffect.Visibility = visibility;
     }
 
     private async void DashboardView_Loaded(object sender, RoutedEventArgs e)
