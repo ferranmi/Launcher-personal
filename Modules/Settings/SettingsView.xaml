@@ -531,7 +531,7 @@
             </HeaderedContentControl>
 
             <HeaderedContentControl Style="{StaticResource SettingRow}" Header="Restablecer preferencias de Launcher"
-                                    Tag="Restablece las preferencias de Launcher y los ajustes de Dashboard, Games, Devices, Multimedia, Red, Monitor y Music. Tambien desactiva el inicio con Windows. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai.">
+                                    Tag="Restablece las preferencias de Launcher y los ajustes de Dashboard, Games, Devices, Multimedia, Red, Monitor y Music. Tambien desactiva el inicio con Windows. No modifica settings.json, imagegen.json, models.json ni la credencial de Civitai.">
                 <Button Content="Restablecer" Style="{StaticResource ActionButton}" Click="Reset_Click" />
             </HeaderedContentControl>
 
