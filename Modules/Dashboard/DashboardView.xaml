@@ -342,9 +342,9 @@
         </Grid.RowDefinitions>
 
         <!-- Fondo: rejilla + brillo superior + vineta (detras de todo, sin capturar el raton) -->
-        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
-        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
-        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
+        <Rectangle x:Name="DashboardGridEffect" Grid.RowSpan="2" Fill="{StaticResource Bg.Grid}" IsHitTestVisible="False" />
+        <Rectangle x:Name="DashboardGlowEffect" Grid.RowSpan="2" Fill="{StaticResource Bg.TopGlow}" IsHitTestVisible="False" />
+        <Rectangle x:Name="DashboardVignetteEffect" Grid.RowSpan="2" Fill="{StaticResource Bg.Vignette}" IsHitTestVisible="False" />
 
         <!-- Cabecera: titulo + buscador + editar/widgets + estado global + reloj -->
         <Grid Grid.Row="0" Margin="0,0,0,12">
@@ -750,6 +750,6 @@
         </ctl:DashboardBoard>
 
         <!-- Scanlines por encima de todo (efecto CRT sutil) -->
-        <Rectangle Grid.RowSpan="2" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
+        <Rectangle x:Name="DashboardScanlinesEffect" Grid.RowSpan="2" Fill="{StaticResource Bg.Scanlines}" IsHitTestVisible="False" />
     </Grid>
 </UserControl>
