@@ -124,6 +124,7 @@ Documento: [[Settings Audit]].
 - Borradores para AppSettings, LibraryPaths, ImageGen y Models.
 - Guardado coordinado de JSON, registro Run y credencial Civitai.
 - Escritura inicial desde los objetos de borrador, sin mutar los servicios activos hasta completar los archivos y el registro.
+- El registro Run solo se modifica cuando cambia la opcion de inicio o el argumento minimizado; las demas preferencias no dependen de permisos de registro.
 - Comparacion y sincronizacion separada de estado runtime de ventana, navegacion y layouts para evitar sobrescribir cambios externos.
 - Escritura temporal y reemplazo individual.
 - Rollback compensatorio ante errores detectados.
