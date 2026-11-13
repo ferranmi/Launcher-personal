@@ -455,9 +455,32 @@ public partial class SettingsView : UserControl
         target.LastParams = source.LastParams;
     }
 
+    private static string AppSettingsSignature(AppSettingsService settings)
+    {
+        // Son datos de runtime/interfaz que pueden cambiar fuera de Settings.
+        // No deben generar falsos cambios ni ser sobrescritos por un borrador antiguo.
+        var snapshot = CloneObject(settings);
+        snapshot.LastModule = null;
+        snapshot.WindowLeft = snapshot.WindowTop = snapshot.WindowWidth = snapshot.WindowHeight = null;
+        snapshot.Layouts = new Dictionary<string, double[]>();
+        snapshot.SidebarCollapsed = false;
+        return JsonSerializer.Serialize(snapshot);
+    }
+
+    private void SyncRuntimeAppSettingsState()
+    {
+        _draft.LastModule = _settings.LastModule;
+        _draft.WindowLeft = _settings.WindowLeft;
+        _draft.WindowTop = _settings.WindowTop;
+        _draft.WindowWidth = _settings.WindowWidth;
+        _draft.WindowHeight = _settings.WindowHeight;
+        _draft.Layouts = CloneObject(_settings.Layouts);
+        _draft.SidebarCollapsed = _settings.SidebarCollapsed;
+    }
+
     private bool HasPendingChanges()
     {
-        return !string.Equals(JsonSerializer.Serialize(_draft), JsonSerializer.Serialize(_settings), StringComparison.Ordinal) ||
+        return !string.Equals(AppSettingsSignature(_draft), AppSettingsSignature(_settings), StringComparison.Ordinal) ||
                !string.Equals(JsonSerializer.Serialize(_draftLibraryPaths), JsonSerializer.Serialize(LibraryPathsService.Instance), StringComparison.Ordinal) ||
                !string.Equals(ImageGenConfigSignature(_draftImageGen), ImageGenConfigSignature(Launcher.Modules.ImageGen.ImageGenSettings.Instance), StringComparison.Ordinal) ||
                !string.Equals(ModelsConfigSignature(_draftModels), ModelsConfigSignature(Launcher.Modules.Models.ModelsSettings.Instance), StringComparison.Ordinal) ||
@@ -563,6 +586,10 @@ public partial class SettingsView : UserControl
         var previousLibraries = CloneObject(LibraryPathsService.Instance);
         var previousImageGen = CloneObject(Launcher.Modules.ImageGen.ImageGenSettings.Instance);
         var previousStartup = StartupService.IsEnabled();
+
+        // Conserva el estado de ventana, navegacion y layouts que puede cambiar mientras
+        // Settings esta abierto, sin convertirlo en una edicion del usuario.
+        SyncRuntimeAppSettingsState();
 
         // Conserva los datos que ImageGen aprende del servidor mientras Settings esta abierto.
         SyncRuntimeImageGenState();
