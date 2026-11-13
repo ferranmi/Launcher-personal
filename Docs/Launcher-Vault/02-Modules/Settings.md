@@ -51,7 +51,8 @@ Los modulos pueden abrir una categoria concreta mediante SettingsView.OpenSectio
 - Navegar entre categorias no guarda.
 - Al salir de Settings o cerrar Launcher con cambios pendientes se pregunta si guardar, descartar o seguir editando.
 - Los dialogos de Games e ImageGen reciben copias de trabajo cuando se abren desde Settings.
-- Los cambios del registro Run y la credencial Civitai se aplican dentro del proceso de guardado.
+- El registro Run solo se modifica si cambia el estado de inicio o el argumento de arranque minimizado; asi un problema de permisos del registro no bloquea otros ajustes.
+- La credencial Civitai se guarda en Credential Manager al final del proceso, despues de validar y persistir los demas destinos.
 
 ## Fuentes de configuracion y persistencia
 
